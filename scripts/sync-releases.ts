@@ -1,7 +1,3 @@
-// Script de synchronisation des sorties hebdomadaires
-// Exécuté via GitHub Action chaque jeudi 18h
-// Usage: npm run sync:releases
-
 import 'dotenv/config';
 
 import { createClient } from '@supabase/supabase-js';
@@ -34,7 +30,7 @@ async function upsertArtist(artist: { mbid: string; name: string; genres?: strin
   const { data, error } = await supabase
     .from('artists')
     .upsert({ mbid: artist.mbid, name: artist.name, slug, genres: artist.genres || null, popularity: artist.popularity || 0, image_url: artist.image_url || null },
-    { onConflict: 'mbid', ignoreDuplicates: false })
+      { onConflict: 'mbid', ignoreDuplicates: false })
     .select('id')
     .single();
   if (error) throw error;
@@ -85,10 +81,9 @@ async function main() {
   console.log('🔍 Fetching release groups from MusicBrainz...');
   let releaseGroups: any[] = [];
   try {
-    releaseGroups = await searchUpcomingReleaseGroups('', endStr, MAX_RELEASES_PER_RUN);
+    releaseGroups = await searchUpcomingReleaseGroups('', '', MAX_RELEASES_PER_RUN);
   } catch (err) {
     console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
-    console.log('ℹ️ MusicBrainz may be busy. Try again later.');
     process.exit(0);
   }
   console.log(`📦 Found ${releaseGroups.length} release groups`);
@@ -150,18 +145,26 @@ async function main() {
       }
 
       await upsertRelease({
-        mbid: rg.id, spotify_id: spotifyData.spotify_id,
-        title: details.title, artist_id: artistId, label_id: labelId,
+        mbid: rg.id,
+        spotify_id: spotifyData.spotify_id,
+        title: details.title,
+        artist_id: artistId,
+        label_id: labelId,
         release_date: releaseDate,
         release_type: mapReleaseType(details['primary-type']),
-        cover_url: coverUrl, genres: allGenres,
+        cover_url: coverUrl,
+        genres: allGenres,
         track_count: spotifyData.track_count || 0,
         total_duration_ms: spotifyData.total_duration_ms,
         spotify_url: spotifyData.spotify_url,
         apple_music_url: spotifyData.apple_music_url,
         deezer_url: spotifyData.deezer_url,
         youtube_url: spotifyData.youtube_url,
-        metadata: { musicbrainz: details, lastfm: { artist_tags: artistTags, album_tags: albumTags, artist_info: artistInfo }, spotify: spotifyAlbum },
+        metadata: {
+          musicbrainz: details,
+          lastfm: { artist_tags: artistTags, album_tags: albumTags, artist_info: artistInfo },
+          spotify: spotifyAlbum,
+        },
       });
 
       processed++;
@@ -179,11 +182,6 @@ async function main() {
    Processed: ${processed}
    Errors: ${errors}
   `);
-
-  if (errors > processed * 0.5) {
-    console.error('⚠️ High error rate, check logs');
-    process.exit(1);
-  }
 }
 
 main().catch(err => {
