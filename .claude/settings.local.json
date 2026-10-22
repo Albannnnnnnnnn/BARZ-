@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Bash(rm -f /Users/alban/Documents/DEV/BARZ¡/.DS_Store && npm create astro@latest . -- --template minimal --typescript strict --install 2>&1)",
+      "Bash(rtk ls *)",
+      "Bash(npm install *)",
+      "Bash(rtk npm *)"
+    ]
+  }
+}
