@@ -47,18 +47,13 @@ async function upsertLabel(label: { mbid: string; name: string; image_url?: stri
   return data.id;
 }
 
-async function upsertRelease(release: {
-  mbid: string; spotify_id?: string; title: string; artist_id: string | null;
-  label_id: string | null; release_date: string;
-  release_type: string; cover_url?: string; genres: string[]; track_count: number;
-  total_duration_ms?: number; spotify_url?: string; apple_music_url?: string;
-  deezer_url?: string; youtube_url?: string; metadata?: Record<string, unknown>;
-}) {
+async function upsertRelease(release: any) {
   const slug = slugify(release.title);
-  const { data, error } = await supabase.from('releases').upsert(
-    { ...release, slug },
-    { onConflict: 'mbid', ignoreDuplicates: false }
-  ).select('id').single();
+  const { data, error } = await supabase
+    .from('releases')
+    .upsert({ ...release, slug },
+      { onConflict: 'mbid', ignoreDuplicates: false }
+    ).select('id').single();
   if (error) throw error;
   return data.id;
 }
@@ -84,6 +79,7 @@ async function main() {
     releaseGroups = await searchUpcomingReleaseGroups('', '', MAX_RELEASES_PER_RUN);
   } catch (err) {
     console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
+    console.log('ℹ️ MusicBrainz may be busy. Try again later.');
     process.exit(0);
   }
   console.log(`📦 Found ${releaseGroups.length} release groups`);
@@ -182,6 +178,11 @@ async function main() {
    Processed: ${processed}
    Errors: ${errors}
   `);
+
+  if (errors > processed * 0.5) {
+    console.error('⚠️ High error rate, check logs');
+    process.exit(1);
+  }
 }
 
 main().catch(err => {
