@@ -29,24 +29,6 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// Configuration
-const WEEKS_BACK = 4;
-const WEEKS_FORWARD = 8;
-const BATCH_SIZE = 50;
-const MAX_RELEASES_PER_RUN = 500;
-
-function getDateRange() {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(start.getDate() - WEEKS_BACK * 7);
-  const end = new Date(now);
-  end.setDate(end.getDate() + WEEKS_FORWARD * 7);
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
-}
-
 async function upsertArtist(artist: { mbid: string; name: string; genres?: string[]; popularity?: number; image_url?: string }) {
   const slug = slugify(artist.name);
 
@@ -128,32 +110,52 @@ async function upsertRelease(release: {
 }
 
 async function refreshWeeklyView() {
-  const { error } = await supabase.rpc('refresh_weekly_releases');
-  if (error) {
-    console.warn('⚠️ Could not refresh materialized view via RPC, trying direct SQL...');
-    // Fallback: refresh via direct SQL
-    const { error: sqlError } = await supabase
-      .from('releases')
-      .select('id')
-      .limit(1);
-    if (!sqlError) {
-      // Trigger refresh by doing a dummy operation
-      await supabase.rpc('refresh_weekly_releases').catch(() => {});
+  try {
+    const { error } = await supabase.rpc('refresh_weekly_releases');
+    if (error) {
+      console.warn('⚠️ Could not refresh materialized view:', error.message);
+    } else {
+      console.log('✅ Materialized view refreshed');
     }
+  } catch (err) {
+    console.warn('⚠️ Could not refresh materialized view:', err instanceof Error ? err.message : err);
   }
 }
 
 async function main() {
   console.log('🚀 Starting releases sync...');
+
+  const WEEKS_BACK = 4;
+  const WEEKS_FORWARD = 8;
+  const MAX_RELEASES_PER_RUN = 500;
+
+  function getDateRange() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - WEEKS_BACK * 7);
+    const end = new Date(now);
+    end.setDate(end.getDate() + WEEKS_FORWARD * 7);
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+    };
+  }
+
   const { start, end } = getDateRange();
   console.log(`📅 Date range: ${start} to ${end}`);
 
   // 1. Récupérer les Release Groups depuis MusicBrainz
   console.log('🔍 Fetching release groups from MusicBrainz...');
-  const releaseGroups = await searchUpcomingReleaseGroups(start, end, MAX_RELEASES_PER_RUN);
+  let releaseGroups;
+  try {
+    releaseGroups = await searchUpcomingReleaseGroups(start, end, MAX_RELEASES_PER_RUN);
+  } catch (err) {
+    console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
   console.log(`📦 Found ${releaseGroups.length} release groups`);
 
-  // Filtrer par date de sortie
+  // 2. Filtrer par date de sortie
   const filtered = releaseGroups.filter(rg => {
     const date = rg['first-release-date'];
     if (!date) return false;
@@ -161,12 +163,17 @@ async function main() {
   });
   console.log(`✅ ${filtered.length} releases in date range`);
 
+  if (filtered.length === 0) {
+    console.log('ℹ️ No releases found for this date range. Exiting.');
+    process.exit(0);
+  }
+
   let processed = 0;
   let created = 0;
   let updated = 0;
   let errors = 0;
 
-  // 2. Traiter chaque release group
+  // 3. Traiter chaque release group
   for (const rg of filtered) {
     try {
       // Détails complets
@@ -277,8 +284,7 @@ async function main() {
     }
   }
 
-  // 3. Rafraîchir la vue matérialisée
-  console.log('🔄 Refreshing materialized view...');
+  // 4. Rafraîchir la vue matérialisée
   await refreshWeeklyView();
 
   console.log(`
