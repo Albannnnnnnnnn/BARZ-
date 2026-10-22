@@ -1,3 +1,7 @@
+// Script de synchronisation des sorties hebdomadaires
+// Exécuté via GitHub Action chaque jeudi 18h
+// Usage: npm run sync:releases
+
 import 'dotenv/config';
 
 import { createClient } from '@supabase/supabase-js';
@@ -49,8 +53,8 @@ async function upsertLabel(label: { mbid: string; name: string; image_url?: stri
 
 async function upsertRelease(release: {
   mbid: string; spotify_id?: string; title: string; artist_id: string | null;
-  label_id: string | null; release_date: string; release_type: string;
-  cover_url?: string; genres: string[]; track_count: number;
+  label_id: string | null; release_date: string;
+  release_type: string; cover_url?: string; genres: string[]; track_count: number;
   total_duration_ms?: number; spotify_url?: string; apple_music_url?: string;
   deezer_url?: string; youtube_url?: string; metadata?: Record<string, unknown>;
 }) {
@@ -66,49 +70,43 @@ async function upsertRelease(release: {
 async function refreshWeeklyView() {
   try {
     const { error } = await supabase.rpc('refresh_weekly_releases');
-    if (error) console.warn('⚠️ Materialized view refresh:', error.message);
+    if (error) console.warn('⚠️ Could not refresh materialized view:', error.message);
+    else console.log('✅ Materialized view refreshed');
   } catch (err) {
-    console.warn('⚠️ Could not refresh view:', err instanceof Error ? err.message : err);
+    console.warn('⚠️ Could not refresh materialized view:', err instanceof Error ? err.message : err);
   }
 }
 
 async function main() {
   console.log('🚀 Starting releases sync...');
 
-  const WEEKS_BACK = 4;
-  const WEEKS_FORWARD = 8;
   const MAX_RELEASES_PER_RUN = 200;
-
-  const now = new Date();
-  const start = new Date(now); start.setDate(start.getDate() - WEEKS_BACK * 7);
-  const end = new Date(now); end.setDate(end.getDate() + WEEKS_FORWARD * 7);
-  const startStr = start.toISOString().split('T')[0];
-  const endStr = end.toISOString().split('T')[0];
-  console.log(`📅 Date range: ${startStr} to ${endStr}`);
 
   console.log('🔍 Fetching release groups from MusicBrainz...');
   let releaseGroups: any[] = [];
   try {
-    releaseGroups = await searchUpcomingReleaseGroups(startStr, endStr, MAX_RELEASES_PER_RUN);
+    releaseGroups = await searchUpcomingReleaseGroups('', endStr, MAX_RELEASES_PER_RUN);
   } catch (err) {
-    console.error('❌ MusicBrainz error:', err instanceof Error ? err.message : err);
-    console.log('ℹ️ MusicBrainz unavailable. Exiting.');
+    console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
+    console.log('ℹ️ MusicBrainz may be busy. Try again later.');
     process.exit(0);
   }
   console.log(`📦 Found ${releaseGroups.length} release groups`);
 
- const filtered = releaseGroups;
-console.log(`📦 ${filtered.length} releases found (all)`);
+  if (releaseGroups.length === 0) {
+    console.log('ℹ️ No releases found. Exiting.');
+    process.exit(0);
+  }
 
   let processed = 0;
   let errors = 0;
 
-  for (const rg of filtered) {
+  for (const rg of releaseGroups) {
     try {
       const details = await getReleaseGroupDetails(rg.id);
       if (!details) continue;
 
-      const releaseDate = details['first-release-date'] || rg['first-release-date'];
+      const releaseDate = details['first-release-date'];
       if (!releaseDate) continue;
 
       const mainArtist = details['artist-credit']?.[0]?.artist;
@@ -126,11 +124,15 @@ console.log(`📦 ${filtered.length} releases found (all)`);
 
       let labelId: string | null = null;
       const labelCredit = details['artist-credit']?.find((ac: any) => ac.artist?.type === 'label')?.artist;
-      if (labelCredit) labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
+      if (labelCredit) {
+        labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
+      }
 
       let coverUrl: string | null = null;
       const firstRelease = details.releases?.[0];
-      if (firstRelease?.id) coverUrl = await getCoverArtUrl(firstRelease.id);
+      if (firstRelease?.id) {
+        coverUrl = await getCoverArtUrl(firstRelease.id);
+      }
 
       let spotifyData: any = {};
       const spotifySearch = await searchSpotifyAlbum(mainArtist.name, details.title);
@@ -150,7 +152,8 @@ console.log(`📦 ${filtered.length} releases found (all)`);
       await upsertRelease({
         mbid: rg.id, spotify_id: spotifyData.spotify_id,
         title: details.title, artist_id: artistId, label_id: labelId,
-        release_date: releaseDate, release_type: mapReleaseType(details['primary-type']),
+        release_date: releaseDate,
+        release_type: mapReleaseType(details['primary-type']),
         cover_url: coverUrl, genres: allGenres,
         track_count: spotifyData.track_count || 0,
         total_duration_ms: spotifyData.total_duration_ms,
@@ -162,26 +165,28 @@ console.log(`📦 ${filtered.length} releases found (all)`);
       });
 
       processed++;
-      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${filtered.length}...`);
+      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${releaseGroups.length}...`);
     } catch (err) {
       errors++;
-      console.error(`❌ Error ${rg.id}:`, err instanceof Error ? err.message : err);
+      console.error(`❌ Error processing ${rg.id}:`, err instanceof Error ? err.message : err);
     }
   }
 
   await refreshWeeklyView();
 
   console.log(`
-✅ Sync complete!
+✅ Sync completed!
    Processed: ${processed}
    Errors: ${errors}
-   Range: ${startStr} to ${endStr}
   `);
 
-  if (errors > processed * 0.5) process.exit(1);
+  if (errors > processed * 0.5) {
+    console.error('⚠️ High error rate, check logs');
+    process.exit(1);
+  }
 }
 
 main().catch(err => {
-  console.error('💥 Fatal:', err instanceof Error ? err.message : err);
+  console.error('💥 Fatal error:', err);
   process.exit(1);
 });
