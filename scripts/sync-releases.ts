@@ -2,6 +2,8 @@
 // Exécuté via GitHub Action chaque jeudi 18h
 // Usage: npm run sync:releases
 
+import 'dotenv/config';
+
 import { createClient } from '@supabase/supabase-js';
 import {
   searchUpcomingReleaseGroups,
