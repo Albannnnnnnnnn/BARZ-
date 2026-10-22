@@ -49,11 +49,10 @@ async function upsertLabel(label: { mbid: string; name: string; image_url?: stri
 
 async function upsertRelease(release: any) {
   const slug = slugify(release.title);
-  const { data, error } = await supabase
-    .from('releases')
-    .upsert({ ...release, slug },
-      { onConflict: 'mbid', ignoreDuplicates: false }
-    ).select('id').single();
+  const { data, error } = await supabase.from('releases').upsert(
+    { ...release, slug },
+    { onConflict: 'mbid', ignoreDuplicates: false }
+  ).select('id').single();
   if (error) throw error;
   return data.id;
 }
@@ -71,7 +70,7 @@ async function refreshWeeklyView() {
 async function main() {
   console.log('🚀 Starting releases sync...');
 
-  const MAX_RELEASES_PER_RUN = 200;
+  const MAX_RELEASES_PER_RUN = 500;
 
   console.log('🔍 Fetching release groups from MusicBrainz...');
   let releaseGroups: any[] = [];
