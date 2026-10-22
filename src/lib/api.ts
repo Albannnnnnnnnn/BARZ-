@@ -7,7 +7,7 @@ import { z } from 'zod';
 // ============================================================
 
 const MB_BASE = 'https://musicbrainz.org/ws/2';
-const MB_UA = import.meta.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0';
+const MB_UA = process.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0';
 
 async function mbFetch<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${MB_BASE}${endpoint}`);
@@ -107,7 +107,7 @@ export async function searchArtist(name: string): Promise<{ id: string; name: st
 // ============================================================
 
 const LF_BASE = 'https://ws.audioscrobbler.com/2.0/';
-const LF_KEY = import.meta.env.LASTFM_API_KEY;
+const LF_KEY = process.env.LASTFM_API_KEY;
 
 async function lfFetch<T>(method: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(LF_BASE);
@@ -173,8 +173,8 @@ const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 let spotifyToken: { access_token: string; expires_at: number } | null = null;
 
 async function getSpotifyToken(): Promise<string | null> {
-  const clientId = import.meta.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = import.meta.env.SPOTIFY_CLIENT_SECRET;
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) return null;
 

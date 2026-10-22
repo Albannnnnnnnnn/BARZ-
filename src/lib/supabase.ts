@@ -6,8 +6,8 @@ let serverClient: SupabaseClient<Database> | null = null;
 let serverClientError: Error | null = null;
 
 function createServerClient(): SupabaseClient<Database> | null {
-  const url = import.meta.env.SUPABASE_URL;
-  const serviceKey = import.meta.env.SUPABASE_SERVICE_KEY;
+  const url = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
 
   if (!url || !serviceKey) {
     serverClientError = new Error('Missing Supabase server env vars: SUPABASE_URL, SUPABASE_SERVICE_KEY');
@@ -31,7 +31,7 @@ export function getSupabaseServer(): SupabaseClient<Database> {
 
   if (!serverClient && serverClientError) {
     // During build, return a mock client that returns empty data
-    if (import.meta.env.PROD || import.meta.env.SSR) {
+    if (process.env.PROD || process.env.SSR) {
       throw serverClientError;
     }
     // Return a mock for dev
@@ -55,8 +55,8 @@ let browserClient: SupabaseClient<Database> | null = null;
 export function getSupabaseBrowser(): SupabaseClient<Database> {
   if (browserClient) return browserClient;
 
-  const url = import.meta.env.SUPABASE_URL;
-  const anonKey = import.meta.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
     throw new Error('Missing Supabase browser env vars: SUPABASE_URL, SUPABASE_ANON_KEY');
