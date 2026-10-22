@@ -31,7 +31,8 @@ async function upsertArtist(artist: { mbid: string; name: string; genres?: strin
     .from('artists')
     .upsert({ mbid: artist.mbid, name: artist.name, slug, genres: artist.genres || null, popularity: artist.popularity || 0, image_url: artist.image_url || null },
       { onConflict: 'mbid', ignoreDuplicates: false })
-    .select('id').single();
+    .select('id')
+    .single();
   if (error) throw error;
   return data.id;
 }
@@ -46,7 +47,13 @@ async function upsertLabel(label: { mbid: string; name: string; image_url?: stri
   return data.id;
 }
 
-async function upsertRelease(release: any) {
+async function upsertRelease(release: {
+  mbid: string; spotify_id?: string; title: string; artist_id: string | null;
+  label_id: string | null; release_date: string;
+  release_type: string; cover_url?: string; genres: string[]; track_count: number;
+  total_duration_ms?: number; spotify_url?: string; apple_music_url?: string;
+  deezer_url?: string; youtube_url?: string; metadata?: Record<string, unknown>;
+}) {
   const slug = slugify(release.title);
   const { data, error } = await supabase.from('releases').upsert(
     { ...release, slug },
@@ -153,7 +160,11 @@ async function main() {
         apple_music_url: spotifyData.apple_music_url,
         deezer_url: spotifyData.deezer_url,
         youtube_url: spotifyData.youtube_url,
-        metadata: { musicbrainz: details, lastfm: { artist_tags: artistTags, album_tags: albumTags, artist_info: artistInfo }, spotify: spotifyAlbum },
+        metadata: {
+          musicbrainz: details,
+          lastfm: { artist_tags: artistTags, album_tags: albumTags, artist_info: artistInfo },
+          spotify: spotifyAlbum,
+        },
       });
 
       processed++;
