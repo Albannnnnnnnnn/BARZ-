@@ -97,17 +97,8 @@ async function main() {
   }
   console.log(`📦 Found ${releaseGroups.length} release groups`);
 
-  const filtered = releaseGroups.filter(rg => {
-    const date = rg['first-release-date'];
-    if (!date) return false;
-    return date >= startStr && date <= endStr;
-  });
-  console.log(`✅ ${filtered.length} releases match date range`);
-
-  if (filtered.length === 0) {
-    console.log('ℹ️ No matching releases. Exiting.');
-    process.exit(0);
-  }
+ const filtered = releaseGroups;
+console.log(`📦 ${filtered.length} releases found (all)`);
 
   let processed = 0;
   let errors = 0;
