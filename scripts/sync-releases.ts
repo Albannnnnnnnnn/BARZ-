@@ -70,7 +70,7 @@ async function refreshWeeklyView() {
 async function main() {
   console.log('🚀 Starting releases sync...');
 
-  const MAX_RELEASES_PER_RUN = 500;
+  const MAX_RELEASES_PER_RUN = 200;
 
   console.log('🔍 Fetching release groups from MusicBrainz...');
   let releaseGroups: any[] = [];
@@ -78,7 +78,6 @@ async function main() {
     releaseGroups = await searchUpcomingReleaseGroups('', '', MAX_RELEASES_PER_RUN);
   } catch (err) {
     console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
-    console.log('ℹ️ MusicBrainz may be busy. Try again later.');
     process.exit(0);
   }
   console.log(`📦 Found ${releaseGroups.length} release groups`);
@@ -96,8 +95,7 @@ async function main() {
       const details = await getReleaseGroupDetails(rg.id);
       if (!details) continue;
 
-      const releaseDate = details['first-release-date'] || rg['first-release-date'];
-      if (!releaseDate) continue;
+      const releaseDate = details['first-release-date'] || rg['first-release-date'] || '1970-01-01';
 
       const mainArtist = details['artist-credit']?.[0]?.artist;
       if (!mainArtist) continue;
