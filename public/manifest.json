@@ -2,7 +2,7 @@
   "name": "BARZ",
   "short_name": "BARZ",
   "description": "Ton calendrier des sorties musicales. Découvre les nouveaux albums chaque vendredi.",
-  "start_url": "/",
+  "start_url": "/BARZ-/",
   "display": "standalone",
   "background_color": "#0a0a0b",
   "theme_color": "#e11d48",

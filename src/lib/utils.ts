@@ -219,7 +219,7 @@ export function buildFilterUrl(params: { genres?: string[]; week?: string; type?
 // ============================================================
 
 export function getOptimizedImageUrl(url: string | null | undefined, width = 400): string {
-  if (!url) return '/placeholder-release.svg';
+  if (!url) return '/BARZ-/placeholder-release.svg';
   // Pour Cover Art Archive, on peut ajouter des paramètres de redimensionnement
   if (url.includes('coverartarchive.org')) {
     return url.replace('/front', `/front-${width}`);
