@@ -1,5 +1,4 @@
 import 'dotenv/config';
-
 import { createClient } from '@supabase/supabase-js';
 import {
   searchUpcomingReleaseGroups,
@@ -94,48 +93,84 @@ async function main() {
   for (const rg of releaseGroups) {
     try {
       const details = await getReleaseGroupDetails(rg.id);
-      if (!details) continue;
+
+      // No details from MusicBrainz? Still upsert with basic listing info — never skip.
+      if (!details) {
+        await upsertRelease({
+          mbid: rg.id,
+          title: rg.title || 'Unknown',
+          artist_id: null,
+          label_id: null,
+          release_date: rg['first-release-date'] || '1970-01-01',
+          release_type: mapReleaseType(rg['primary-type']),
+          cover_url: null,
+          genres: ['unknown'],
+          track_count: 0,
+          metadata: { musicbrainz: rg },
+        });
+        processed++;
+        continue;
+      }
 
       const releaseDate = details['first-release-date'] || rg['first-release-date'] || '1970-01-01';
 
       const mainArtist = details['artist-credit']?.[0]?.artist;
-      if (!mainArtist) continue;
+      let artistId: string | null = null;
+      let allGenres: string[] = ['unknown'];
 
-      const mbGenres = details.tags?.map(t => t.name.toLowerCase()) || [];
-      const [artistTags, albumTags, artistInfo] = await Promise.all([
-        getArtistTags(mainArtist.name),
-        getAlbumTags(mainArtist.name, details.title),
-        getArtistInfo(mainArtist.name),
-      ]);
-
-      const allGenres = normalizeGenres([...mbGenres, ...artistTags, ...albumTags]);
-      const artistId = await upsertArtist({ mbid: mainArtist.id, name: mainArtist.name, genres: allGenres, popularity: artistInfo?.listeners || 0 });
+      if (mainArtist) {
+        try {
+          const mbGenres = details.tags?.map(t => t.name.toLowerCase()) || [];
+          const [artistTags, albumTags, artistInfo] = await Promise.all([
+            getArtistTags(mainArtist.name),
+            getAlbumTags(mainArtist.name, details.title),
+            getArtistInfo(mainArtist.name),
+          ]);
+          allGenres = normalizeGenres([...mbGenres, ...artistTags, ...albumTags]);
+          artistId = await upsertArtist({ mbid: mainArtist.id, name: mainArtist.name, genres: allGenres, popularity: artistInfo?.listeners || 0 });
+        } catch (err) {
+          console.warn(`⚠️ Artist enrichment failed for ${rg.id}:`, err instanceof Error ? err.message : err);
+        }
+      }
 
       let labelId: string | null = null;
       const labelCredit = details['artist-credit']?.find((ac: any) => ac.artist?.type === 'label')?.artist;
       if (labelCredit) {
-        labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
+        try {
+          labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
+        } catch (err) {
+          console.warn(`⚠️ Label upsert failed for ${rg.id}:`, err instanceof Error ? err.message : err);
+        }
       }
 
       let coverUrl: string | null = null;
       const firstRelease = details.releases?.[0];
       if (firstRelease?.id) {
-        coverUrl = await getCoverArtUrl(firstRelease.id);
+        try {
+          coverUrl = await getCoverArtUrl(firstRelease.id);
+        } catch {
+          // ignore cover art failures
+        }
       }
 
       let spotifyData: any = {};
-      const spotifySearch = await searchSpotifyAlbum(mainArtist.name, details.title);
-      const spotifyAlbum = spotifySearch?.albums?.items?.[0];
-      if (spotifyAlbum) {
-        const fullAlbum = await getSpotifyAlbum(spotifyAlbum.id);
-        if (fullAlbum) {
-          spotifyData = {
-            spotify_id: fullAlbum.id,
-            track_count: fullAlbum.total_tracks,
-            total_duration_ms: fullAlbum.tracks?.items.reduce((sum, t) => sum + t.duration_ms, 0),
-            spotify_url: fullAlbum.external_urls.spotify,
-          };
+      let spotifyAlbum: any = null;
+      try {
+        const spotifySearch = await searchSpotifyAlbum(mainArtist?.name || 'Unknown', details.title);
+        spotifyAlbum = spotifySearch?.albums?.items?.[0];
+        if (spotifyAlbum) {
+          const fullAlbum = await getSpotifyAlbum(spotifyAlbum.id);
+          if (fullAlbum) {
+            spotifyData = {
+              spotify_id: fullAlbum.id,
+              track_count: fullAlbum.total_tracks,
+              total_duration_ms: fullAlbum.tracks?.items.reduce((sum, t) => sum + t.duration_ms, 0),
+              spotify_url: fullAlbum.external_urls.spotify,
+            };
+          }
         }
+      } catch {
+        // ignore Spotify failures
       }
 
       await upsertRelease({
@@ -156,8 +191,8 @@ async function main() {
         youtube_url: spotifyData.youtube_url,
         metadata: {
           musicbrainz: details,
-          lastfm: { artist_tags: artistTags, album_tags: albumTags, artist_info: artistInfo },
-          spotify: spotifyAlbum,
+          lastfm: { artist_tags: [], album_tags: [], artist_info: null },
+          spotify: spotifyAlbum || null,
         },
       });
 
