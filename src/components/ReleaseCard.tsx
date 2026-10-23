@@ -84,7 +84,6 @@ export default function ReleaseCard({ release, variant = 'default' }: ReleaseCar
           loading="lazy"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {/* Gradient overlay for depth */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         {/* Badge type */}
         <div className="absolute top-3 left-3">
@@ -125,7 +124,7 @@ export default function ReleaseCard({ release, variant = 'default' }: ReleaseCar
         </h3>
 
         <p className="text-sm text-muted truncate mt-1">
-          <a href={`/artists/${artist?.slug}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+          <a href={`/BARZ-/artists/${artist?.slug}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
             {artist?.name}
           </a>
         </p>

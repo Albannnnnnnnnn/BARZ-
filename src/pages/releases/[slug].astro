@@ -50,7 +50,7 @@ if (supabase) {
 }
 
 if (error || !release) {
-  return Astro.redirect('/404');
+  return Astro.redirect('/BARZ-/404');
 }
 
 const typedRelease = release as ReleaseWithArtist;
@@ -75,7 +75,7 @@ const jsonLd = {
 <Layout
   title={`${typedRelease.title} - ${typedRelease.artist?.name} | BARZ`}
   description={`${getReleaseTypeLabel(typedRelease.release_type)} de ${typedRelease.artist?.name} sorti le ${formatDate(typedRelease.release_date)}. ${typedRelease.track_count} titres, ${typedRelease.genres.join(', ')}.`}
-  image={typedRelease.cover_url || '/BARZ-/og-default.jpg'}
+  image={typedRelease.cover_url || '/BARZ-/og-default.svg'}
   type="article"
 >
   <slot name="json-ld">
@@ -84,19 +84,16 @@ const jsonLd = {
 
   <article class="container section">
     <!-- Header avec cover -->
-    <header class="mb-10 grid md:grid-cols-[300px_1fr] gap-8 items-start">
-      <div class="relative aspect-square max-w-xs mx-auto md:mx-0" style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
+    <header class="mb-12 grid md:grid-cols-[300px_1fr] gap-8 items-start">
+      <div class="relative aspect-square max-w-xs mx-auto md:mx-0 overflow-hidden rounded-2xl">
         <img
           src={getOptimizedImageUrl(typedRelease.cover_url, 600)}
           alt={`Couverture de ${typedRelease.title}`}
-          class="w-full h-full object-cover"
+          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="eager"
         />
         <div class="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)]/90 to-transparent bottom-0" aria-hidden="true" />
-      </div>
-
-      <div>
-        <div class="flex flex-wrap gap-2 mb-4">
+        <div class="absolute top-3 left-3">
           <span class="badge badge-type" style={{
             background: `${getReleaseTypeColor(typedRelease.release_type)}20`,
             color: getReleaseTypeColor(typedRelease.release_type),
@@ -104,89 +101,108 @@ const jsonLd = {
           }}>
             {RELEASE_TYPE_LABELS[typedRelease.release_type]}
           </span>
-          <time class="badge badge-genre" dateTime={typedRelease.release_date} style={{ background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex flex-wrap gap-3 mb-5">
+          <span class="badge badge-type" style={{
+            background: `${getReleaseTypeColor(typedRelease.release_type)}20`,
+            color: getReleaseTypeColor(typedRelease.release_type),
+            borderColor: `${getReleaseTypeColor(typedRelease.release_type)}40`,
+          }}>
+            {RELEASE_TYPE_LABELS[typedRelease.release_type]}
+          </span>
+          <time class="badge badge-genre text-sm" dateTime={typedRelease.release_date} style={{ background: 'var(--color-bg-hover)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
             {formatDate(typedRelease.release_date, 'd MMMM yyyy')}
           </time>
         </div>
 
-        <h1 class="text-3xl md:text-4xl font-bold mb-2" style="letter-spacing: -0.02em; color: var(--color-text);">
+        <h1 class="text-5xl md:text-6xl font-bold mb-4" style="letter-spacing: -0.02em;">
           {typedRelease.title}
         </h1>
 
-        <p class="text-xl mb-4" style="color: var(--color-text-muted);">
-          <a href={createArtistUrl(typedRelease.artist?.slug || '')} class="hover:underline" style="color: var(--color-text);">
+        <p class="text-xl mb-6" style="color: var(--color-text-muted);">
+          <a href={createArtistUrl(typedRelease.artist?.slug || '')} class="hover:underline" style="color: var(--color-text); font-weight: 600;">
             {typedRelease.artist?.name}
           </a>
         </p>
 
         {typedRelease.label && (
-          <p class="text-sm text-dim mb-4">
-            Label: <a href={`/labels/${typedRelease.label.slug}`} class="hover:underline">{typedRelease.label.name}</a>
+          <p class="text-sm text-dim mb-6">
+            Label:
+            <a href={`/BARZ-/labels/${typedRelease.label.slug}`} class="hover:underline text-accent">
+              {typedRelease.label.name}
+            </a>
           </p>
         )}
 
-        <div class="flex flex-wrap gap-2 mb-6">
+        <div class="flex flex-wrap gap-2 mb-8">
           {typedRelease.genres.map((genre) => (
-            <span key={genre} class="badge badge-genre" style={{ background: `${getGenreColor(genre)}20`, color: getGenreColor(genre), borderColor: `${getGenreColor(genre)}40` }}>
+            <span
+              key={genre}
+              class="badge badge-genre text-sm"
+              style={{ background: `${getGenreColor(genre)}20`, color: getGenreColor(genre), borderColor: `${getGenreColor(genre)}40` }}
+            >
               {genre}
             </span>
           ))}
         </div>
 
-        <div class="flex flex-wrap gap-3 text-sm text-muted">
+        <div class="flex flex-wrap gap-4 text-sm text-muted items-start">
           {typedRelease.track_count > 0 && (
-            <span class="flex items-center gap-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <span class="flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M9 18V5l12-2v13" />
                 <circle cx="6" cy="18" r="3" />
                 <circle cx="18" cy="16" r="3" />
               </svg>
-              {typedRelease.track_count} titre{typedRelease.track_count > 1 ? 's' : ''}
+              <span>{typedRelease.track_count} titre{typedRelease.track_count > 1 ? 's' : ''}</span>
             </span>
           )}
           {typedRelease.total_duration_ms && (
-            <span class="flex items-center gap-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <span class="flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
               </svg>
-              {formatDuration(typedRelease.total_duration_ms)}
+              <span>{formatDuration(typedRelease.total_duration_ms)}</span>
             </span>
           )}
         </div>
 
         <!-- Liens streaming -->
-        <div class="flex flex-wrap gap-2 mt-6">
+        <div class="flex flex-wrap gap-3 mt-8">
           {typedRelease.spotify_url && (
-            <a href={typedRelease.spotify_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-2" style={{ background: '#1DB95420', borderColor: '#1DB95460', color: '#1DB954' }}>
+            <a href={typedRelease.spotify_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-3 px-4 py-2" style={{ background: '#1DB95420', borderColor: '#1DB95460', color: '#1DB954' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954" aria-hidden="true">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.521 17.34c-.24.359-.66.38-1.021.04-2.416-2.393-4.473-4.98-5.786-7.754-.131-.277-.07-.617.136-.825.236-.235.576-.238.812.022 1.526 3.187 3.926 6.12 6.847 7.517.24.11.3.41.138.671z" />
               </svg>
-              Spotify
+              <span class="font-semibold">Spotify</span>
             </a>
           )}
           {typedRelease.apple_music_url && (
-            <a href={typedRelease.apple_music_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-2" style={{ background: '#FA233B20', borderColor: '#FA233B60', color: '#FA233B' }}>
+            <a href={typedRelease.apple_music_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-3 px-4 py-2" style={{ background: '#FA233B20', borderColor: '#FA233B60', color: '#FA233B' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#FA233B" aria-hidden="true">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.991 14.133c-.597.348-1.346.399-1.882.122-.904-.468-1.95-1.37-2.867-2.708C11.585 10.61 10.32 9.447 8.697 8.46c-.225-.136-.49-.104-.67.073-.275.26-.355.65-.187 1.022 1.005 2.204 1.96 4.452 2.539 6.571.057.21.264.35.472.31.366-.073.562-.418.485-.699zM19.438 5.817c-.535-.267-1.17-.212-1.6.112-.959.72-2.257 1.81-3.527 3.177-1.547 1.663-3.156 3.464-4.65 5.353-.153.194-.404.22-.605.068-.23-.17-.29-.503-.137-.735 1.302-1.99 2.707-4.053 4.102-6.18.138-.21.368-.3.576-.187.439.25.565.706.33.973z" />
               </svg>
-              Apple Music
+              <span class="font-semibold">Apple Music</span>
             </a>
           )}
           {typedRelease.deezer_url && (
-            <a href={typedRelease.deezer_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-2" style={{ background: '#FF660020', borderColor: '#FF660060', color: '#FF6600' }}>
+            <a href={typedRelease.deezer_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-3 px-4 py-2" style={{ background: '#FF660020', borderColor: '#FF660060', color: '#FF6600' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF6600" aria-hidden="true">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.364 13.485c-.371.364-.935.483-1.502.244-.538-.227-1.014-.66-1.314-1.233-.62-.245-1.267-.235-1.8.06-.622.32-1.188.82-1.59 1.5-.676 1.147-.79 2.565-.408 3.803.525 1.7 2.122 2.945 3.878 2.676.767-.123 1.287-.734 1.478-1.464.175-.673-.167-1.295-.828-1.623z" />
               </svg>
-              Deezer
+              <span class="font-semibold">Deezer</span>
             </a>
           )}
           {typedRelease.youtube_url && (
-            <a href={typedRelease.youtube_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-2" style={{ background: '#FF000020', borderColor: '#FF000060', color: '#FF0000' }}>
+            <a href={typedRelease.youtube_url} target="_blank" rel="noopener" class="btn btn-secondary btn-sm flex items-center gap-3 px-4 py-2" style={{ background: '#FF000020', borderColor: '#FF000060', color: '#FF0000' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
                 <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
               </svg>
-              YouTube
+              <span class="font-semibold">YouTube</span>
             </a>
           )}
         </div>
@@ -195,12 +211,17 @@ const jsonLd = {
 
     <!-- Tracklist (si disponible dans metadata) -->
     {typedRelease.metadata && typedRelease.metadata.spotify && (
-      <section class="mb-12" aria-labelledby="tracklist-heading">
-        <h2 id="tracklist-heading" class="text-2xl font-bold mb-6" style="color: var(--color-text);">Tracklist</h2>
-        <div class="card overflow-hidden">
+      <section class="mb-14 card p-6" aria-labelledby="tracklist-heading">
+        <h2 id="tracklist-heading" class="text-3xl font-bold mb-6" style="color: var(--color-text); letter-spacing: -0.01em;">
+          Tracklist
+        </h2>
+        <div class="overflow-hidden rounded-lg border border-[var(--color-border)]">
           {typedRelease.metadata.spotify.tracks?.items?.map((track: any, index: number) => (
-            <div key={track.id} class="flex items-center gap-4 px-4 py-3 border-b last:border-0 hover:bg-[var(--color-bg-hover)] transition" style={{ borderColor: 'var(--color-border)' }}>
-              <span class="text-dim font-mono w-8 text-right">{index + 1}.</span>
+            <div
+              key={track.id}
+              class="flex items-center gap-4 px-4 py-3 border-b last:border-0 hover:bg-[var(--color-bg-hover)] transition" style={{ borderColor: 'var(--color-border)' }}
+            >
+              <span class="text-dim font-mono w-8 text-right text-xs">{index + 1}.</span>
               <div class="flex-1 min-w-0">
                 <p class="font-medium truncate" style={{ color: 'var(--color-text)' }}>{track.name}</p>
                 {track.artists?.length > 1 && (
@@ -224,26 +245,26 @@ const jsonLd = {
     )}
 
     <!-- Infos additionnelles -->
-    <section class="grid md:grid-cols-2 gap-6 mb-12">
+    <section class="grid md:grid-cols-2 gap-8 mb-14">
       <div class="card p-6">
-        <h3 class="font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Informations</h3>
-        <dl class="space-y-3 text-sm">
-          <div class="flex justify-between">
+        <h3 class="font-semibold mb-5" style={{ color: 'var(--color-text)' }}>Informations</h3>
+        <dl class="space-y-4 text-sm">
+          <div class="flex justify-between border-b border-[var(--color-border)] pb-2">
             <dt class="text-muted">Type</dt>
             <dd style={{ color: 'var(--color-text)' }}>{RELEASE_TYPE_LABELS[typedRelease.release_type]}</dd>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between border-b border-[var(--color-border)] pb-2">
             <dt class="text-muted">Date de sortie</dt>
             <dd style={{ color: 'var(--color-text)' }}>{formatDate(typedRelease.release_date, 'EEEE d MMMM yyyy')}</dd>
           </div>
           {typedRelease.label && (
-            <div class="flex justify-between">
+            <div class="flex justify-between border-b border-[var(--color-border)] pb-2">
               <dt class="text-muted">Label</dt>
-              <dd style={{ color: 'var(--color-text)' }}><a href={`/labels/${typedRelease.label.slug}`} class="hover:underline">{typedRelease.label.name}</a></dd>
+              <dd style={{ color: 'var(--color-text)' }}><a href={`/BARZ-/labels/${typedRelease.label.slug}`} class="hover:underline">{typedRelease.label.name}</a></dd>
             </div>
           )}
           {typedRelease.mbid && (
-            <div class="flex justify-between">
+            <div class="flex justify-between border-b border-[var(--color-border)] pb-2">
               <dt class="text-muted">MusicBrainz ID</dt>
               <dd class="font-mono text-xs"><a href={`https://musicbrainz.org/release-group/${typedRelease.mbid}`} target="_blank" rel="noopener" class="hover:underline">{typedRelease.mbid}</a></dd>
             </div>
@@ -252,15 +273,19 @@ const jsonLd = {
       </div>
 
       <div class="card p-6">
-        <h3 class="font-semibold mb-4" style={{ color: 'var(--color-text)' }}>{typedRelease.artist?.name}</h3>
+        <h3 class="font-semibold mb-5" style={{ color: 'var(--color-text)' }}>{typedRelease.artist?.name}</h3>
         {typedRelease.artist && (
-          <div class="space-y-3 text-sm">
+          <div class="space-y-4 text-sm">
             {typedRelease.artist.genres?.length && (
               <div>
-                <dt class="text-muted mb-1">Genres</dt>
-                <div class="flex flex-wrap gap-1.5">
+                <dt class="text-muted mb-3">Genres</dt>
+                <div class="flex flex-wrap gap-2">
                   {typedRelease.artist.genres.map((genre: string) => (
-                    <span key={genre} class="badge badge-genre text-xs" style={{ background: `${getGenreColor(genre)}20`, color: getGenreColor(genre), borderColor: `${getGenreColor(genre)}40` }}>
+                    <span
+                      key={genre}
+                      class="badge badge-genre text-xs"
+                      style={{ background: `${getGenreColor(genre)}20`, color: getGenreColor(genre), borderColor: `${getGenreColor(genre)}40` }}
+                    >
                       {genre}
                     </span>
                   ))}
@@ -268,7 +293,7 @@ const jsonLd = {
               </div>
             )}
             {typedRelease.artist.popularity && (
-              <div class="flex justify-between">
+              <div class="flex justify-between border-b border-[var(--color-border)] pb-2">
                 <dt class="text-muted">Popularité (Last.fm)</dt>
                 <dd style={{ color: 'var(--color-text)' }}>{typedRelease.artist.popularity.toLocaleString()} listeners</dd>
               </div>
@@ -284,9 +309,9 @@ const jsonLd = {
 
     <!-- Artistes similaires / même label / même genre -->
     <section>
-      <h2 class="text-2xl font-bold mb-6" style="color: var(--color-text);">À découvrir aussi</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="related-releases">
-        <p class="text-muted text-center py-8 col-span-3">Chargement...</p>
+      <h2 class="text-3xl font-bold mb-6" style="color: var(--color-text); letter-spacing: -0.01em;">À découvrir aussi</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="related-releases">
+        <p class="text-muted text-center py-8 col-span-full">Chargement...</p>
       </div>
     </section>
   </article>
@@ -302,7 +327,7 @@ const jsonLd = {
         params.set('exclude', typedRelease.id);
         params.set('limit', '6');
 
-        const res = await fetch(`/api/releases/related?${params}`);
+        const res = await fetch(`/BARZ-/api/releases/related?${params}`);
         const data = await res.json();
 
         const container = document.getElementById('related-releases');
@@ -320,11 +345,11 @@ const jsonLd = {
             </a>
           `).join('');
         } else {
-          container.innerHTML = '<p class="text-muted text-center py-8 col-span-3">Aucune sortie liée trouvée</p>';
+          container.innerHTML = '<p class="text-muted text-center py-8 col-span-full">Aucune sortie liée trouvée</p>';
         }
       } catch (e) {
         console.error('Failed to load related releases:', e);
-        document.getElementById('related-releases').innerHTML = '<p class="text-muted text-center py-8 col-span-3">Erreur de chargement</p>';
+        document.getElementById('related-releases').innerHTML = '<p class="text-muted text-center py-8 col-span-full">Erreur de chargement</p>';
       }
     }
 

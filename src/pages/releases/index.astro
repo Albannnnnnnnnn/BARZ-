@@ -71,17 +71,17 @@ const paginationPages = getPaginationPages(currentPage, totalPages);
 
 <Layout title="Toutes les sorties - BARZ" description="Parcours toutes les sorties musicales référencées sur BARZ. Albums, EPs, singles - filtre par genre, tri par date.">
   <div class="container section">
-    <header class="mb-8">
-      <h1 class="text-4xl font-bold mb-2" style="letter-spacing: -0.03em; color: var(--color-text);">
-        Toutes les sorties
+    <header class="mb-10 text-center">
+      <h1 class="text-6xl font-bold mb-4" style="letter-spacing: -0.03em;">
+        Toutes les sorties<span class="gradient-text">.</span>
       </h1>
-      <p class="text-lg" style="color: var(--color-text-muted);">
+      <p class="text-lg max-w-2xl mx-auto" style="color: var(--color-text-muted);">
         {count || 0} sorties référencées. Filtre par genre, navigue dans les pages.
       </p>
     </header>
 
     <!-- Filtres -->
-    <div class="card p-6 mb-8">
+    <div class="card p-8 mb-12">
       <GenreFilter
         client:visible
         selectedGenres={[]}
@@ -105,9 +105,9 @@ const paginationPages = getPaginationPages(currentPage, totalPages);
 
     <!-- Pagination -->
     {totalPages > 1 && (
-      <nav class="flex items-center justify-center gap-2 mt-10" aria-label="Pagination">
+      <nav class="mt-12 flex items-center justify-center gap-2" aria-label="Pagination">
         {currentPage > 1 && (
-          <a href={`/releases?page=${currentPage - 1}`} class="btn btn-secondary">
+          <a href={`/BARZ-/releases?page=${currentPage - 1}`} class="btn btn-secondary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
@@ -115,10 +115,10 @@ const paginationPages = getPaginationPages(currentPage, totalPages);
           </a>
         )}
 
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-2">
           {paginationPages.map((pageNum) => (
             <a
-              href={`/releases?page=${pageNum}`}
+              href={`/BARZ-/releases?page=${pageNum}`}
               class={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'}`}
               aria-current={currentPage === pageNum ? 'page' : undefined}
               aria-label={`Page ${pageNum}`}
@@ -129,7 +129,7 @@ const paginationPages = getPaginationPages(currentPage, totalPages);
         </div>
 
         {currentPage < totalPages && (
-          <a href={`/releases?page=${currentPage + 1}`} class="btn btn-secondary">
+          <a href={`/BARZ-/releases?page=${currentPage + 1}`} class="btn btn-secondary">
             Suivante
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M9 18l6-6-6-6" />
