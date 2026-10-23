@@ -123,7 +123,7 @@ export default function CalendarView({
       <div className="mt-6" role="region" aria-label="Calendrier de la semaine">
         <div className="grid grid-cols-7 gap-1 mb-1" style={{ fontSize: '0.75rem' }}>
           {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day, i) => (
-            <div key={day} className="text-center text-dim font-medium px-2 py-2">
+            <div key={day} className={`text-center font-medium px-2 py-2 ${i === 4 ? 'text-[var(--color-accent)] font-bold' : 'text-dim'}`}>
               {day}
             </div>
           ))}
@@ -146,23 +146,22 @@ export default function CalendarView({
                 aria-selected={isSelected}
                 aria-label={`${format(day, 'EEEE d MMMM', { locale: fr })}${hasReleases ? `, ${dayReleases.length} sortie${dayReleases.length > 1 ? 's' : ''}` : ''}`}
                 onClick={() => handleDayClick(dayStr)}
-                className={`relative aspect-square flex flex-col items-center justify-start p-2 transition min-h-[100px] ${
-                  isSelected ? 'ring-2' : ''
-                } ${isTodayDay ? 'bg-[var(--color-accent-muted)]' : ''} ${isFriday ? 'border-l-2' : ''}`}
+                className={`relative aspect-square flex flex-col items-center justify-start p-2 transition min-h-[110px] ${
+                  isSelected ? 'ring-2 ring-[var(--color-accent)] bg-[var(--color-bg-hover)]' : ''
+                } ${isTodayDay ? 'bg-[var(--color-accent-muted)]' : ''} ${isFriday ? 'border-l-3' : ''}`}
                 style={{
                   borderColor: isFriday ? 'var(--color-accent)' : 'transparent',
-                  ringColor: 'var(--color-accent)',
-                  background: isSelected ? 'var(--color-bg-hover)' : 'transparent',
                   borderRadius: 'var(--radius-md)',
+                  background: isSelected ? 'var(--color-bg-hover)' : isTodayDay ? 'rgba(225, 29, 72, 0.12)' : 'transparent',
                 }}
               >
-                <span className={`font-medium ${isTodayDay ? 'text-[var(--color-accent)]' : ''} ${isSelected ? 'text-[var(--color-accent)]' : ''}`}>
+                <span className={`font-medium ${isTodayDay ? 'text-[var(--color-accent)] font-bold' : ''} ${isSelected ? 'text-[var(--color-accent)]' : ''}`}>
                   {format(day, 'd')}
                 </span>
 
                 {/* Indicateur vendredi */}
                 {isFriday && (
-                  <span className="badge badge-new text-[0.6rem] mt-0.5" style={{ fontSize: '0.6rem', padding: '1px 4px' }}>
+                  <span className="badge badge-new text-[0.55rem] mt-0.5" style={{ fontSize: '0.55rem', padding: '1px 5px' }}>
                     VENDREDI
                   </span>
                 )}

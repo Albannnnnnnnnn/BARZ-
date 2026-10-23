@@ -58,7 +58,7 @@ const siteName = 'BARZ';
     <link rel="preconnect" href="https://i.scdn.co" />
   </head>
   <body>
-    <header class="header no-print" role="banner">
+    <header class="header no-print glass-panel" role="banner" style="backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));">
       <div class="container flex items-center justify-between gap-4" style="height: var(--header-height);">
         <!-- Logo -->
         <a href="/" class="flex items-center gap-2 text-decoration-none" aria-label="BARZ - Accueil">
@@ -66,7 +66,7 @@ const siteName = 'BARZ';
             <rect width="32" height="32" rx="8" fill="var(--color-accent)"/>
             <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="font-bold text-xl" style="letter-spacing: -0.02em;">BARZ</span>
+          <span class="font-bold text-xl" style="letter-spacing: -0.02em; background: linear-gradient(135deg, var(--color-accent) 0%, #f43f5e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">BARZ</span>
         </a>
 
         <!-- Navigation -->

@@ -9,14 +9,15 @@ interface ReleaseCardProps {
 }
 
 export default function ReleaseCard({ release, variant = 'default' }: ReleaseCardProps) {
-  const { artist, release_date, release_type, cover_url, genres, track_count, title, slug } = release;
-  const status = release_date < new Date().toISOString().split('T')[0] ? 'past' :
-                 release_date === new Date().toISOString().split('T')[0] ? 'today' : 'upcoming';
+  const { artist, release_date: releaseDateRaw, release_type, cover_url, genres, track_count, title, slug } = release;
+  const release_date: string = (releaseDateRaw || new Date().toISOString().split('T')[0])!;
+  const today: string = new Date().toISOString().split('T')[0]!;
+  const status = release_date < today ? 'past' :
+                 release_date === today ? 'today' : 'upcoming';
   const isToday = status === 'today';
   const url = createReleaseUrl(slug);
 
   const handleClick = (e: React.MouseEvent) => {
-    // Permettre cmd/ctrl+click pour ouvrir dans un nouvel onglet
     if (e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault();
     window.location.href = url;
@@ -67,7 +68,8 @@ export default function ReleaseCard({ release, variant = 'default' }: ReleaseCar
 
   return (
     <article
-      className="card card-interactive overflow-hidden transition"
+      className="card card-interactive overflow-hidden transition animate-fade-in"
+      style={{ animationDelay: `${Math.random() * 0.15}s` }}
       tabIndex={0}
       role="button"
       aria-label={`${title} par ${artist?.name}, sorti le ${formatShortDate(release_date)}`}
@@ -75,13 +77,15 @@ export default function ReleaseCard({ release, variant = 'default' }: ReleaseCar
       onKeyDown={handleKeyDown}
     >
       {/* Cover */}
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden group">
         <img
-          src={getOptimizedImageUrl(cover_url, 400)}
+          src={getOptimizedImageUrl(cover_url, 600)}
           alt=""
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        {/* Gradient overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         {/* Badge type */}
         <div className="absolute top-3 left-3">
           <span className="badge badge-type" style={{
@@ -98,10 +102,22 @@ export default function ReleaseCard({ release, variant = 'default' }: ReleaseCar
             <span className="badge badge-new text-xs">Sortie aujourd'hui</span>
           </div>
         )}
+        {/* Badge "À venir" */}
+        {status === 'upcoming' && (
+          <div className="absolute bottom-3 right-3">
+            <span className="badge badge-genre text-xs" style={{
+              background: 'rgba(255,255,255,0.1)',
+              color: 'var(--color-text-muted)',
+              borderColor: 'rgba(255,255,255,0.2)',
+            }}>
+              À venir
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col" style={{ minHeight: '140px' }}>
+      <div className="p-4 flex flex-col" style={{ minHeight: '150px' }}>
         <h3 className="font-semibold text-base truncate" style={{ color: 'var(--color-text)' }}>
           <a href={url} className="hover:underline" onClick={(e) => e.stopPropagation()}>
             {title}
