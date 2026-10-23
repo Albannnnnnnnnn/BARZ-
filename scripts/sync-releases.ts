@@ -1,88 +1,89 @@
 import 'dotenv/config';
 
 import { createClient } from '@supabase/supabase-js';
+import {
+  searchUpcomingReleaseGroups,
+  getReleaseGroupDetails,
+  getCoverArtUrl,
+  getArtistTags,
+  getAlbumTags,
+  getArtistInfo,
+  searchSpotifyAlbum,
+  getSpotifyAlbum,
+  mapReleaseType,
+  normalizeGenres,
+  slugify,
+} from '../src/lib/api.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID!;
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET!;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-  console.error('❌ Missing Supabase or Spotify credentials');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');
   process.exit(1);
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-let spotifyToken: string | null = null;
-
-async function getSpotifyToken(): Promise<string> {
-  if (spotifyToken) return spotifyToken;
-
-  const auth = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
-
-  if (!res.ok) throw new Error(`Spotify auth failed: ${res.status}`);
-
-  const data = await res.json();
-  spotifyToken = data.access_token;
-  return spotifyToken;
-}
-
-async function fetchNewReleases(token: string): Promise<any[]> {
-  const res = await fetch('https://api.spotify.com/v1/browse/new-releases?limit=50', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Spotify API error: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.albums.items || [];
-}
-
-async function upsertRelease(release: any) {
-  const slug = release.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-  const { data, error } = await supabase.from('releases').upsert(
-    {
-      id: release.id,
-      mbid: release.id,
-      title: release.name,
-      slug,
-      release_date: release.release_date,
-      release_type: release.album_type,
-      cover_url: release.images?.[0]?.url || null,
-      genres: release.genres || [],
-      track_count: 0,
-      artist_id: null,
-    },
-    { onConflict: 'mbid', ignoreDuplicates: false }
-  ).select('id').single();
-
+async function upsertArtist(artist: { mbid: string; name: string; genres?: string[]; popularity?: number; image_url?: string }) {
+  const slug = slugify(artist.name);
+  const { data, error } = await supabase
+    .from('artists')
+    .upsert({ mbid: artist.mbid, name: artist.name, slug, genres: artist.genres || null, popularity: artist.popularity || 0, image_url: artist.image_url || null },
+      { onConflict: 'mbid', ignoreDuplicates: false })
+    .select('id')
+    .single();
   if (error) throw error;
   return data.id;
 }
 
+async function upsertLabel(label: { mbid: string; name: string; image_url?: string }) {
+  const slug = slugify(label.name);
+  const { data, error } = await supabase.from('labels').upsert(
+    { mbid: label.mbid, name: label.name, slug, image_url: label.image_url || null },
+    { onConflict: 'mbid', ignoreDuplicates: false }
+  ).select('id').single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function upsertRelease(release: any) {
+  const slug = slugify(release.title);
+  const { data, error } = await supabase.from('releases').upsert(
+    { ...release, slug },
+    { onConflict: 'mbid', ignoreDuplicates: false }
+  ).select('id').single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function refreshWeeklyView() {
+  try {
+    const { error } = await supabase.rpc('refresh_weekly_releases');
+    if (error) console.warn('⚠️ Could not refresh materialized view:', error.message);
+    else console.log('✅ Materialized view refreshed');
+  } catch (err) {
+    console.warn('⚠️ Could not refresh materialized view:', err instanceof Error ? err.message : err);
+  }
+}
+
 async function main() {
-  console.log('🚀 Starting releases sync from Spotify...');
+  console.log('🚀 Starting releases sync...');
 
-  const token = await getSpotifyToken();
-  console.log('✅ Spotify token obtained');
+  const MAX_RELEASES_PER_RUN = 200;
 
-  console.log('🔍 Fetching new releases from Spotify...');
-  const releases = await fetchNewReleases(token);
-  console.log(`📦 Found ${releases.length} releases`);
+  console.log('🔍 Fetching release groups from MusicBrainz...');
+  let releaseGroups: any[] = [];
+  try {
+    releaseGroups = await searchUpcomingReleaseGroups('', '', MAX_RELEASES_PER_RUN);
+  } catch (err) {
+    console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
+    console.log('ℹ️ MusicBrainz may be busy. Try again later.');
+    process.exit(0);
+  }
+  console.log(`📦 Found ${releaseGroups.length} release groups`);
 
-  if (releases.length === 0) {
+  if (releaseGroups.length === 0) {
     console.log('ℹ️ No releases found. Exiting.');
     process.exit(0);
   }
@@ -90,16 +91,85 @@ async function main() {
   let processed = 0;
   let errors = 0;
 
-  for (const release of releases) {
+  for (const rg of releaseGroups) {
     try {
-      await upsertRelease(release);
+      const details = await getReleaseGroupDetails(rg.id);
+      if (!details) continue;
+
+      const releaseDate = details['first-release-date'] || rg['first-release-date'] || '1970-01-01';
+
+      const mainArtist = details['artist-credit']?.[0]?.artist;
+      if (!mainArtist) continue;
+
+      const mbGenres = details.tags?.map(t => t.name.toLowerCase()) || [];
+      const [artistTags, albumTags, artistInfo] = await Promise.all([
+        getArtistTags(mainArtist.name),
+        getAlbumTags(mainArtist.name, details.title),
+        getArtistInfo(mainArtist.name),
+      ]);
+
+      const allGenres = normalizeGenres([...mbGenres, ...artistTags, ...albumTags]);
+      const artistId = await upsertArtist({ mbid: mainArtist.id, name: mainArtist.name, genres: allGenres, popularity: artistInfo?.listeners || 0 });
+
+      let labelId: string | null = null;
+      const labelCredit = details['artist-credit']?.find((ac: any) => ac.artist?.type === 'label')?.artist;
+      if (labelCredit) {
+        labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
+      }
+
+      let coverUrl: string | null = null;
+      const firstRelease = details.releases?.[0];
+      if (firstRelease?.id) {
+        coverUrl = await getCoverArtUrl(firstRelease.id);
+      }
+
+      let spotifyData: any = {};
+      const spotifySearch = await searchSpotifyAlbum(mainArtist.name, details.title);
+      const spotifyAlbum = spotifySearch?.albums?.items?.[0];
+      if (spotifyAlbum) {
+        const fullAlbum = await getSpotifyAlbum(spotifyAlbum.id);
+        if (fullAlbum) {
+          spotifyData = {
+            spotify_id: fullAlbum.id,
+            track_count: fullAlbum.total_tracks,
+            total_duration_ms: fullAlbum.tracks?.items.reduce((sum, t) => sum + t.duration_ms, 0),
+            spotify_url: fullAlbum.external_urls.spotify,
+          };
+        }
+      }
+
+      await upsertRelease({
+        mbid: rg.id,
+        spotify_id: spotifyData.spotify_id,
+        title: details.title,
+        artist_id: artistId,
+        label_id: labelId,
+        release_date: releaseDate,
+        release_type: mapReleaseType(details['primary-type']),
+        cover_url: coverUrl,
+        genres: allGenres,
+        track_count: spotifyData.track_count || 0,
+        total_duration_ms: spotifyData.total_duration_ms,
+        spotify_url: spotifyData.spotify_url,
+        apple_music_url: spotifyData.apple_music_url,
+        deezer_url: spotifyData.deezer_url,
+        youtube_url: spotifyData.youtube_url,
+        metadata: {
+          musicbrainz: details,
+          lastfm: { artist_tags: artistTags, album_tags: albumTags, artist_info: artistInfo },
+          spotify: spotifyAlbum,
+        },
+      });
+
       processed++;
-      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${releases.length}...`);
+      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${releaseGroups.length}...`);
     } catch (err) {
       errors++;
-      console.error(`❌ Error processing ${release.id}:`, err instanceof Error ? err.message : err);
+      console.error(`❌ Error processing ${rg.id}:`, err instanceof Error ? err.message : err);
     }
   }
+
+  await refreshWeeklyView();
 
   console.log(`
 ✅ Sync completed!
