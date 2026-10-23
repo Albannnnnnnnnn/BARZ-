@@ -61,7 +61,7 @@ const siteName = 'BARZ';
     <header class="header no-print glass-panel" role="banner" style="backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));">
       <div class="container flex items-center justify-between gap-4" style="height: var(--header-height);">
         <!-- Logo -->
-        <a href="/" class="flex items-center gap-2 text-decoration-none" aria-label="BARZ - Accueil">
+        <a href="/BARZ-/" class="flex items-center gap-2 text-decoration-none" aria-label="BARZ - Accueil">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
             <rect width="32" height="32" rx="8" fill="var(--color-accent)"/>
             <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -71,16 +71,16 @@ const siteName = 'BARZ';
 
         <!-- Navigation -->
         <nav class="flex items-center gap-1" aria-label="Navigation principale">
-          <a href="/" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>
+          <a href="/BARZ-/" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/BARZ-/' ? 'page' : undefined}>
             Cette semaine
           </a>
-          <a href="/releases" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname.startsWith('/releases') ? 'page' : undefined}>
+          <a href="/BARZ-/releases" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname.startsWith('/BARZ-/releases') ? 'page' : undefined}>
             Toutes les sorties
           </a>
-          <a href="/calendar" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/calendar' ? 'page' : undefined}>
+          <a href="/BARZ-/calendar" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/BARZ-/calendar' ? 'page' : undefined}>
             Calendrier
           </a>
-          <a href="/search" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/search' ? 'page' : undefined}>
+          <a href="/BARZ-/search" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/BARZ-/search' ? 'page' : undefined}>
             Rechercher
           </a>
         </nav>
