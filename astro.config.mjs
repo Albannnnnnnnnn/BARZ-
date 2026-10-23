@@ -2,8 +2,8 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 
 export default defineConfig({
-  site: 'https://barz.app',
-  base: '/',
+  site: 'https://albannnnnnnnnn.github.io/BARZ-/',
+  base: '/BARZ-/',
   output: 'static',
   adapter: undefined,
   compressHTML: true,
