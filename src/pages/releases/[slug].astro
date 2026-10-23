@@ -75,7 +75,7 @@ const jsonLd = {
 <Layout
   title={`${typedRelease.title} - ${typedRelease.artist?.name} | BARZ`}
   description={`${getReleaseTypeLabel(typedRelease.release_type)} de ${typedRelease.artist?.name} sorti le ${formatDate(typedRelease.release_date)}. ${typedRelease.track_count} titres, ${typedRelease.genres.join(', ')}.`}
-  image={typedRelease.cover_url || '/og-default.jpg'}
+  image={typedRelease.cover_url || '/BARZ-/og-default.jpg'}
   type="article"
 >
   <slot name="json-ld">
@@ -309,7 +309,7 @@ const jsonLd = {
         if (data.releases?.length > 0) {
           container.innerHTML = data.releases.map((r: any) => `
             <a href="/releases/${r.slug}" class="card card-interactive overflow-hidden p-0" style="min-height: 280px;">
-              <img src="${r.cover_url || '/placeholder-release.svg'}" alt="" loading="lazy" class="w-full h-48 object-cover" />
+              <img src="${r.cover_url || '/BARZ-/placeholder-release.svg'}" alt="" loading="lazy" class="w-full h-48 object-cover" />
               <div class="p-4">
                 <p class="font-medium truncate" style="color: var(--color-text);">${r.title}</p>
                 <p class="text-sm text-muted truncate mt-1">${r.artist?.name}</p>

@@ -89,7 +89,7 @@ const allGenres = [...new Set(
             {week.releases.slice(0, 4).map((release: any) => (
               <a href={`/releases/${release.slug}`} class="card card-interactive flex items-center gap-3 p-3 transition">
                 <div class="relative w-16 h-16 flex-shrink-0 overflow-hidden" style={{ borderRadius: 'var(--radius-md)' }}>
-                  <img src={release.cover_url || '/placeholder-release.svg'} alt="" loading="lazy" class="w-full h-full object-cover" />
+                  <img src={release.cover_url || '/BARZ-/placeholder-release.svg'} alt="" loading="lazy" class="w-full h-full object-cover" />
                 </div>
                 <div class="min-w-0">
                   <p class="font-medium truncate" style={{ color: 'var(--color-text)' }}>{release.title}</p>
