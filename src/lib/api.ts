@@ -52,7 +52,8 @@ export type MBReleaseGroup = z.infer<typeof MBReleaseGroupSchema>;
 export async function searchUpcomingReleaseGroups(
   startDate: string,
   endDate: string,
-  limit = 100
+  limit = 100,
+  offset = 0
 ): Promise<MBReleaseGroup[]> {
   // MusicBrainz ne supporte pas de filtre par date directement sur release-group
   // On utilise une recherche large et on filtre côté client
@@ -61,9 +62,52 @@ export async function searchUpcomingReleaseGroups(
   const data = await mbFetch<{ 'release-groups': MBReleaseGroup[]; count: number }>('/release-group', {
     query,
     limit: String(limit),
-    offset: '0',
+    offset: String(offset),
   });
   return data['release-groups'] || [];
+}
+
+// ============================================================
+// SPOTIFY NEW RELEASES (source rapide de découverte)
+// ============================================================
+
+export interface SpotifyNewRelease {
+  id: string;
+  name: string;
+  artists: Array<{ id: string; name: string }>;
+  release_date: string;
+  release_date_precision: string;
+  images: Array<{ url: string; height: number; width: number }>;
+  total_tracks: number;
+  external_urls: { spotify: string };
+  album_type: 'album' | 'single' | 'compilation';
+}
+
+export async function getSpotifyNewReleases(limit = 50): Promise<SpotifyNewRelease[]> {
+  const token = await getSpotifyToken();
+  if (!token) return [];
+
+  const res = await fetch(`${SPOTIFY_API_BASE}/browse/new-releases?limit=${limit}&country=US`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    console.error(`Spotify new releases ${res.status}:`, await res.text());
+    return [];
+  }
+
+  const data = await res.json();
+  return data.albums?.items?.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    artists: item.artists,
+    release_date: item.release_date,
+    release_date_precision: item.release_date_precision,
+    images: item.images,
+    total_tracks: item.total_tracks,
+    external_urls: item.external_urls,
+    album_type: item.album_type,
+  })) || [];
 }
 
 // Récupérer les détails d'un Release Group avec ses artistes

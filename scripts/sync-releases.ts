@@ -9,6 +9,7 @@ import {
   getArtistInfo,
   searchSpotifyAlbum,
   getSpotifyAlbum,
+  getSpotifyNewReleases,
   mapReleaseType,
   normalizeGenres,
   slugify,
@@ -32,6 +33,16 @@ function normalizeDate(dateStr: string | undefined | null): string {
   if (parts.length === 1) return `${dateStr}-01-01`;
   if (parts.length === 2) return `${dateStr}-01`;
   return dateStr;
+}
+
+// Normalise pour la déduplication (artist name + title)
+function normalizeKey(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '')
+    .trim();
 }
 
 async function upsertArtist(artist: { mbid: string; name: string; genres?: string[]; popularity?: number; image_url?: string }) {
@@ -76,141 +87,229 @@ async function refreshWeeklyView() {
   }
 }
 
+interface UnifiedRelease {
+  source: 'spotify' | 'musicbrainz' | 'both';
+  mbid?: string;
+  spotify_id?: string;
+  title: string;
+  artist_name: string;
+  release_date?: string;
+  cover_url?: string | null;
+  total_tracks?: number;
+  spotify_url?: string | null;
+  metadata?: any;
+}
+
 async function main() {
-  console.log('🚀 Starting releases sync...');
+  console.log('🚀 Starting hybrid releases sync (Spotify + MusicBrainz)...');
 
-  const MAX_RELEASES_PER_RUN = 200;
+  // 1. Fetch from Spotify (fast batch — no 1 req/sec limit)
+  console.log('🔍 Fetching new releases from Spotify...');
+  const spotifyReleases = await getSpotifyNewReleases(50);
+  console.log(`📦 Spotify: ${spotifyReleases.length} new releases`);
 
+  // 2. Fetch from MusicBrainz with pagination (4 pages × 25 = 100)
   console.log('🔍 Fetching release groups from MusicBrainz...');
-  let releaseGroups: any[] = [];
-  try {
-    releaseGroups = await searchUpcomingReleaseGroups('', '', MAX_RELEASES_PER_RUN);
-  } catch (err) {
-    console.error('❌ Failed to fetch release groups:', err instanceof Error ? err.message : err);
-    console.log('ℹ️ MusicBrainz may be busy. Try again later.');
-    process.exit(0);
+  const allMBReleaseGroups: any[] = [];
+  const MB_PAGES = 4;
+  const MB_PAGE_SIZE = 25;
+  for (let offset = 0; offset < MB_PAGES * MB_PAGE_SIZE; offset += MB_PAGE_SIZE) {
+    const page = await searchUpcomingReleaseGroups('', '', MB_PAGE_SIZE, offset);
+    allMBReleaseGroups.push(...page);
+    if (offset < MB_PAGES * MB_PAGE_SIZE - MB_PAGE_SIZE) {
+      await new Promise(r => setTimeout(r, 1100));
+    }
   }
-  console.log(`📦 Found ${releaseGroups.length} release groups`);
+  console.log(`📦 MusicBrainz: ${allMBReleaseGroups.length} release groups`);
 
-  if (releaseGroups.length === 0) {
-    console.log('ℹ️ No releases found. Exiting.');
-    process.exit(0);
+  // 3. Build unified list with Spotify first
+  const unified: UnifiedRelease[] = [];
+
+  for (const s of spotifyReleases) {
+    unified.push({
+      source: 'spotify',
+      spotify_id: s.id,
+      title: s.name,
+      artist_name: s.artists?.[0]?.name || 'Unknown',
+      release_date: s.release_date,
+      cover_url: s.images?.[0]?.url || null,
+      total_tracks: s.total_tracks,
+      spotify_url: s.external_urls?.spotify || null,
+      metadata: { spotify: s },
+    });
   }
 
+  // Add MusicBrainz releases, deduplicating against Spotify
+  for (const mb of allMBReleaseGroups) {
+    const mbArtist = mb['artist-credit']?.[0]?.artist?.name || '';
+    const existing = unified.find(u =>
+      u.source !== 'spotify' &&
+      normalizeKey(u.artist_name) === normalizeKey(mbArtist) &&
+      normalizeKey(u.title) === normalizeKey(mb.title || '')
+    );
+
+    if (existing) {
+      existing.source = 'both';
+      existing.mbid = mb.id;
+      if (!existing.release_date) existing.release_date = mb['first-release-date'];
+      existing.metadata = { ...existing.metadata, musicbrainz: mb };
+    } else {
+      unified.push({
+        source: 'musicbrainz',
+        mbid: mb.id,
+        title: mb.title || 'Unknown',
+        artist_name: mbArtist || 'Unknown',
+        release_date: mb['first-release-date'],
+        metadata: { musicbrainz: mb },
+      });
+    }
+  }
+
+  console.log(`📊 Total unique releases: ${unified.length}`);
+
+  // 4. Process each unique release
   let processed = 0;
   let errors = 0;
 
-  for (const rg of releaseGroups) {
+  for (const release of unified) {
     try {
-      const details = await getReleaseGroupDetails(rg.id);
-
-      // No details from MusicBrainz? Still upsert with basic listing info — never skip.
-      if (!details) {
-        await upsertRelease({
-          mbid: rg.id,
-          title: rg.title || 'Unknown',
-          artist_id: null,
-          label_id: null,
-          release_date: normalizeDate(rg['first-release-date']),
-          release_type: mapReleaseType(rg['primary-type']),
-          cover_url: null,
-          genres: ['unknown'],
-          track_count: 0,
-          metadata: { musicbrainz: rg },
-        });
-        processed++;
-        continue;
-      }
-
-      const releaseDate = normalizeDate(details['first-release-date'] || rg['first-release-date']);
-
-      const mainArtist = details['artist-credit']?.[0]?.artist;
       let artistId: string | null = null;
-      let allGenres: string[] = ['unknown'];
-
-      if (mainArtist) {
-        try {
-          const mbGenres = details.tags?.map(t => t.name.toLowerCase()) || [];
-          const [artistTags, albumTags, artistInfo] = await Promise.all([
-            getArtistTags(mainArtist.name),
-            getAlbumTags(mainArtist.name, details.title),
-            getArtistInfo(mainArtist.name),
-          ]);
-          allGenres = normalizeGenres([...mbGenres, ...artistTags, ...albumTags]);
-          artistId = await upsertArtist({ mbid: mainArtist.id, name: mainArtist.name, genres: allGenres, popularity: artistInfo?.listeners || 0 });
-        } catch (err) {
-          console.warn(`⚠️ Artist enrichment failed for ${rg.id}:`, err instanceof Error ? err.message : err);
-        }
-      }
-
       let labelId: string | null = null;
-      const labelCredit = details['artist-credit']?.find((ac: any) => ac.artist?.type === 'label')?.artist;
-      if (labelCredit) {
-        try {
-          labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
-        } catch (err) {
-          console.warn(`⚠️ Label upsert failed for ${rg.id}:`, err instanceof Error ? err.message : err);
-        }
-      }
-
-      let coverUrl: string | null = null;
-      const firstRelease = details.releases?.[0];
-      if (firstRelease?.id) {
-        try {
-          coverUrl = await getCoverArtUrl(firstRelease.id);
-        } catch {
-          // ignore cover art failures
-        }
-      }
-
+      let coverUrl = release.cover_url ?? null;
+      let genres: string[] = ['unknown'];
+      let releaseDate = normalizeDate(release.release_date);
+      let mbDetails: any = null;
       let spotifyData: any = {};
-      let spotifyAlbum: any = null;
-      try {
-        const spotifySearch = await searchSpotifyAlbum(mainArtist?.name || 'Unknown', details.title);
-        spotifyAlbum = spotifySearch?.albums?.items?.[0];
-        if (spotifyAlbum) {
-          const fullAlbum = await getSpotifyAlbum(spotifyAlbum.id);
-          if (fullAlbum) {
-            spotifyData = {
-              spotify_id: fullAlbum.id,
-              track_count: fullAlbum.total_tracks,
-              total_duration_ms: fullAlbum.tracks?.items.reduce((sum, t) => sum + t.duration_ms, 0),
-              spotify_url: fullAlbum.external_urls.spotify,
-            };
+
+      // --- MusicBrainz path (for musicbrainz-only or both) ---
+      if (release.source === 'musicbrainz' || release.source === 'both') {
+        mbDetails = release.metadata?.musicbrainz || (release.mbid ? await getReleaseGroupDetails(release.mbid) : null);
+
+        if (mbDetails) {
+          const mainArtist = mbDetails['artist-credit']?.[0]?.artist;
+          if (mainArtist) {
+            try {
+              const mbGenres = mbDetails.tags?.map(t => t.name.toLowerCase()) || [];
+              const [artistTags, albumTags, artistInfo] = await Promise.all([
+                getArtistTags(mainArtist.name),
+                getAlbumTags(mainArtist.name, mbDetails.title),
+                getArtistInfo(mainArtist.name),
+              ]);
+              genres = normalizeGenres([...mbGenres, ...artistTags, ...albumTags]);
+              artistId = await upsertArtist({ mbid: mainArtist.id, name: mainArtist.name, genres, popularity: artistInfo?.listeners || 0 });
+            } catch (err) {
+              console.warn(`⚠️ Artist enrichment failed for ${release.mbid}:`, err instanceof Error ? err.message : err);
+            }
+          }
+
+          const labelCredit = mbDetails['artist-credit']?.find((ac: any) => ac.artist?.type === 'label')?.artist;
+          if (labelCredit) {
+            try {
+              labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
+            } catch (err) {
+              console.warn(`⚠️ Label upsert failed:`, err instanceof Error ? err.message : err);
+            }
+          }
+
+          if (!coverUrl && mbDetails.releases?.[0]?.id) {
+            try {
+              coverUrl = await getCoverArtUrl(mbDetails.releases[0].id);
+            } catch {
+              // ignore cover art failures
+            }
           }
         }
-      } catch {
-        // ignore Spotify failures
       }
 
-      await upsertRelease({
-        mbid: rg.id,
-        spotify_id: spotifyData.spotify_id,
-        title: details.title,
+      // --- Spotify path (for spotify-only or both) ---
+      const spotifyRelease = release.metadata?.spotify;
+      if (spotifyRelease) {
+        spotifyData = {
+          spotify_id: spotifyRelease.id,
+          spotify_url: spotifyRelease.external_urls?.spotify,
+          track_count: spotifyRelease.total_tracks,
+          total_duration_ms: spotifyRelease.total_tracks ? spotifyRelease.total_tracks * 60000 : 0,
+        };
+        if (!coverUrl && spotifyRelease.images?.[0]) {
+          coverUrl = spotifyRelease.images[0].url;
+        }
+      } else if (release.source !== 'spotify' && release.artist_name && release.title) {
+        // Try Spotify search for MusicBrainz-only releases
+        try {
+          const spotifySearch = await searchSpotifyAlbum(release.artist_name, release.title);
+          const spotifyAlbum = spotifySearch?.albums?.items?.[0];
+          if (spotifyAlbum) {
+            const fullAlbum = await getSpotifyAlbum(spotifyAlbum.id);
+            if (fullAlbum) {
+              spotifyData = {
+                spotify_id: fullAlbum.id,
+                spotify_url: fullAlbum.external_urls.spotify,
+                track_count: fullAlbum.total_tracks,
+                total_duration_ms: fullAlbum.tracks?.items.reduce((sum, t) => sum + t.duration_ms, 0),
+              };
+              if (!coverUrl) coverUrl = fullAlbum.images?.[0]?.url || null;
+            }
+          }
+        } catch {
+          // ignore Spotify search failures
+        }
+      }
+
+      // --- Upsert ---
+      const upsertData: any = {
+        mbid: release.mbid,
+        spotify_id: spotifyData.spotify_id || release.spotify_id,
+        title: release.title,
         artist_id: artistId,
         label_id: labelId,
         release_date: releaseDate,
-        release_type: mapReleaseType(details['primary-type']),
+        release_type: release.source === 'musicbrainz' ? mapReleaseType(mbDetails?.['primary-type']) : mapReleaseType(release.metadata?.spotify?.album_type),
         cover_url: coverUrl,
-        genres: allGenres,
+        genres,
         track_count: spotifyData.track_count || 0,
         total_duration_ms: spotifyData.total_duration_ms,
         spotify_url: spotifyData.spotify_url,
-        apple_music_url: spotifyData.apple_music_url,
-        deezer_url: spotifyData.deezer_url,
-        youtube_url: spotifyData.youtube_url,
-        metadata: {
-          musicbrainz: details,
-          lastfm: { artist_tags: [], album_tags: [], artist_info: null },
-          spotify: spotifyAlbum || null,
-        },
-      });
+        metadata: release.metadata,
+      };
+
+      if (upsertData.mbid) {
+        await upsertRelease(upsertData);
+      } else if (upsertData.spotify_id) {
+        // No MBID — try to find existing by spotify_id, else insert
+        const { data: existing, error: selErr } = await supabase
+          .from('releases')
+          .select('id')
+          .eq('spotify_id', upsertData.spotify_id)
+          .single();
+        if (selErr && selErr.code !== 'PGRST116') throw selErr;
+        if (existing) {
+          const { error: updErr } = await supabase
+            .from('releases')
+            .update({ ...upsertData, slug: slugify(release.title) })
+            .eq('id', existing.id);
+          if (updErr) throw updErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from('releases')
+            .insert({ ...upsertData, slug: slugify(release.title) })
+            .select('id')
+            .single();
+          if (insErr) throw insErr;
+        }
+      } else {
+        const { error: insErr } = await supabase
+          .from('releases')
+          .insert({ ...upsertData, slug: slugify(release.title) })
+          .select('id')
+          .single();
+        if (insErr) throw insErr;
+      }
 
       processed++;
-      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${releaseGroups.length}...`);
+      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${unified.length}...`);
     } catch (err) {
       errors++;
-      console.error(`❌ Error processing ${rg.id}:`, err instanceof Error ? err.message : err);
+      console.error(`❌ Error processing ${release.title}:`, err instanceof Error ? err.message : err);
     }
   }
 
