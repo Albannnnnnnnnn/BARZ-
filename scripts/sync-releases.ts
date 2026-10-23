@@ -24,6 +24,16 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// MusicBrainz retourne parfois des dates partielles ("2003" ou "2002-08")
+// PostgreSQL type date exige du YYYY-MM-DD complet → on complète avec le 1er du mois
+function normalizeDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '1970-01-01';
+  const parts = dateStr.split('-');
+  if (parts.length === 1) return `${dateStr}-01-01`;
+  if (parts.length === 2) return `${dateStr}-01`;
+  return dateStr;
+}
+
 async function upsertArtist(artist: { mbid: string; name: string; genres?: string[]; popularity?: number; image_url?: string }) {
   const slug = slugify(artist.name);
   const { data, error } = await supabase
@@ -101,7 +111,7 @@ async function main() {
           title: rg.title || 'Unknown',
           artist_id: null,
           label_id: null,
-          release_date: rg['first-release-date'] || '1970-01-01',
+          release_date: normalizeDate(rg['first-release-date']),
           release_type: mapReleaseType(rg['primary-type']),
           cover_url: null,
           genres: ['unknown'],
@@ -112,7 +122,7 @@ async function main() {
         continue;
       }
 
-      const releaseDate = details['first-release-date'] || rg['first-release-date'] || '1970-01-01';
+      const releaseDate = normalizeDate(details['first-release-date'] || rg['first-release-date']);
 
       const mainArtist = details['artist-credit']?.[0]?.artist;
       let artistId: string | null = null;
