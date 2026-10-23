@@ -12,7 +12,7 @@ interface Props {
 const {
   title,
   description = 'BARZ - Ton calendrier des sorties musicales. Découvre les nouveaux albums chaque vendredi.',
-  image = '/og-default.svg',
+  image = '/BARZ-/og-default.svg',
   type = 'website',
 } = Astro.props;
 
@@ -45,7 +45,7 @@ const siteName = 'BARZ';
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(image, Astro.site)} />
 
-    <!-- JSON-LD pour MusicAlbum sur les pages de release -->
+    <!-- JSON-LD -->
     <slot name="json-ld" />
 
     <!-- Favicon -->
@@ -53,12 +53,12 @@ const siteName = 'BARZ';
     <link rel="apple-touch-icon" href="/BARZ-/apple-touch-icon.png" />
     <link rel="manifest" href="/BARZ-/manifest.json" />
 
-    <!-- Preconnect pour performance -->
+    <!-- Preconnect -->
     <link rel="preconnect" href="https://coverartarchive.org" />
     <link rel="preconnect" href="https://i.scdn.co" />
   </head>
   <body>
-    <header class="header no-print glass-panel" role="banner" style="backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));">
+    <header class="header no-print glass-panel" role="banner" style="backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border-bottom: 1px solid rgba(255,255,255,0.06);">
       <div class="container flex items-center justify-between gap-4" style="height: var(--header-height);">
         <!-- Logo -->
         <a href="/BARZ-/" class="flex items-center gap-2 text-decoration-none" aria-label="BARZ - Accueil">
@@ -70,7 +70,7 @@ const siteName = 'BARZ';
         </a>
 
         <!-- Navigation -->
-        <nav class="flex items-center gap-2" aria-label="Navigation principale">
+        <nav class="flex items-center gap-3" aria-label="Navigation principale">
           <a href="/BARZ-/" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/BARZ-/' ? 'page' : undefined}>
             Cette semaine
           </a>
@@ -133,10 +133,8 @@ const siteName = 'BARZ';
       </div>
     </footer>
 
-    <!-- Scripts globaux minimaux -->
     <script is:inline>
       // Theme toggle (pour plus tard)
-      // Service Worker registration (pour PWA plus tard)
     </script>
   </body>
 </html>

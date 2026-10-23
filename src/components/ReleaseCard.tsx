@@ -37,7 +37,7 @@ export default function ReleaseCard({ release, variant = 'default' }: ReleaseCar
         className="card card-interactive flex items-center gap-3 p-2 transition"
         style={{ minHeight: '72px' }}
       >
-        <div className="relative overflow-hidden" style={{ width: '56px', height: '56px', flexShrink: 0, borderRadius: 'var(--radius-sm)' }}>
+        <div className="relative overflow-hidden" style={{ width: '56px', height: '56px', flexShrink: 0, borderRadius: 'var(--radius-md)' }}>
           <img
             src={getOptimizedImageUrl(cover_url, 112)}
             alt=""

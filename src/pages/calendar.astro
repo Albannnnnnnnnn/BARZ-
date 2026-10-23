@@ -1,5 +1,5 @@
 ---
-// VUE CALENDRIER MENSUEL
+// VUE CALENDRIER MENSUAL
 import Layout from '../layouts/Layout.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import CalendarView from '../components/CalendarView.tsx';
@@ -8,7 +8,6 @@ import { fr } from 'date-fns/locale';
 
 const supabase = getSupabaseServerSafe();
 
-// Par défaut : mois en cours
 const monthParam = Astro.url.searchParams.get('month');
 const currentMonth = monthParam ? parseISO(monthParam + '-01') : new Date();
 const monthStart = format(currentMonth, 'yyyy-MM');
@@ -69,7 +68,6 @@ const allGenres = [...new Set(
       </div>
     </header>
 
-    <!-- Afficher 4 semaines -->
     <div class="space-y-10">
       {(weeklyData || []).slice(0, 4).map((week: any, index: number) => (
         <section class="card p-6" aria-labelledby={`week-${week.week_start}`}>

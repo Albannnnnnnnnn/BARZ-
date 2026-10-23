@@ -1,6 +1,6 @@
 // CalendarView - Calendrier interactif semaine (React Island) - CŒUR DU MVP
 import React, { useState, useMemo, useEffect } from 'react';
-import { format, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, isToday, eachDayOfInterval } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks, isToday, eachDayOfInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import ReleaseGrid from './ReleaseGrid';
 import GenreFilter from './GenreFilter';
@@ -23,13 +23,11 @@ export default function CalendarView({
   const { prev, next } = getWeekNavigation(weekStart);
   const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) }), [weekStart]);
 
-  // Trouver les données de la semaine courante
   const currentWeekData = useMemo(() =>
     weeklyData.find(w => w.week_start === format(weekStart, 'yyyy-MM-dd')),
     [weeklyData, weekStart]
   );
 
-  // Grouper les releases par jour
   const releasesByDay = useMemo(() => {
     const map: Record<string, ReleaseWithArtist[]> = {};
     currentWeekData?.releases?.forEach(r => {
@@ -38,9 +36,8 @@ export default function CalendarView({
       map[day].push(r);
     });
     return map;
-  }, [currentWeekData]);
+  }, [weeklyData, weekStart]);
 
-  // Filtrer par genres sélectionnés
   const filteredReleasesByDay = useMemo(() => {
     if (selectedGenres.length === 0) return releasesByDay;
     const filtered: Record<string, ReleaseWithArtist[]> = {};
@@ -52,10 +49,8 @@ export default function CalendarView({
     return filtered;
   }, [releasesByDay, selectedGenres]);
 
-  // Releases du jour sélectionné
   const selectedDayReleases = selectedDay ? filteredReleasesByDay[selectedDay] || [] : [];
 
-  // Callback quand on clique sur un jour
   const handleDayClick = (day: string) => {
     const releases = filteredReleasesByDay[day] || [];
     setSelectedDay(prev => prev === day ? null : day);
@@ -63,10 +58,8 @@ export default function CalendarView({
     onDayClick(day, releases);
   };
 
-  // Vérifier si c'est la semaine en cours
   const isCurrentWeek = isToday(weekStart) || isToday(endOfWeek(weekStart, { weekStartsOn: 1 }));
 
-  // Default Friday releases for when nothing is selected
   const fridayReleases = useMemo(() => {
     if (!currentWeekData?.releases) return [];
     return currentWeekData.releases.filter(r => {
@@ -159,14 +152,12 @@ export default function CalendarView({
                   {format(day, 'd')}
                 </span>
 
-                {/* Indicateur vendredi */}
                 {isFriday && (
                   <span className="badge badge-new text-[0.55rem] mt-0.5" style={{ fontSize: '0.55rem', padding: '1px 5px' }}>
                     VENDREDI
                   </span>
                 )}
 
-                {/* Points releases */}
                 {hasReleases && (
                   <div className="flex gap-1 mt-1.5" role="img" aria-label={`${dayReleases.length} sortie${dayReleases.length > 1 ? 's' : ''}`}>
                     {dayReleases.slice(0, 4).map((r, i) => (

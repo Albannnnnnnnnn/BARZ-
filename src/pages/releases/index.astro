@@ -15,7 +15,6 @@ const PAGE_SIZE = 48;
 
 const supabase = getSupabaseServerSafe();
 
-// Récupérer tous les genres pour le filtre
 let allGenres: string[] = [];
 let releases: any[] = [];
 let count = 0;
@@ -32,7 +31,6 @@ if (supabase) {
       (allReleasesForGenres || []).flatMap((r: any) => r.genres || [])
     )].sort();
 
-    // Récupérer les releases paginées
     const from = (currentPage - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -58,7 +56,6 @@ if (supabase) {
 
 totalPages = Math.ceil((count || 0) / PAGE_SIZE);
 
-// Pagination pages à afficher
 function getPaginationPages(current: number, total: number): number[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   if (current <= 3) return [1, 2, 3, 4, 5];
