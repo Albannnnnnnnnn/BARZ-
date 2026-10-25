@@ -1,6 +1,7 @@
 ---
-// Layout principal
+// Layout principal - Design moderne
 import '../styles/global.css';
+import BottomNav from '../components/BottomNav.astro';
 
 interface Props {
   title: string;
@@ -11,8 +12,8 @@ interface Props {
 
 const {
   title,
-  description = 'BARZ - Ton calendrier des sorties musicales. Découvre les nouveaux albums chaque vendredi.',
-  image = '/BARZ-/og-default.svg',
+  description = 'BARZ - Ton calendrier des sorties musicales.',
+  image = '/og-default.jpg',
   type = 'website',
 } = Astro.props;
 
@@ -30,7 +31,6 @@ const siteName = 'BARZ';
     <title>{title} | {siteName}</title>
     <meta name="description" content={description} />
 
-    <!-- Open Graph -->
     <meta property="og:type" content={type} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
@@ -39,28 +39,23 @@ const siteName = 'BARZ';
     <meta property="og:site_name" content={siteName} />
     <meta property="og:locale" content="fr_FR" />
 
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(image, Astro.site)} />
 
-    <!-- JSON-LD -->
     <slot name="json-ld" />
 
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/BARZ-/favicon.svg" />
     <link rel="apple-touch-icon" href="/BARZ-/apple-touch-icon.png" />
     <link rel="manifest" href="/BARZ-/manifest.json" />
 
-    <!-- Preconnect -->
     <link rel="preconnect" href="https://coverartarchive.org" />
     <link rel="preconnect" href="https://i.scdn.co" />
   </head>
   <body>
     <header class="header no-print glass-panel" role="banner" style="backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border-bottom: 1px solid rgba(255,255,255,0.06);">
       <div class="container flex items-center justify-between gap-4" style="height: var(--header-height);">
-        <!-- Logo -->
         <a href="/BARZ-/" class="flex items-center gap-2 text-decoration-none" aria-label="BARZ - Accueil">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
             <rect width="32" height="32" rx="8" fill="var(--color-accent)"/>
@@ -69,7 +64,6 @@ const siteName = 'BARZ';
           <span class="font-bold text-xl" style="letter-spacing: -0.02em; background: linear-gradient(135deg, var(--color-accent) 0%, #f43f5e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">BARZ</span>
         </a>
 
-        <!-- Navigation -->
         <nav class="flex items-center gap-3" aria-label="Navigation principale">
           <a href="/BARZ-/" class="btn btn-ghost btn-sm" aria-current={Astro.url.pathname === '/BARZ-/' ? 'page' : undefined}>
             Cette semaine
@@ -85,7 +79,6 @@ const siteName = 'BARZ';
           </a>
         </nav>
 
-        <!-- Actions -->
         <div class="flex items-center gap-2">
           <a href="https://github.com/alban/BARZ" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" aria-label="GitHub">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -96,7 +89,7 @@ const siteName = 'BARZ';
       </div>
     </header>
 
-    <main id="main-content" role="main" class="flex-1">
+    <main id="main-content" role="main" class="flex-1 pb-[80px]">
       <slot />
     </main>
 
@@ -133,8 +126,18 @@ const siteName = 'BARZ';
       </div>
     </footer>
 
+    <BottomNav currentPath={Astro.url.pathname} />
+
     <script is:inline>
-      // Theme toggle (pour plus tard)
+      // Fast click pour mobile
+      document.querySelectorAll('.card-interactive').forEach(el => {
+        el.addEventListener('click', (e) => {
+          if (!el.classList.contains('a')) {
+            const link = el.querySelector('a');
+            if (link) window.location.href = link.href;
+          }
+        });
+      });
     </script>
   </body>
 </html>

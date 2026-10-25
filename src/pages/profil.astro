@@ -1,0 +1,151 @@
+---
+// PAGE PROFIL - ADN musical et collections (inspiré des maquettes)
+import Layout from '../layouts/Layout.astro';
+
+const user = {
+  name: 'Alban',
+  handle: '@alban.mmi',
+  followers: 212,
+  bio: 'Étudiant MMI · rap, électro, et de plus en plus de jazz',
+};
+
+const stats = [
+  { label: 'ÉCOUTÉS', value: '147' },
+  { label: 'SPIN LIST', value: '2' },
+  { label: 'BARZ', value: '61' },
+];
+
+const adn = [
+  { genre: 'Rap', pct: 62, barColor: '#a3e635' },
+  { genre: 'Électro', pct: 21, barColor: 'var(--color-accent)' },
+  { genre: 'Jazz', pct: 11, barColor: 'var(--color-text-dim)' },
+  { genre: 'Autres', pct: 6, barColor: 'var(--color-text-dim)' },
+];
+
+const adnNote = '+8 % de jazz ce mois-ci. Tu sors de ta bulle.';
+
+const tabs = [
+  { id: 'spinlist', label: 'Spin list', active: true },
+  { id: 'ecoutes', label: 'Écoutés', active: false },
+  { id: 'barz', label: 'Barz', active: false },
+];
+
+const spinList = [
+  {
+    title: 'Lagune',
+    subtitle: 'Nour · Soul',
+    cover: '/BARZ-/placeholder-release.svg',
+    score: 8.1,
+  },
+  {
+    title: 'Selva Eléctrica',
+    subtitle: 'Los Cometas · Monde',
+    cover: '/BARZ-/placeholder-release.svg',
+    score: 8.3,
+  },
+];
+
+const statBg = 'bg-[#a3e635]/10 border border-[#a3e635]/25';
+const statValueStyle = 'text-4xl font-bold text-[var(--color-text)] font-display';
+const statLabelStyle = 'text-xs text-muted uppercase tracking-wider';
+const tabActiveCls =
+  'px-5 py-2.5 rounded-full text-sm font-semibold bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]';
+const tabInactiveCls =
+  'px-5 py-2.5 rounded-full text-sm font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)]';
+const titleStyle = 'text-4xl md:text-5xl font-bold mb-2 text-[var(--color-text)] [letter-spacing:-0.02em]';
+const bioStyle = 'text-base text-muted [max-width:420px] mx-auto';
+const cardTitleStyle = 'font-semibold text-base truncate text-[var(--color-text)]';
+---
+
+<Layout
+  title="Profil Alban - BARZ"
+  description="Découvre l'ADN musical d'Alban : rap, électro et jazz."
+>
+  <div class="container section-lg">
+    <!-- En-tête profil -->
+    <header class="mb-12 text-center">
+      <div class="mx-auto mb-4 flex h-18 w-18 items-center justify-center rounded-full bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)] text-2xl font-bold">
+        {user.name[0]}
+      </div>
+      <h1 class={titleStyle}>{user.name}</h1>
+      <p class="text-lg text-muted mb-2">{user.handle} · {user.followers} abonnés</p>
+      <p class={bioStyle}>{user.bio}</p>
+    </header>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-4 mb-12">
+      {stats.map((s) => (
+        <div class={`card p-6 ${statBg} rounded-[var(--radius-xl)] text-center`}>
+          <div class="flex flex-col items-center gap-1">
+            <span class={statValueStyle}>{s.value}</span>
+            <span class={statLabelStyle}>{s.label}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- ADN musical -->
+    <section class="mb-12 card p-8 md:p-10 rounded-[var(--radius-xl2)]">
+      <h2 class="text-2xl font-bold mb-6 text-[var(--color-text)] [letter-spacing:-0.01em]">
+        TON ADN MUSICAL · MARS
+      </h2>
+
+      {adn.map((g) => (
+        <div class="flex items-center justify-between mb-3" key={g.genre}>
+          <span class="text-sm font-medium text-[var(--color-text)]">{g.genre}</span>
+          <div class="flex-1 h-2 mx-4 overflow-hidden rounded-full bg-[var(--color-bg-hover)]">
+            <div
+              class={`h-full rounded-full transition-all duration-700 w-full ${g.pct >= 60 ? 'bg-[#a3e635]' : g.pct >= 20 ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-text-dim)]'}`}
+            ></div>
+          </div>
+          <span class="text-sm text-muted w-12 text-right">{g.pct} %</span>
+        </div>
+      ))}
+
+      <p class="mt-6 text-sm text-muted">{adnNote}</p>
+    </section>
+
+    <!-- Onglets -->
+    <div class="flex gap-1 mb-10" role="tablist" aria-label="Collections">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={t.active ? 'true' : 'false'}
+          class={t.active ? tabActiveCls : tabInactiveCls}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+
+    <!-- Spin list (onglet actif) -->
+    <section id="spinlist" role="tabpanel" aria-labelledby="spinlist">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {spinList.map((item) => (
+          <article class="card card-interactive overflow-hidden transition group" key={item.title}>
+            <div class="relative aspect-[1/1] overflow-hidden">
+              <img
+                src={item.cover}
+                alt={item.title}
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <span class="absolute top-3 right-3 badge badge-new text-xs">Nouveau</span>
+            </div>
+            <div class="p-4">
+              <h3 class={cardTitleStyle}>{item.title}</h3>
+              <p class="text-sm text-muted truncate mb-3">{item.subtitle}</p>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-[#a3e635]">{item.score}</span>
+                <span class="text-xs text-dim">/10</span>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  </div>
+</Layout>
