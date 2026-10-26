@@ -1,5 +1,5 @@
 ---
-// PAGE COMMU - Communauté / Social (inspiré des maquettes)
+// PAGE COMMU - Communauté (maquette PC)
 import Layout from '../layouts/Layout.astro';
 
 const tabs = [
@@ -11,216 +11,227 @@ const tabs = [
 const activityFeed = [
   {
     id: 1,
-    user: { name: 'Alban', handle: '@alban.mmi', avatar: '/BARZ-/placeholder-release.svg' },
-    action: 'a noté',
-    target: { type: 'album', title: 'GNX', artist: 'Kendrick Lamar', cover: '/BARZ-/placeholder-release.svg' },
-    rating: 9.2,
-    comment: 'Un retour aux sources brut, sans concession. La prod de Sounwave est chirurgicale.',
-    time: 'Il y a 2h',
-    likes: 12,
-    comments: 3,
+    user: { name: 'Inès', handle: '@ines.wav', avatar: '/BARZ-/placeholder-release.svg', color: '#f43f5e' },
+    action: 'a écrit',
+    time: 'il y a 1 h',
+    content: '« Je n\'écoutais jamais de jazz. Le défi de la semaine m\'a convertie. »',
+    cover: '/BARZ-/placeholder-release.svg',
+    coverTitle: 'Kintsugi',
+    coverScore: 9.5,
+    likes: 214,
+    comments: 0,
   },
   {
     id: 2,
-    user: { name: 'Mira', handle: '@mira.k', avatar: '/BARZ-/placeholder-release.svg' },
-    action: 'a ajouté à sa spin list',
-    target: { type: 'album', title: 'Lagune', artist: 'Nour', cover: '/BARZ-/placeholder-release.svg' },
-    rating: null,
-    comment: 'La douceur de Nour fait du bien après une semaine chargée. Soul moderne parfait.',
-    time: 'Il y a 5h',
-    likes: 8,
-    comments: 1,
+    user: { name: 'Malik', handle: '@malikbeats', avatar: '/BARZ-/placeholder-release.svg', color: '#3b82f6' },
+    action: 'a écrit',
+    time: 'il y a 1 h',
+    content: '« Le deuxième couplet de « Verglas »… On en parle ? »',
+    cover: '/BARZ-/placeholder-release.svg',
+    coverTitle: 'Néon Lents',
+    coverScore: 8.0,
+    likes: 98,
+    comments: 0,
   },
   {
     id: 3,
-    user: { name: 'Sacha', handle: '@sacha.rubis', avatar: '/BARZ-/placeholder-release.svg' },
-    action: 'écoute en boucle',
-    target: { type: 'album', title: 'Hiver 04', artist: 'Sacha Rubis', cover: '/BARZ-/placeholder-release.svg' },
-    rating: 8.5,
-    comment: '',
-    time: 'Hier',
-    likes: 24,
-    comments: 5,
-  },
-  {
-    id: 4,
-    user: { name: 'Lou', handle: '@lou.valentin', avatar: '/BARZ-/placeholder-release.svg' },
-    action: 'a découvert via Rabbit Hole',
-    target: { type: 'artist', title: 'Idris Mbayé', cover: '/BARZ-/placeholder-release.svg' },
-    rating: null,
-    comment: 'Producteur incroyable, merci l\'algo BARZ 🙏',
-    time: 'Hier',
-    likes: 7,
+    user: { name: 'Jade', handle: '@jadesurvinyle', avatar: '/BARZ-/placeholder-release.svg', color: '#eab308' },
+    action: 'a écrit',
+    time: 'il y a 1 h',
+    content: '« Bonne prod, mais ça manque de prises de risque. »',
+    cover: '/BARZ-/placeholder-release.svg',
+    coverTitle: 'Terre Brûlée',
+    coverScore: 7.0,
+    likes: 41,
     comments: 0,
   },
 ];
 
-const followedUsers = [
-  { name: 'Mira Kale', handle: '@mira.k', avatar: '/BARZ-/placeholder-release.svg', mutual: 12, lastSpin: 'Lagune — Nour' },
-  { name: 'Sacha Rubis', handle: '@sacha.rubis', avatar: '/BARZ-/placeholder-release.svg', mutual: 8, lastSpin: 'Hiver 04 — Sacha Rubis' },
-  { name: 'Lou Valentin', handle: '@lou.valentin', avatar: '/BARZ-/placeholder-release.svg', mutual: 5, lastSpin: 'Sous silence — Lou Valentin' },
-  { name: 'Thomas', handle: '@thomas.gg', avatar: '/BARZ-/placeholder-release.svg', mutual: 3, lastSpin: 'Kintsugi — Tamo & The Fold' },
-  { name: 'Chloé', handle: '@chloe.wav', avatar: '/BARZ-/placeholder-release.svg', mutual: 7, lastSpin: 'Selva Eléctrica — Los Cometas' },
+const topContributeurs = [
+  { rank: 1, handle: '@ines.wav' },
+  { rank: 2, handle: '@malikbeats' },
+  { rank: 3, handle: '@jadesurvinyle' },
 ];
-
-const discoveries = [
-  { name: 'Nina Kraviz', handle: '@nina.kraviz', reason: 'Électro / Techno — 3 amis en commun', avatar: '/BARZ-/placeholder-release.svg' },
-  { name: 'Alpha Wann', handle: '@alpha.wann', reason: 'Rap FR — Tu as noté "Don Dada Mixtape"', avatar: '/BARZ-/placeholder-release.svg' },
-  { name: 'Floating Points', handle: '@floatingpoints', reason: 'Jazz / Électro — Similaire à ton ADN 11% Jazz', avatar: '/BARZ-/placeholder-release.svg' },
-];
-
-const feedItemStyle = 'card p-5 transition group';
-const avatarStyle = 'w-10 h-10 rounded-full object-cover border border-[var(--color-border)]';
-const actionStyle = 'text-sm text-[var(--color-text-muted)]';
-const targetStyle = 'flex items-center gap-3 mt-2 p-3 bg-[var(--color-bg-hover)] rounded-[var(--radius-md)]';
-const targetImgStyle = 'w-12 h-12 rounded-[var(--radius-sm)] object-cover flex-shrink-0';
-const targetInfoStyle = 'min-w-0 flex-1';
-const targetTitleStyle = 'font-semibold text-sm truncate text-[var(--color-text)]';
-const targetArtistStyle = 'text-xs text-muted truncate';
-const ratingStyle = 'flex items-center gap-1 mt-2 text-sm font-bold text-[#a3e635]';
-const commentStyle = 'mt-3 text-sm text-[var(--color-text)] bg-[var(--color-bg-surface)] p-3 rounded-[var(--radius-sm)]';
-const metaStyle = 'flex items-center gap-4 mt-3 text-xs text-dim';
-const followedItemStyle = 'flex items-center gap-3 py-3 border-b border-[var(--color-border)] last:border-0';
-const followedInfoStyle = 'min-w-0 flex-1';
-const followedNameStyle = 'font-semibold text-sm text-[var(--color-text)]';
-const followedHandleStyle = 'text-xs text-muted truncate';
-const followedMetaStyle = 'text-[0.7rem] text-dim';
-const discoverItemStyle = 'flex items-center gap-3 p-3 card card-interactive transition group';
-const discoverAvatarStyle = 'w-12 h-12 rounded-full object-cover border border-[var(--color-border)]';
-const discoverNameStyle = 'font-semibold text-sm text-[var(--color-text)]';
-const discoverReasonStyle = 'text-xs text-muted';
-const btnStyle = 'ml-auto btn btn-primary btn-sm whitespace-nowrap';
-const emptyStyle = 'text-center py-12 text-muted';
 ---
 
-<Layout title="Commu - BARZ" description="Ta communauté musicale : activité des amis, suivis, nouvelles découvertes.">
-  <div class="container section-lg">
-    <header class="mb-12">
-      <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider text-[#a3e635] bg-[#a3e635]/10 border border-[#a3e635]/25">
-        Commu
-      </span>
-      <h1 class="text-5xl md:text-6xl font-bold mt-3 mb-2 text-[var(--color-text)] [letter-spacing:-0.02em]">
-        Ta commu<span class="gradient-text">.</span>
+<Layout title="Commu - BARZ" description="Les Barz du jour : posts de la communauté, blend, top contributeurs.">
+  <div class="container section-sm py-4">
+    {/* Desktop header */}
+    <div class="desktop-only mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25">Communauté</span>
+      </div>
+      <h1 class="font-serif text-5xl font-bold mt-0 mb-2 text-[var(--color-text)] leading-tight">
+        Les Barz du jour<span class="text-lime">.</span>
       </h1>
-      <p class="text-lg text-muted max-w-2xl">
-        Ce que tes potes écoutent, notent, partagent. Et qui tu devrais suivre.
-      </p>
-    </header>
-
-    <!-- Onglets -->
-    <div class="flex gap-1 mb-10" role="tablist" aria-label="Sections communauté">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={t.active ? 'true' : 'false'}
-          class={`px-5 py-2.5 rounded-full text-sm font-semibold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
-        >
-          {t.label}
-        </button>
-      ))}
     </div>
 
-    <!-- Onglet Activité -->
-    <section id="activite" role="tabpanel" aria-labelledby="activite" class="space-y-4">
-      {activityFeed.length > 0 ? (
-        activityFeed.map((a) => (
-          <article key={a.id} class={feedItemStyle}>
+    {/* Mobile header */}
+    <div class="mobile-only mb-6">
+      <div class="flex items-center justify-between px-4 pt-2 pb-1 text-[10px] text-muted font-mono">
+        <span>Commu</span>
+        <span>100%</span>
+      </div>
+      <div class="mb-6">
+        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-3 block">Commu</span>
+        <h1 class="font-serif text-4xl font-bold mt-1 mb-2 text-[var(--color-text)] leading-tight">
+          Ta commu<span class="text-lime">.</span>
+        </h1>
+        <p class="text-sm text-muted">
+          Ce que tes potes écoutent, notent, partagent. Et qui tu devrais suivre.
+        </p>
+      </div>
+    </div>
+
+    {/* Publish bar */}
+    <div class="card p-0 rounded-[var(--radius-xl2)] overflow-hidden mb-8">
+      <div class="flex items-start gap-3 p-5">
+        <div class="w-10 h-10 rounded-full bg-[#a3e635] flex items-center justify-center text-[14px] font-bold text-[#09090b] flex-shrink-0">A</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-[var(--color-text-muted)]">Qu'as-tu écouté aujourd'hui ? Écris ton Barz...</p>
+        </div>
+        <button class="bg-[#a3e635] text-[#09090b] px-6 py-2 rounded-full text-xs font-bold hover:bg-[#b5f642] transition">Publier</button>
+      </div>
+    </div>
+
+    {/* Desktop layout: feed + right sidebar */}
+    <div class="desktop-only grid lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-8">
+        {/* Activity feed */}
+        <div class="space-y-4">
+          {activityFeed.map((post) => (
+            <article key={post.id} class="card p-0 overflow-hidden">
+              <div class="p-4">
+                <div class="flex items-start gap-3 mb-3">
+                  <div class="w-8 h-8 rounded-full border border-[var(--color-border)] overflow-hidden flex-shrink-0">
+                    <img src={post.user.avatar} alt={post.user.name} class="w-full h-full object-cover" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-semibold text-sm text-[var(--color-text)]">{post.user.name}</span>
+                      <span class="text-xs text-muted">{post.user.handle}</span>
+                      <span class="text-xs text-dim ml-auto">{post.time}</span>
+                    </div>
+                    <p class="text-sm text-[var(--color-text)]">{post.content}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 pt-3 border-t border-[var(--color-border)]">
+                  <div class="flex items-center gap-3">
+                    <img src={post.cover} alt={post.coverTitle} class="w-12 h-12 rounded-[var(--radius-md)] object-cover flex-shrink-0" />
+                    <div class="min-w-0 flex-1">
+                      <span class="text-[10px] font-bold text-[var(--color-text)] truncate">{post.coverTitle}</span>
+                      <span class="text-[10px] font-bold bg-[#a3e635] text-[#09090b] px-2 py-0.5 rounded">{post.coverScore}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 text-xs text-muted">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    <span>{post.likes}</span>
+                  </div>
+                  <button class="text-xs text-muted hover:text-[var(--color-accent)] transition">Répondre</button>
+                  <button class="text-xs text-muted hover:text-[var(--color-accent)] transition ml-auto">Partager</button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div class="lg:col-span-4">
+        <div class="space-y-6">
+          {/* En direct */}
+          <div class="rounded-[var(--radius-xl2)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-[10px] font-bold text-lime uppercase tracking-wider">En direct</span>
+              <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Écoute commune</span>
+            </div>
+            <div class="relative aspect-[16/10] overflow-hidden rounded-[var(--radius-lg)] mb-3">
+              <img src="/BARZ-/placeholder-release.svg" alt="Kintsugi en direct" class="w-full h-full object-cover" loading="lazy" />
+            </div>
+            <h3 class="font-bold text-sm text-[var(--color-text)] mb-2">Kintsugi en entier, ce soir 21 h</h3>
+            <button class="w-full bg-[#a3e635] text-[#09090b] px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#b5f642] transition">Rejoindre · 342 inscrits</button>
+          </div>
+
+          {/* Blend */}
+          <div class="rounded-[var(--radius-xl2)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4">
+            <span class="text-[10px] font-bold text-lime uppercase tracking-wider block mb-3">Blend</span>
+            <h3 class="font-serif text-xl font-bold mb-4 text-[var(--color-text)] leading-tight">Toi et Inès avez 72 % de goûts en commun.</h3>
+            <button class="w-full bg-[#a3e635] text-[#09090b] px-6 py-2 rounded-full text-xs font-bold hover:bg-[#b5f642] transition">Créer une playlist commune</button>
+          </div>
+
+          {/* Top contributeurs */}
+          <div>
+            <h3 class="font-serif text-2xl font-bold mb-4 text-[var(--color-text)]">Top contributeurs</h3>
+            <ol class="space-y-3">
+              {topContributeurs.map((c) => (
+                <li key={c.handle} class="flex items-center justify-between group">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-muted w-4 text-center">{c.rank}</span>
+                    <span class="text-sm font-medium text-[var(--color-text)]">{c.handle}</span>
+                  </div>
+                  <button class="text-xs text-muted border border-[var(--color-border)] px-3 py-1 rounded-full hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)] transition">Suivre</button>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Mobile tabs + feed */}
+    <div class="mobile-only">
+      {/* Onglets */}
+      <div class="flex gap-1 mb-6" role="tablist" aria-label="Sections communauté">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={t.active ? 'true' : 'false'}
+            class={`px-5 py-2 rounded-full text-sm font-bold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Activité */}
+      <section id="activite" role="tabpanel" aria-labelledby="activite" class="space-y-4">
+        {activityFeed.map((post) => (
+          <article key={post.id} class="card p-4 transition group">
             <div class="flex items-start gap-3">
-              <img src={a.user.avatar} alt={a.user.name} class={avatarStyle} />
+              <img src={post.user.avatar} alt={post.user.name} class="w-10 h-10 rounded-full object-cover border border-[var(--color-border)]" />
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="font-semibold text-sm text-[var(--color-text)]">{a.user.name}</span>
-                  <span class="text-xs text-muted">{a.user.handle}</span>
-                  <span class="text-xs text-dim ml-auto">{a.time}</span>
+                  <span class="font-semibold text-sm text-[var(--color-text)]">{post.user.name}</span>
+                  <span class="text-xs text-muted">{post.user.handle}</span>
+                  <span class="text-xs text-dim ml-auto">{post.time}</span>
                 </div>
-                <p class={actionStyle}><span class="font-medium text-[var(--color-text)]">{a.user.name}</span> {a.action} <span class="font-medium text-[var(--color-accent)]">{a.target.title}</span> {a.target.artist ? <span>— {a.target.artist}</span> : null}</p>
-                <div class={targetStyle}>
-                  <img src={a.target.cover} alt={a.target.title} class={targetImgStyle} />
-                  <div class={targetInfoStyle}>
-                    <p class={targetTitleStyle}>{a.target.title}</p>
-                    {a.target.artist && <p class={targetArtistStyle}>{a.target.artist}</p>}
+                <p class="text-sm text-[var(--color-text-muted)] mt-1">
+                  <span class="font-medium text-[var(--color-text)]">{post.user.name}</span> {post.action}
+                </p>
+                <div class="flex items-center gap-3 mt-3 p-3 bg-[var(--color-bg-hover)] rounded-[var(--radius-md)]">
+                  <img src={post.cover} alt={post.coverTitle} class="w-10 h-10 rounded-[var(--radius-sm)] object-cover flex-shrink-0" />
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-sm truncate text-[var(--color-text)]">{post.coverTitle}</p>
+                    <span class="flex items-center gap-1 text-sm font-bold text-[#a3e635]">{post.coverScore} / 10</span>
                   </div>
-                  {a.rating && <span class={ratingStyle}>{a.rating} / 10</span>}
                 </div>
-                {a.comment && <p class={commentStyle}>{a.comment}</p>}
-                <div class={metaStyle}>
+                <p class="mt-3 text-sm text-[var(--color-text)] bg-[var(--color-bg-surface)] p-3 rounded-[var(--radius-sm)]">{post.content}</p>
+                <div class="flex items-center gap-4 mt-3 text-xs text-dim">
                   <button class="flex items-center gap-1 hover:text-[var(--color-accent)] transition" aria-label="J'aime">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                    <span>{a.likes}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    <span>{post.likes}</span>
                   </button>
-                  <button class="flex items-center gap-1 hover:text-[var(--color-accent)] transition" aria-label="Commentaires">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                    <span>{a.comments}</span>
-                  </button>
-                  <button class="flex items-center gap-1 hover:text-[var(--color-accent)] transition ml-auto" aria-label="Partager">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                  <button class="flex items-center gap-1 hover:text-[var(--color-accent)] transition ml-auto" aria-label="Commentaires">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+                    <span>{post.comments}</span>
                   </button>
                 </div>
               </div>
             </div>
           </article>
-        ))
-      ) : (
-        <p class={emptyStyle}>Aucune activité pour l'instant. Suis des amis pour voir leur actu ici.</p>
-      )}
-    </section>
-
-    <!-- Onglet Suivis -->
-    <section id="suivis" role="tabpanel" aria-labelledby="suivis" class="hidden space-y-0">
-      {followedUsers.length > 0 ? (
-        followedUsers.map((u, i) => (
-          <div key={i} class={followedItemStyle}>
-            <img src={u.avatar} alt={u.name} class={avatarStyle} />
-            <div class={followedInfoStyle}>
-              <p class={followedNameStyle}>{u.name}</p>
-              <p class={followedHandleStyle}>{u.handle}</p>
-              <p class={followedMetaStyle}>{u.mutual} ami{u.mutual > 1 ? 's' : ''} en commun · Dernier spin : {u.lastSpin}</p>
-            </div>
-            <button class={btnStyle}>Suivi</button>
-          </div>
-        ))
-      ) : (
-        <p class={emptyStyle}>Tu ne suis personne encore. Pars à la découverte !</p>
-      )}
-    </section>
-
-    <!-- Onglet Découvertes -->
-    <section id="decouvertes" role="tabpanel" aria-labelledby="decouvertes" class="hidden space-y-3">
-      {discoveries.length > 0 ? (
-        discoveries.map((d, i) => (
-          <div key={i} class={discoverItemStyle}>
-            <img src={d.avatar} alt={d.name} class={discoverAvatarStyle} />
-            <div class="min-w-0 flex-1">
-              <p class={discoverNameStyle}>{d.name}</p>
-              <p class={discoverReasonStyle}>{d.reason}</p>
-            </div>
-            <button class={btnStyle}>Suivre</button>
-          </div>
-        ))
-      ) : (
-        <p class={emptyStyle}>Aucune suggestion pour l'instant. Continue d'écouter pour affiner l'algo.</p>
-      )}
-    </section>
+        ))}
+      </section>
+    </div>
   </div>
 </Layout>
-
-<style>
-  /* JS simple pour basculer les onglets (pas d'hydratation React nécessaire) */
-  <script is:inline>
-    document.querySelectorAll('[role="tablist"] button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tabs = btn.closest('[role="tablist"]').querySelectorAll('button');
-        const panels = btn.closest('main').querySelectorAll('[role="tabpanel"]');
-        tabs.forEach(t => { t.setAttribute('aria-selected', 'false'); t.classList.remove('bg-[#a3e635]', 'text-[#09090b]', 'shadow-[0_0_20px_rgba(163,230,53,0.35)]'); t.classList.add('text-[var(--color-text-muted)]', 'hover:text-[var(--color-text)]'); });
-        btn.setAttribute('aria-selected', 'true');
-        btn.classList.add('bg-[#a3e635]', 'text-[#09090b]', 'shadow-[0_0_20px_rgba(163,230,53,0.35)]');
-        btn.classList.remove('text-[var(--color-text-muted)]', 'hover:text-[var(--color-text)]');
-        panels.forEach(p => p.classList.add('hidden'));
-        const target = btn.closest('main').querySelector(`#${btn.id}`);
-        if (target) target.classList.remove('hidden');
-      });
-    });
-  </script>
-</style>

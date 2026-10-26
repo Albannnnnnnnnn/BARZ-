@@ -1,5 +1,5 @@
 ---
-// PAGE ACTUS - Actualités musicales (inspiré des maquettes)
+// PAGE ACTUS - Actualités musicales (maquette PC)
 import Layout from '../layouts/Layout.astro';
 
 const news = [
@@ -7,7 +7,7 @@ const news = [
     id: 1,
     category: 'SORTIE',
     title: 'Kendrick Lamar dévoile "GNX", album surprise de 12 titres',
-    excerpt: 'Sans prévenir, le rappeur de Compton balance un projet court, dense, produit par Sounwave et Jack Antonoff. West Coast modern à l\'état pur.',
+    excerpt: 'Sans prévenir, le rappeur de Compton balance un projet court, dense, produit par Sounwave et Jack Antonoff.',
     date: '23 nov. 2024',
     image: '/BARZ-/placeholder-release.svg',
     tag: 'À la une',
@@ -15,8 +15,8 @@ const news = [
   {
     id: 2,
     category: 'TOURNÉE',
-    title: 'Justice annonce une tournée européenne 2025 — dates françaises',
-    excerpt: 'Le duo d\'Ed Banger rempile pour "Hyperdrama Live". Paris, Lyon, Nantes au programme. Prévente le 29 nov.',
+    title: 'Justice annonce une tournée européenne 2025',
+    excerpt: "Le duo d'Ed Banger rempile pour 'Hyperdrama Live'. Paris, Lyon, Nantes au programme.",
     date: '21 nov. 2024',
     image: '/BARZ-/placeholder-release.svg',
     tag: 'Billetterie',
@@ -24,126 +24,152 @@ const news = [
   {
     id: 3,
     category: 'CLIP',
-    title: 'Tame Impala — "The Boat I Row" : Kevin Parker en animation psyché',
-    excerpt: 'Nouveau visuel pour le morceau de "The Slow Rush". Réalisé par Robert Beatty, c\'est un trip kaleidoscopique 70\'s.',
+    title: 'Tame Impala — "The Boat I Row"',
+    excerpt: 'Nouveau visuel pour le morceau de "The Slow Rush". Réalisé par Robert Beatty.',
     date: '19 nov. 2024',
     image: '/BARZ-/placeholder-release.svg',
     tag: 'Nouveau clip',
   },
-  {
-    id: 4,
-    category: 'SORTIE',
-    title: 'Charli XCX — "Brat and it\'s completely different but also still brat"',
-    excerpt: 'La version remixée de "Brat" avec Lorde, Billie Eilish, Ariana Grande, Addison Rae... Le phénomène de l\'été continue.',
-    date: '18 nov. 2024',
-    image: '/BARZ-/placeholder-release.svg',
-    tag: 'Remix',
-  },
-  {
-    id: 5,
-    category: 'ANNONCE',
-    title: 'Fontaines D.C. : nouvel album "Romance" prévu pour août 2025',
-    excerpt: 'Le quatuor irlandais tease un virage plus mélodique, produit par James Ford. Premier single "Starburster" déjà dispo.',
-    date: '15 nov. 2024',
-    image: '/BARZ-/placeholder-release.svg',
-    tag: 'À venir',
-  },
-  {
-    id: 6,
-    category: 'FESTIVAL',
-    title: 'We Love Green 2025 : la prog complète dévoilée',
-    excerpt: 'Tyler, The Creator, PJ Harvey, NTO, Charlotte de Witte, L\'Impératrice... 3 jours au Bois de Vincennes, 6-8 juin.',
-    date: '12 nov. 2024',
-    image: '/BARZ-/placeholder-release.svg',
-    tag: 'Festival',
-  },
 ];
 
 const sideNews = [
-  { category: 'SORTIE', title: 'Little Simz — "Fever" (feat. Ghetts)', date: '22 nov.' },
-  { category: 'CLIP', title: 'Fred again.. — "ten" (visualizer)', date: '21 nov.' },
-  { category: 'SORTIE', title: 'André 3000 — "New Blue Sun" (réédition vinyle)', date: '20 nov.' },
-  { category: 'TOURNÉE', title: 'Kaytranada : dates US + Europe 2025', date: '19 nov.' },
-  { category: 'ANNONCE', title: 'Björk tease un projet "sonore et visuel"', date: '18 nov.' },
+  { category: 'FESTIVAL', title: 'Les Nuits Sonores dévoilent leur programmation complète', time: 'Ttsugi · 4 min' },
+  { category: 'INTERVIEW', title: "Tamo Adeyemi : « Le jazz est une musique de club »", time: 'Jazz Mag · 8 min' },
+  { category: 'INDUSTRIE', title: 'Streaming : ce que change la nouvelle rémunération des artistes', time: 'Les Inrocks · 6 min' },
 ];
 
-const cardStyle = 'card card-interactive overflow-hidden transition group h-full';
-const badgeStyle = 'badge badge-type text-[0.65rem] mb-2';
-const tagStyle = 'text-[0.7rem] uppercase tracking-widest text-[var(--color-accent)] font-semibold';
-const titleStyle = 'font-bold text-lg mb-2 text-[var(--color-text)] line-clamp-2 group-hover:text-[var(--color-accent)] transition';
-const excerptStyle = 'text-sm text-muted line-clamp-3 mb-4';
-const metaStyle = 'flex items-center gap-2 text-xs text-dim';
-const sideItemStyle = 'flex items-start gap-3 py-2 border-b border-[var(--color-border)] last:border-0 group';
-const sideTitleStyle = 'font-medium text-sm text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition';
-const sideMetaStyle = 'text-[0.7rem] text-dim';
+const concerts = [
+  { date: '12 AVR', artist: 'Mira Kale', venue: 'Zénith, Paris', price: '39 €', image: '/BARZ-/placeholder-release.svg' },
+  { date: '18 AVR', artist: 'Tamo & The Fold', venue: 'New Morning, Paris', price: '28 €', image: '/BARZ-/placeholder-release.svg' },
+  { date: '02 MAI', artist: 'Ostra', venue: 'Le Sucre, Lyon', price: '18 €', image: '/BARZ-/placeholder-release.svg' },
+  { date: '09 MAI', artist: 'Volta Noire', venue: 'La Cigale, Paris', price: '32 €', image: '/BARZ-/placeholder-release.svg' },
+];
 ---
 
 <Layout title="Actus - BARZ" description="Toute l'actualité musicale : sorties albums, clips, tournées, festivals.">
-  <div class="container section-lg">
-    <header class="mb-12">
-      <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider text-[#a3e635] bg-[#a3e635]/10 border border-[#a3e635]/25">
-        Actus
-      </span>
-      <h1 class="text-5xl md:text-6xl font-bold mt-3 mb-2 text-[var(--color-text)] [letter-spacing:-0.02em]">
-        L'actu qui compte<span class="gradient-text">.</span>
+  <div class="container section-sm py-4">
+    {/* Desktop header */}
+    <div class="desktop-only mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25">Actus</span>
+      </div>
+      <h1 class="font-serif text-5xl font-bold mt-0 mb-2 text-[var(--color-text)] leading-tight">
+        Ce qui bouge cette semaine<span class="text-lime">.</span>
       </h1>
-      <p class="text-lg text-muted max-w-2xl">
-        Sorties, tournées, clips, festivals — la sélection BARZ, sans le bruit.
-      </p>
-    </header>
+    </div>
 
-    <div class="grid gap-6 lg:grid-cols-4">
-      <!-- Colonne principale (3/4) -->
-      <div class="lg:col-span-3 space-y-6">
-        {news.map((n) => (
-          <article key={n.id} class={cardStyle}>
-            <div class="relative aspect-[16/10] overflow-hidden">
-              <img src={n.image} alt={n.title} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              <div class="absolute top-3 left-3 flex flex-col gap-1">
-                <span class={badgeStyle}>{n.category}</span>
-                {n.tag && <span class="text-[0.65rem] px-2 py-0.5 rounded bg-[#a3e635]/90 text-[#09090b] font-semibold">{n.tag}</span>}
+    {/* Mobile header */}
+    <div class="mobile-only mb-6">
+      <div class="flex items-center justify-between px-4 pt-2 pb-1 text-[10px] text-muted font-mono">
+        <span>Actus</span>
+        <span>100%</span>
+      </div>
+      <div class="mb-6">
+        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-3 block">Actus</span>
+        <h1 class="font-serif text-4xl font-bold mt-1 mb-2 text-[var(--color-text)] leading-tight">
+          L'actu qui compte<span class="text-lime">.</span>
+        </h1>
+        <p class="text-sm text-muted">Sorties, tournées, clips, festivals — la sélection BARZ, sans le bruit.</p>
+      </div>
+    </div>
+
+    {/* Desktop: feature article + side news */}
+    <div class="desktop-only grid lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-8">
+        <article class="rounded-[var(--radius-xl2)] overflow-hidden relative">
+          <img src="/BARZ-/placeholder-release.svg" alt="Mira Kale tournée" class="w-full h-[400px] object-cover" loading="eager" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div class="absolute bottom-0 left-0 p-6 w-full">
+            <span class="badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Tournée</span>
+            <h2 class="font-serif text-4xl font-bold mt-3 mb-2 text-white leading-tight">
+              Mira Kale annonce une tournée des Zéniths pour l'automne
+            </h2>
+            <p class="text-sm text-white/80">BARZi Rédaction · Il y a 2 h · 3 min</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="lg:col-span-4">
+        <div class="space-y-4">
+          {sideNews.map((n, i) => (
+            <article key={i} class="flex gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-3 group hover:bg-[var(--color-bg-hover)] transition">
+              <div class="flex-shrink-0 w-20 h-20 rounded-[var(--radius-md)] overflow-hidden">
+                <img src="/BARZ-/placeholder-release.svg" alt={n.title} class="w-full h-full object-cover" loading="lazy" />
               </div>
+              <div class="flex-1 min-w-0">
+                <span class="text-[10px] font-bold text-[var(--color-accent)] uppercase tracking-wider block mb-1">{n.category}</span>
+                <h3 class="font-bold text-sm text-[var(--color-text)] leading-tight">{n.title}</h3>
+                <p class="text-xs text-muted">{n.time}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Mobile: news list */}
+    <div class="mobile-only space-y-4">
+      {news.map((n) => (
+        <article key={n.id} class="card p-0 overflow-hidden">
+          <div class="relative aspect-[16/10] overflow-hidden">
+            <img src={n.image} alt={n.title} class="w-full h-full object-cover" loading="lazy" />
+            <div class="absolute top-3 left-3 flex flex-col gap-1">
+              <span class="badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold px-2 py-1">{n.category}</span>
+              {n.tag && <span class="text-[10px] px-2 py-1 rounded bg-[#a3e635]/90 text-[#09090b] font-bold">{n.tag}</span>}
             </div>
-            <div class="p-5 md:p-6">
-              <div class={metaStyle}>
-                <time>{n.date}</time>
-                <span aria-hidden="true">·</span>
-                <span>3 min de lecture</span>
-              </div>
-              <h2 class={titleStyle}>{n.title}</h2>
-              <p class={excerptStyle}>{n.excerpt}</p>
-              <a href="/BARZ-/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]">
-                Lire la suite
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </a>
+          </div>
+          <div class="p-4">
+            <div class="flex items-center gap-1 text-[10px] text-dim mb-1">
+              <time>{n.date}</time>
+              <span aria-hidden="true">·</span>
+              <span>3 min de lecture</span>
+            </div>
+            <h2 class="font-bold text-lg mb-2 text-[var(--color-text)] leading-tight">{n.title}</h2>
+            <p class="text-sm text-muted">{n.excerpt}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    {/* Desktop: Concerts près de toi */}
+    <div class="desktop-only mt-10">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-serif text-3xl font-bold text-[var(--color-text)] leading-tight">Concerts près de toi</h2>
+        <span class="text-xs font-bold text-lime">Paris</span>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {concerts.map((c) => (
+          <article class="card card-interactive overflow-hidden group" key={c.artist}>
+            <div class="relative aspect-[1/1] overflow-hidden">
+              <img src={c.image} alt={c.artist} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+            </div>
+            <div class="p-4">
+              <div class="flex items-center gap-1 text-[10px] font-bold text-lime mb-2">{c.date}</div>
+              <h3 class="font-bold text-sm mb-1 text-[var(--color-text)]">{c.artist}</h3>
+              <p class="text-xs text-muted">{c.venue}</p>
+              <p class="mt-2 text-sm font-bold text-[var(--color-text)]">Billets · {c.price}</p>
             </div>
           </article>
         ))}
       </div>
+    </div>
 
-      <!-- Sidebar (1/4) -->
-      <aside class="lg:col-span-1 hidden lg:block">
-        <div class="card p-5 sticky top-[100px]">
-          <h3 class="font-bold text-base mb-4 text-[var(--color-text)] uppercase tracking-wider">Dernières minutes</h3>
-          <div class="space-y-0">
-            {sideNews.map((s, i) => (
-              <div key={i} class={sideItemStyle}>
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--color-bg-hover)] flex items-center justify-center">
-                  <span class={tagStyle}>{s.category}</span>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class={sideTitleStyle}>{s.title}</p>
-                  <p class={sideMetaStyle}>{s.date}</p>
-                </div>
-              </div>
-            ))}
+    {/* Mobile: Dernières minutes */}
+    <div class="mobile-only mt-8">
+      <h3 class="font-bold text-base mb-3 text-[var(--color-text)] uppercase tracking-wider">Dernières minutes</h3>
+      <div class="space-y-0">
+        {sideNews.map((s, i) => (
+          <div key={i} class="flex items-start gap-3 py-3 border-b border-[var(--color-border)] last:border-0 group">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--color-bg-hover)] flex items-center justify-center">
+              <span class="text-[10px] uppercase tracking-widest text-[var(--color-accent)] font-bold">{s.category}</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-sm text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition">{s.title}</p>
+              <p class="text-[10px] text-dim">{s.time}</p>
+            </div>
           </div>
-          <a href="/BARZ-/search" class="btn btn-ghost btn-sm w-full mt-4">Voir toutes les actus</a>
-        </div>
-      </aside>
+        ))}
+      </div>
     </div>
   </div>
 </Layout>

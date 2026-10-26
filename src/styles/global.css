@@ -14,7 +14,12 @@
   --color-text-muted: #a1a1aa;
   --color-text-dim: #71717a;
 
-  /* Accent rose vif (BARZ) */
+  /* Accent lime actif (BARZ - inspiré maquette) */
+  --color-accent-lime: #a3e635;
+  --color-accent-lime-dark: #84cc16;
+  --color-accent-lime-glow: rgba(163, 230, 53, 0.35);
+
+  /* Accent rose vif (BARZ - secondaire) */
   --color-accent: #e11d48;
   --color-accent-hover: #f43f5e;
   --color-accent-dark: #be123c;
@@ -22,9 +27,13 @@
   --color-accent-muted: #881337;
   --color-accent-glow: rgba(225, 29, 72, 0.35);
 
+  /* Couleur crème pour cartes récap */
+  --color-surface-cream: #f7f5f0;
+
   /* Typographie */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Outfit', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   --text-xs: 0.75rem;
@@ -553,6 +562,29 @@ select.input { cursor: pointer; }
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Lime utilities */
+.text-lime { color: var(--color-accent-lime); }
+.bg-lime { background-color: var(--color-accent-lime); }
+.text-lime-dark { color: var(--color-accent-lime-dark); }
+
+/* Serif font utilities */
+.font-serif { font-family: var(--font-serif); }
+
+/* Container téléphone (maquette) */
+.phone {
+  max-width: 390px;
+  margin: 0 auto;
+  background: #000;
+  border-radius: 48px;
+  border: 12px solid #1a1a1a;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.phone-screen {
+  background: var(--color-bg);
+  min-height: 100vh;
 }
 
 .glass-panel {

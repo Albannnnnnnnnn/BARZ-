@@ -1,5 +1,5 @@
 ---
-// PAGE PROFIL - ADN musical et collections (inspiré des maquettes)
+// PAGE PROFIL - ADN musical (maquette PC)
 import Layout from '../layouts/Layout.astro';
 
 const user = {
@@ -13,6 +13,7 @@ const stats = [
   { label: 'ÉCOUTÉS', value: '147' },
   { label: 'SPIN LIST', value: '2' },
   { label: 'BARZ', value: '61' },
+  { label: 'ABONNÉS', value: '212' },
 ];
 
 const adn = [
@@ -31,121 +32,214 @@ const tabs = [
 ];
 
 const spinList = [
-  {
-    title: 'Lagune',
-    subtitle: 'Nour · Soul',
-    cover: '/BARZ-/placeholder-release.svg',
-    score: 8.1,
-  },
-  {
-    title: 'Selva Eléctrica',
-    subtitle: 'Los Cometas · Monde',
-    cover: '/BARZ-/placeholder-release.svg',
-    score: 8.3,
-  },
+  { title: 'Lagune', subtitle: 'Nour · Soul', cover: '/BARZ-/placeholder-release.svg', score: 8.1 },
+  { title: 'Selva Eléctrica', subtitle: 'Los Cometas · Monde', cover: '/BARZ-/placeholder-release.svg', score: 8.3 },
 ];
 
-const statBg = 'bg-[#a3e635]/10 border border-[#a3e635]/25';
-const statValueStyle = 'text-4xl font-bold text-[var(--color-text)] font-display';
-const statLabelStyle = 'text-xs text-muted uppercase tracking-wider';
-const tabActiveCls =
-  'px-5 py-2.5 rounded-full text-sm font-semibold bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]';
-const tabInactiveCls =
-  'px-5 py-2.5 rounded-full text-sm font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)]';
-const titleStyle = 'text-4xl md:text-5xl font-bold mb-2 text-[var(--color-text)] [letter-spacing:-0.02em]';
-const bioStyle = 'text-base text-muted [max-width:420px] mx-auto';
-const cardTitleStyle = 'font-semibold text-base truncate text-[var(--color-text)]';
+const recentActivity = [
+  'A noté Néon Lents · 8.5',
+  'A relevé le défi jazz de la semaine 10',
+  'Suit Sacha Rubis',
+  'A ajouté Lagune à sa spin list',
+];
 ---
 
-<Layout
-  title="Profil Alban - BARZ"
-  description="Découvre l'ADN musical d'Alban : rap, électro et jazz."
->
-  <div class="container section-lg">
-    <!-- En-tête profil -->
-    <header class="mb-12 text-center">
-      <div class="mx-auto mb-4 flex h-18 w-18 items-center justify-center rounded-full bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)] text-2xl font-bold">
-        {user.name[0]}
-      </div>
-      <h1 class={titleStyle}>{user.name}</h1>
-      <p class="text-lg text-muted mb-2">{user.handle} · {user.followers} abonnés</p>
-      <p class={bioStyle}>{user.bio}</p>
-    </header>
-
-    <!-- Stats -->
-    <div class="grid grid-cols-3 gap-4 mb-12">
-      {stats.map((s) => (
-        <div class={`card p-6 ${statBg} rounded-[var(--radius-xl)] text-center`}>
-          <div class="flex flex-col items-center gap-1">
-            <span class={statValueStyle}>{s.value}</span>
-            <span class={statLabelStyle}>{s.label}</span>
+<Layout title="Profil Alban - BARZ" description="Découvre l'ADN musical d'Alban : rap, électro et jazz.">
+  <div class="container section-sm py-4">
+    {/* Desktop profile hero */}
+    <div class="desktop-only mb-8">
+      <div class="rounded-[var(--radius-xl2)] bg-gradient-to-r from-[#09090b]/80 via-[#09090b]/40 to-transparent p-8 md:p-12 overflow-hidden relative">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#a3e635]/20 to-transparent pointer-events-none" />
+        <div class="relative z-10">
+          <div class="flex items-start gap-6 mb-6">
+            <div class="flex h-20 w-20 items-center justify-center rounded-full bg-[#a3e635] text-[#09090b] shadow-[0_0_30px_rgba(163,230,53,0.4)] text-3xl font-bold flex-shrink-0">
+              A
+            </div>
+            <div>
+              <h1 class="font-serif text-5xl font-bold mt-0 mb-1 text-[var(--color-text)] leading-tight">{user.name}</h1>
+              <p class="text-sm text-muted">{user.handle} · Étudiant MMI · rap, électro, et de plus en plus de jazz</p>
+            </div>
+            <div class="ml-auto flex gap-4">
+              {stats.map((s) => (
+                <div class="text-right" key={s.label}>
+                  <span class="text-3xl font-bold text-[var(--color-text)] block">{s.value}</span>
+                  <span class="text-xs text-muted uppercase tracking-wider">{s.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      ))}
+      </div>
     </div>
 
-    <!-- ADN musical -->
-    <section class="mb-12 card p-8 md:p-10 rounded-[var(--radius-xl2)]">
-      <h2 class="text-2xl font-bold mb-6 text-[var(--color-text)] [letter-spacing:-0.01em]">
-        TON ADN MUSICAL · MARS
-      </h2>
+    {/* Mobile profile hero */}
+    <div class="mobile-only mb-6">
+      <header class="mb-6 text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)] text-2xl font-bold">
+          {user.name[0]}
+        </div>
+        <h1 class="font-serif text-3xl md:text-4xl font-bold mb-1 text-[var(--color-text)] leading-tight">
+          {user.name}
+        </h1>
+        <p class="text-sm text-muted mb-2">{user.handle} · {user.followers} abonnés</p>
+        <p class="text-base text-muted">{user.bio}</p>
+      </header>
 
+      {/* Stats */}
+      <div class="grid grid-cols-3 gap-4 mb-8">
+        {stats.map((s) => (
+          <div class="card p-4 text-center" key={s.label}>
+            <span class="text-2xl font-bold text-[var(--color-text)] block">{s.value}</span>
+            <span class="text-xs text-muted uppercase tracking-wider">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* ADN musical */}
+    <section class="mb-8 card p-5 rounded-[var(--radius-xl2)]">
+      <h2 class="font-serif text-xl font-bold mb-5 text-[var(--color-text)] leading-tight">
+        Ton ADN musical
+      </h2>
       {adn.map((g) => (
         <div class="flex items-center justify-between mb-3" key={g.genre}>
           <span class="text-sm font-medium text-[var(--color-text)]">{g.genre}</span>
           <div class="flex-1 h-2 mx-4 overflow-hidden rounded-full bg-[var(--color-bg-hover)]">
-            <div
-              class={`h-full rounded-full transition-all duration-700 w-full ${g.pct >= 60 ? 'bg-[#a3e635]' : g.pct >= 20 ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-text-dim)]'}`}
-            ></div>
+            <div class={`h-full rounded-full bg-[#a3e635] w-[${g.pct}%]`}></div>
           </div>
-          <span class="text-sm text-muted w-12 text-right">{g.pct} %</span>
+          <span class="text-sm text-muted w-10 text-right">{g.pct} %</span>
         </div>
       ))}
-
-      <p class="mt-6 text-sm text-muted">{adnNote}</p>
+      <p class="mt-5 text-xs text-muted">{adnNote}</p>
     </section>
 
-    <!-- Onglets -->
-    <div class="flex gap-1 mb-10" role="tablist" aria-label="Collections">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={t.active ? 'true' : 'false'}
-          class={t.active ? tabActiveCls : tabInactiveCls}
-        >
-          {t.label}
-        </button>
-      ))}
+    {/* Desktop: spin list + activity side by side */}
+    <div class="desktop-only grid lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-8">
+        {/* Onglets */}
+        <div class="flex gap-1 mb-6" role="tablist" aria-label="Collections">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={t.active ? 'true' : 'false'}
+              class={`px-5 py-2 rounded-full text-sm font-bold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Spin list */}
+        <section id="spinlist" role="tabpanel" aria-labelledby="spinlist">
+          <div class="grid gap-4">
+            {spinList.map((item) => (
+              <article class="card card-interactive overflow-hidden transition group" key={item.title}>
+                <div class="relative aspect-[1/1] overflow-hidden">
+                  <img
+                    src={item.cover}
+                    alt={item.title}
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <span class="absolute top-3 right-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
+                </div>
+                <div class="p-4">
+                  <h3 class="font-bold text-base truncate mb-1 text-[var(--color-text)]">{item.title}</h3>
+                  <p class="text-sm text-muted truncate">{item.subtitle}</p>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-[#a3e635]">{item.score}</span>
+                    <span class="text-xs text-dim">/10</span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div class="lg:col-span-4">
+        <div class="space-y-6">
+          {/* Spin list cards (desktop right sidebar) */}
+          <div>
+            <h3 class="font-serif text-xl font-bold mb-4 text-[var(--color-text)]">Ta spin list</h3>
+            <div class="space-y-3">
+              {spinList.map((item) => (
+                <article class="card card-interactive p-3 rounded-[var(--radius-lg)] flex gap-3 group" key={item.title}>
+                  <div class="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)]">
+                    <img src={item.cover} alt={item.title} class="w-full h-full object-cover" loading="lazy" />
+                    <span class="absolute top-1 right-1 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">✓</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <h3 class="font-bold text-sm truncate text-[var(--color-text)]">{item.title}</h3>
+                    <p class="text-xs text-muted truncate">{item.subtitle}</p>
+                  </div>
+                  <span class="text-xs font-bold text-[#a3e635]">{item.score}</span>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Spin list (onglet actif) -->
-    <section id="spinlist" role="tabpanel" aria-labelledby="spinlist">
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {spinList.map((item) => (
-          <article class="card card-interactive overflow-hidden transition group" key={item.title}>
-            <div class="relative aspect-[1/1] overflow-hidden">
-              <img
-                src={item.cover}
-                alt={item.title}
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <span class="absolute top-3 right-3 badge badge-new text-xs">Nouveau</span>
-            </div>
-            <div class="p-4">
-              <h3 class={cardTitleStyle}>{item.title}</h3>
-              <p class="text-sm text-muted truncate mb-3">{item.subtitle}</p>
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-[#a3e635]">{item.score}</span>
-                <span class="text-xs text-dim">/10</span>
-              </div>
-            </div>
-          </article>
+    {/* Mobile: tabs + spin list */}
+    <div class="mobile-only">
+      {/* Onglets */}
+      <div class="flex gap-1 mb-6" role="tablist" aria-label="Collections">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={t.active ? 'true' : 'false'}
+            class={`px-5 py-2 rounded-full text-sm font-bold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
+
+      {/* Spin list */}
+      <section id="spinlist" role="tabpanel" aria-labelledby="spinlist">
+        <div class="grid gap-4">
+          {spinList.map((item) => (
+            <article class="card card-interactive overflow-hidden transition group" key={item.title}>
+              <div class="relative aspect-[1/1] overflow-hidden">
+                <img
+                  src={item.cover}
+                  alt={item.title}
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+                <span class="absolute top-3 right-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
+              </div>
+              <div class="p-4">
+                <h3 class="font-bold text-base truncate mb-1 text-[var(--color-text)]">{item.title}</h3>
+                <p class="text-sm text-muted truncate">{item.subtitle}</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-bold text-[#a3e635]">{item.score}</span>
+                  <span class="text-xs text-dim">/10</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+
+    {/* Activité récente */}
+    <section class="mt-8">
+      <h2 class="font-serif text-3xl font-bold mb-6 text-[var(--color-text)] leading-tight">Activité récente</h2>
+      <ul class="space-y-3">
+        {recentActivity.map((activity, i) => (
+          <li key={i} class="flex items-start gap-3 p-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] transition">
+            <span class="flex-shrink-0 text-[10px] font-bold text-lime">●</span>
+            <p class="text-sm text-[var(--color-text)]">{activity}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   </div>
 </Layout>
