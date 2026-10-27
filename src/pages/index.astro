@@ -1,32 +1,36 @@
 ---
-// PAGE VENDREDI : les sorties de la semaine (données réelles) + défi, concerts, Barz (démo)
+// PAGE SORTIES (cette semaine) : artistes suivis en tête, puis toutes les sorties triées et filtrables
 import { addDays, format, getISOWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
-import Cover from '../components/Cover.astro';
-import GenreChips from '../components/GenreChips.astro';
+import SortiesTabs from '../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
-import { chipIdsFor, fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
+import { GENRE_CHIPS, chipIdsFor, fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { getReleaseTypeLabel } from '../lib/utils';
-import { getConcertsOrDemo } from '../lib/concerts';
-import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CHALLENGE, DEMO_CONCERTS } from '../data/demo';
 
 const today = getToday();
 // Le vendredi de référence : aujourd'hui si c'est vendredi, sinon le dernier vendredi passé
 const friday = addDays(today, -((today.getDay() - 5 + 7) % 7));
-const releases = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(friday, -6), addDays(friday, 6));
+const supabase = getSupabaseServerSafe();
+const releases = await fetchReleasesBetween(supabase, addDays(friday, -6), addDays(friday, 6));
+const upcomingCount = (await fetchReleasesBetween(supabase, addDays(today, 1), addDays(today, 120))).length;
 
-// Les artistes suivis d'abord, puis les sorties les plus suivies sur Deezer
+// Ordre par défaut (« Populaires ») : les artistes de la sélection d'abord, puis les plus suivis sur Deezer
 const fans = (r: ReleaseRow) => r.metadata?.fans ?? 0;
 const sorted = [...releases].sort((a, b) => Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || fans(b) - fans(a));
 const count = sorted.length;
-const fan = sorted.slice(0, 5);
-const watched = sorted.filter((r) => r.metadata?.watched).slice(0, 6);
 
-const eyebrow = `Vendredi ${format(friday, 'd MMMM', { locale: fr })} · Semaine ${getISOWeek(friday)}`;
+// Rangée d'artistes affichée sans compte : ceux de la sélection BARZ¡ qui ont sorti quelque chose
+const spotlight = new Map<string, { name: string; slug: string; image_url: string | null; releaseSlug: string }>();
+for (const r of sorted) {
+  if (r.artist && r.metadata?.watched && !spotlight.has(r.artist.id)) spotlight.set(r.artist.id, { ...r.artist, releaseSlug: r.slug });
+}
+
+const types = [...new Set(sorted.map((r) => r.release_type))].filter(Boolean);
+const genres = GENRE_CHIPS.filter((c) => sorted.some((r) => chipIdsFor(r.genres).includes(c.id)));
+const eyebrow = `Semaine ${getISOWeek(friday)} · vendredi ${format(friday, 'd MMMM', { locale: fr })}`;
 const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
-const quotes = DEMO_BARZ.slice(0, 2);
 // Données des sorties de la semaine pour le reclassement personnalisé (src/scripts/reco.ts)
 const weekData = sorted.map((r) => ({
   id: r.id,
@@ -36,186 +40,164 @@ const weekData = sorted.map((r) => ({
   fans: r.metadata?.fans ?? null,
   title: r.title,
   slug: r.slug,
-  cover_url: r.cover_url,
-  release_type: r.release_type,
 }));
-const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
 ---
 
-<Layout title="Vendredi" description="Les sorties musicales du vendredi, triées pour toi.">
+<Layout title="Sorties" description="Les sorties musicales de la semaine, triées pour toi.">
   <div class="bz-page">
     <span class="bz-eyebrow">{eyebrow}</span>
-    <h1 class="bz-display">
-      {count > 0 ? (
-        <>Salut<span id="hello-name"></span>, <em id="hello-count">{count} sortie{count > 1 ? 's' : ''}</em> pour toi.</>
-      ) : (
-        <>Salut<span id="hello-name"></span>, <em>calme plat</em> cette semaine.</>
-      )}
-    </h1>
+    <h1 class="bz-display">Sorties</h1>
+    <SortiesTabs active="semaine" weekCount={count} upcomingCount={upcomingCount} />
 
-    <section class="recap" aria-labelledby="recap-title">
-      <div class="recap-text">
-        <span class="recap-eyebrow">Le récap du vendredi · 3 min</span>
-        {count > 0 ? (
-          <h2 id="recap-title" class="recap-title">
-            {count === 1 && <>{fan[0].title} à ne pas rater.</>}
-            {count === 2 && <>{fan[0].title}{' '}<em>et</em>{' '}{fan[1].title} à ne pas rater.</>}
-            {count > 2 && <>{fan[0].title}, {fan[1].title}{' '}<em>et {count - 2} autres</em>{' '}à ne pas rater.</>}
-          </h2>
-        ) : (
-          <h2 id="recap-title" class="recap-title">Le récap arrive{' '}<em>vendredi</em>{' '}matin.</h2>
-        )}
-        <p>Les sorties essentielles de la semaine en stories, triées selon tes goûts et ton curseur d’exploration.</p>
-        {count > 0 && <a class="bz-btn bz-btn--ink" href={`/BARZ-/releases/${fan[0].slug}`}>Lancer le récap →</a>}
-      </div>
-      <div class="fan" aria-hidden="true">
-        {(fan.length ? fan : Object.values(DEMO_ALBUMS).slice(0, 5)).map((r: any, i: number) => (
-          <div class="fan-card" style={`--i:${i};--n:${Math.max(fan.length, 5)}`}>
-            <Cover title={r.title} src={r.cover_url} palette={r.palette} />
-          </div>
-        ))}
-      </div>
-    </section>
-
-    <div class="split">
-      <section aria-labelledby="all-title">
-        <div class="bz-section-head">
-          <h2 id="all-title" class="bz-h2">Toutes les sorties</h2>
-          <a class="bz-link" href="/BARZ-/calendar">Mode digest</a>
-        </div>
-
-        {count > 0 ? (
-          <>
-            <GenreChips target="#all-grid" />
-            <div id="all-grid" class="bz-tiles grid is-capped">
-              {sorted.map((r) => (
-                <AlbumTile
-                  title={r.title}
-                  subtitle={subtitleOf(r)}
-                  cover={r.cover_url}
-                  href={`/BARZ-/releases/${r.slug}`}
-                  chips={chipIdsFor(r.genres)}
-                  releaseId={r.id}
-                />
-              ))}
-            </div>
-            <p class="chip-empty" hidden>Aucune sortie de ce genre cette semaine.</p>
-            {count > 24 && <button type="button" class="bz-link more" id="show-all">Voir les {count} sorties →</button>}
-            <script type="application/json" id="week-data" set:html={JSON.stringify(weekData)} />
-          </>
-        ) : (
-          <p class="bz-empty">
-            <strong>Aucune sortie enregistrée pour cette semaine.</strong><br />
-            Elles apparaissent après la prochaine synchronisation (deux fois par jour).
-          </p>
-        )}
-      </section>
-
-      <aside class="side">
-        <section class="challenge">
-          <span class="challenge-eyebrow">Défi de la semaine</span>
-          <h2>{DEMO_CHALLENGE.title}</h2>
-          <p>{DEMO_CHALLENGE.meta}</p>
-          <a class="bz-btn bz-btn--ink bz-btn--small" href="/BARZ-/search">Relever le défi</a>
-        </section>
-
-        <section>
-          <div class="bz-section-head"><h2 class="bz-h2">Concerts</h2><a class="bz-link" href="/BARZ-/actus#concerts-title">Tout voir</a></div>
-          <ul class="concerts">
-            {concerts.slice(0, 3).map((c) => (
-              <li>
-                <span class="concert-date"><b>{c.day}</b>{c.month}</span>
-                <span class="concert-info">
-                  {c.url ? <a href={c.url} target="_blank" rel="noopener"><b>{c.artist}</b></a> : <b>{c.artist}</b>}
-                  {c.venue}
-                </span>
-                {c.price && <span class="concert-price">{c.price}</span>}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <div class="bz-section-head"><h2 class="bz-h2">Barz du jour</h2></div>
-          {quotes.map((q) => (
-            <a class="quote" href="/BARZ-/commu">
-              <span class="quote-meta">{q.handle} · <b>{q.score}</b></span>
-              <span class="quote-text">{q.text}</span>
+    <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
+      <h2 id="artists-title" class="label">Ils ont sorti cette semaine</h2>
+      <ul class="stories" id="stories">
+        {[...spotlight.values()].map((a) => (
+          <li>
+            <a class="story is-new" href={`/BARZ-/releases/${a.releaseSlug}`}>
+              {a.image_url ? <img src={a.image_url} alt="" loading="lazy" /> : <span class="story-fallback">{a.name[0]}</span>}
+              <span class="story-name">{a.name}</span>
             </a>
-          ))}
-        </section>
-      </aside>
-    </div>
+          </li>
+        ))}
+      </ul>
+    </section>
 
-    <section class="artists" aria-labelledby="artists-title" id="artists-section">
-      <div class="bz-section-head"><h2 id="artists-title" class="bz-h2">Tes artistes ont sorti</h2></div>
-      {watched.length > 0 ? (
-        <div class="bz-tiles" id="artists-grid">
-          {watched.map((r) => (
-            <AlbumTile title={r.title} subtitle={r.artist?.name ?? ''} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />
+    {count > 0 ? (
+      <section aria-label="Toutes les sorties de la semaine">
+        <div class="toolbar">
+          <div class="sorts" role="group" aria-label="Trier">
+            <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
+            <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
+            <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
+          </div>
+          <span class="sep" aria-hidden="true"></span>
+          <label class="sr-only" for="filter-genre">Genre</label>
+          <select id="filter-genre" class="select">
+            <option value="">Tous les genres</option>
+            {genres.map((c) => <option value={c.id}>{c.label}</option>)}
+          </select>
+          {types.length > 1 && (
+            <>
+              <label class="sr-only" for="filter-type">Type</label>
+              <select id="filter-type" class="select">
+                <option value="">Albums, EP et singles</option>
+                {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
+              </select>
+            </>
+          )}
+        </div>
+
+        <div id="all-grid" class="bz-tiles grid is-capped">
+          {sorted.map((r) => (
+            <AlbumTile
+              title={r.title}
+              subtitle={subtitleOf(r)}
+              cover={r.cover_url}
+              href={`/BARZ-/releases/${r.slug}`}
+              chips={chipIdsFor(r.genres)}
+              releaseId={r.id}
+              type={r.release_type}
+            />
           ))}
         </div>
-      ) : (
-        <p class="bz-empty" id="artists-grid">Rien de neuf chez les artistes de la sélection BARZ¡ cette semaine.</p>
-      )}
-    </section>
+        <p class="filter-empty" hidden>Aucune sortie ne correspond à ces filtres cette semaine.</p>
+        {count > 24 && <button type="button" class="bz-btn bz-btn--outline more" id="show-all">Voir les {count} sorties</button>}
+        <script type="application/json" id="week-data" set:html={JSON.stringify(weekData)} />
+      </section>
+    ) : (
+      <p class="bz-empty">
+        <strong>Aucune sortie enregistrée pour cette semaine.</strong><br />
+        Elles apparaissent après la prochaine synchronisation (deux fois par jour).
+      </p>
+    )}
   </div>
 </Layout>
 
 <script>
-  import { getMyProfile, releaseTileHtml, escapeHtml, BASE } from '../scripts/social';
+  import { BASE, escapeHtml, myFollows } from '../scripts/social';
   import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
 
-  type WeekRelease = RecoRelease & { title: string; slug: string; cover_url: string | null; release_type: string };
+  type WeekRelease = RecoRelease & { title: string; slug: string };
 
+  const grid = document.getElementById('all-grid');
+  const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
+  const tiles = new Map([...(grid?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
+  const orders: Record<string, string[]> = {
+    popular: week.map((r) => r.id),
+    alpha: [...week].sort((a, b) => a.title.localeCompare(b.title, 'fr')).map((r) => r.id),
+  };
+
+  function applySort(sort: string) {
+    document.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.sort === sort);
+      b.setAttribute('aria-pressed', String(b.dataset.sort === sort));
+    });
+    for (const id of orders[sort] ?? []) {
+      const tile = tiles.get(id);
+      if (tile) grid!.appendChild(tile);
+    }
+  }
+
+  function applyFilters() {
+    const genre = (document.getElementById('filter-genre') as HTMLSelectElement | null)?.value ?? '';
+    const type = (document.getElementById('filter-type') as HTMLSelectElement | null)?.value ?? '';
+    let visible = 0;
+    tiles.forEach((tile) => {
+      const show = (!genre || tile.dataset.chips!.split(' ').includes(genre)) && (!type || tile.dataset.type === type);
+      tile.hidden = !show;
+      if (show) visible++;
+    });
+    const empty = document.querySelector<HTMLElement>('.filter-empty');
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  document.querySelector('.sorts')?.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sort]');
+    if (button) applySort(button.dataset.sort!);
+  });
+  document.getElementById('filter-genre')?.addEventListener('change', applyFilters);
+  document.getElementById('filter-type')?.addEventListener('change', applyFilters);
   document.getElementById('show-all')?.addEventListener('click', (event) => {
-    document.getElementById('all-grid')?.classList.remove('is-capped');
+    grid?.classList.remove('is-capped');
     (event.currentTarget as HTMLElement).remove();
   });
 
-  async function personalize() {
-    const profile = await getMyProfile();
-    if (!profile) return;
-    document.getElementById('hello-name')!.textContent = ` ${profile.display_name}`;
-
-    const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
-    const section = document.getElementById('artists-section')!;
-    const title = document.getElementById('artists-title')!;
-    const slot = document.getElementById('artists-grid');
-    const taste = await loadTaste();
-
-    if (!taste || taste.empty) {
-      title.textContent = 'Pour toi';
-      const hint = `<a class="bz-empty" href="${BASE}bienvenue" style="display:block">Dis-nous ce que tu aimes (genres, artistes) pour que cette page te ressemble →</a>`;
-      slot ? (slot.outerHTML = hint) : section.insertAdjacentHTML('beforeend', hint);
-      return;
-    }
-
-    // Reclasse "Toutes les sorties" selon les goûts, avec la raison sous chaque sortie
-    const ranked = rank(week, taste, 0.15);
-    const grid = document.getElementById('all-grid');
-    if (grid) {
-      for (const s of ranked) {
-        const tile = grid.querySelector<HTMLElement>(`[data-release-id="${CSS.escape(s.item.id)}"]`);
-        if (!tile) continue;
-        if (s.reason && !tile.querySelector('.bz-reason')) tile.insertAdjacentHTML('beforeend', `<span class="bz-reason">${escapeHtml(s.reason)}</span>`);
-        grid.appendChild(tile);
-      }
-    }
-    const forMe = ranked.filter((s) => s.familiar).length;
-    const count = document.getElementById('hello-count');
-    if (count && forMe > 0) count.textContent = `${forMe} sortie${forMe > 1 ? 's' : ''}`;
-
-    // "Tes artistes ont sorti" : ses artistes suivis, sinon le meilleur de ses recos
-    const mine = ranked.filter((s) => s.item.artistId && taste.followed.has(s.item.artistId));
-    const picks = (mine.length ? mine : ranked.filter((s) => s.familiar)).slice(0, 6);
-    title.textContent = mine.length ? 'Tes artistes ont sorti' : 'Choisi pour toi';
-    const html = picks.length
-      ? `<div class="bz-tiles" id="artists-grid">${picks.map((s) => releaseTileHtml({ ...s.item, artist: { name: s.item.artistName } }, { reason: s.reason })).join('')}</div>`
-      : `<p class="bz-empty" id="artists-grid">Rien de neuf chez tes artistes cette semaine. <a href="${BASE}artistes" style="color:var(--color-lime)">Suivre plus d’artistes →</a></p>`;
-    slot ? (slot.outerHTML = html) : section.insertAdjacentHTML('beforeend', html);
+  // Connecté : la rangée devient celle de ses artistes suivis (ceux qui ont sorti quelque chose d'abord)
+  async function showFollowed() {
+    const follows = await myFollows();
+    if (!follows.length) return;
+    const released = new Map(week.filter((r) => r.artistId).map((r) => [r.artistId!, r.slug]));
+    const list = [...follows].sort((a, b) => Number(released.has(b.id)) - Number(released.has(a.id))).slice(0, 14);
+    const avatar = (a: (typeof follows)[number]) =>
+      a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" />` : `<span class="story-fallback">${escapeHtml(a.name[0])}</span>`;
+    document.getElementById('stories')!.innerHTML =
+      list
+        .map((a) => {
+          const slug = released.get(a.id);
+          const href = slug ? `${BASE}releases/${encodeURIComponent(slug)}` : `${BASE}artiste?a=${encodeURIComponent(a.slug)}`;
+          return `<li><a class="story${slug ? ' is-new' : ''}" href="${href}">${avatar(a)}<span class="story-name">${escapeHtml(a.name)}</span>${slug ? '<span class="story-tag">Nouveau</span>' : ''}</a></li>`;
+        })
+        .join('') + `<li><a class="story" href="${BASE}artistes?genre=followed"><span class="story-fallback">+</span><span class="story-name">Tous</span></a></li>`;
+    document.getElementById('artists-title')!.textContent = 'Tes artistes';
+    document.getElementById('artists-section')!.hidden = false;
   }
 
+  // Connecté avec des goûts : tri « Pour toi » par défaut, avec la raison sous chaque sortie
+  async function personalize() {
+    const taste = await loadTaste();
+    if (!taste || taste.empty || !grid) return;
+    const ranked = rank(week, taste, 0.15);
+    orders.reco = ranked.map((s) => s.item.id);
+    for (const s of ranked) {
+      const tile = tiles.get(s.item.id);
+      if (s.reason && tile && !tile.querySelector('.bz-reason')) tile.insertAdjacentHTML('beforeend', `<span class="bz-reason">${escapeHtml(s.reason)}</span>`);
+    }
+    document.querySelector<HTMLElement>('[data-sort="reco"]')!.hidden = false;
+    applySort('reco');
+  }
+
+  showFollowed().catch(() => {});
   personalize().catch((err) => console.warn('Personnalisation indisponible :', err));
 </script>
 
@@ -224,279 +206,161 @@ const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
     display: none;
   }
 
-  button.more {
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    font-family: var(--font-sans);
+  .artists {
+    margin-top: 36px;
   }
 
-  .recap {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    align-items: center;
-    gap: 40px;
-    margin-top: 64px;
-    padding: 56px;
-    border-radius: 28px;
-    background: var(--color-cream);
-    color: var(--color-ink);
-    overflow: hidden;
+  .artists[hidden] {
+    display: none;
   }
 
-  .recap-text {
-    position: relative;
-    z-index: 20;
-  }
-
-  .recap-eyebrow {
-    font: 700 13px/1 var(--font-sans);
+  .label {
+    margin-bottom: 18px;
+    font: 600 12px/1 var(--font-sans);
     letter-spacing: 0.22em;
     text-transform: uppercase;
+    color: var(--color-text-muted);
   }
 
-  .recap-title {
-    margin: 24px 0 26px;
-    font-family: var(--font-serif);
-    font-weight: 400;
-    font-size: clamp(40px, 4.6vw, 76px);
-    line-height: 0.92;
-    letter-spacing: -0.02em;
-    color: var(--color-ink);
+  .stories {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 6px 4px 4px;
+    scrollbar-width: none;
   }
 
-  .recap-title em {
-    font-style: italic;
+  .stories :global(.story) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 84px;
+    color: var(--color-text);
   }
 
-  .recap p {
-    max-width: 540px;
-    margin-bottom: 34px;
-    font-size: 17px;
-    line-height: 1.55;
-    color: #3d3a35;
+  .stories :global(img),
+  .stories :global(.story-fallback) {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px var(--color-border);
+    transition: transform var(--transition-fast);
   }
 
-  .fan {
-    position: relative;
-    height: 300px;
-  }
-
-  .fan-card {
-    position: absolute;
-    top: 50%;
-    left: 62%;
-    width: 210px;
-    box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.45);
-    border-radius: 6px;
-    transform: translate(calc(-50% + (var(--i) - 2) * 92px), -50%) rotate(calc((var(--i) - 2) * 5deg));
-    z-index: calc(10 - var(--i));
-  }
-
-  .fan-card:nth-child(1) {
-    z-index: 12;
-    transform: translate(-50%, -54%) rotate(0deg);
-  }
-
-  .fan-card:nth-child(2) {
-    transform: translate(calc(-50% - 100px), -48%) rotate(-7deg);
-  }
-
-  .fan-card:nth-child(3) {
-    transform: translate(calc(-50% + 100px), -48%) rotate(6deg);
-  }
-
-  .fan-card:nth-child(4) {
-    transform: translate(calc(-50% - 190px), -44%) rotate(-12deg);
-  }
-
-  .fan-card:nth-child(5) {
-    transform: translate(calc(-50% + 190px), -44%) rotate(11deg);
-  }
-
-  .split {
+  .stories :global(.story-fallback) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 440px;
-    gap: 64px;
-    margin-top: 76px;
+    place-items: center;
+    background: var(--color-bg-hover);
+    font: 400 28px/1 var(--font-serif);
   }
 
-  .grid {
-    margin-top: 28px;
+  .stories :global(.story.is-new img),
+  .stories :global(.story.is-new .story-fallback) {
+    box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-lime);
   }
 
-  .chip-empty {
+  .stories :global(.story:hover img),
+  .stories :global(.story:hover .story-fallback) {
+    transform: scale(1.05);
+  }
+
+  .stories :global(.story-name) {
+    max-width: 100%;
+    font-size: 13px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stories :global(.story-tag) {
+    margin-top: -4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-lime);
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 36px 0 28px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .sorts {
+    display: flex;
+    gap: 8px;
+  }
+
+  .sorts [hidden] {
+    display: none;
+  }
+
+  .sep {
+    width: 1px;
+    height: 24px;
+    margin: 0 6px;
+    background: var(--color-border);
+  }
+
+  .select {
+    appearance: none;
+    padding: 8px 34px 8px 15px;
+    border: 1px solid #343434;
+    border-radius: 999px;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a09a' stroke-width='3'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 13px center;
+    color: var(--color-text);
+    font: 500 14px/1.2 var(--font-sans);
+    cursor: pointer;
+  }
+
+  .select option {
+    background: var(--color-bg-elevated);
+  }
+
+  .filter-empty {
     margin-top: 24px;
     color: var(--color-text-muted);
   }
 
+  .filter-empty[hidden] {
+    display: none;
+  }
+
   .more {
-    display: inline-block;
-    margin-top: 28px;
-  }
-
-  .side {
-    display: flex;
-    flex-direction: column;
-    gap: 56px;
-  }
-
-  .challenge {
-    padding: 36px 32px;
-    border-radius: 24px;
-    background: var(--color-orange);
-    color: var(--color-ink);
-  }
-
-  .challenge-eyebrow {
-    font: 700 13px/1 var(--font-sans);
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-  }
-
-  .challenge h2 {
-    margin: 20px 0 18px;
-    font-family: var(--font-serif);
-    font-weight: 400;
-    font-size: 48px;
-    line-height: 0.95;
-    color: var(--color-ink);
-  }
-
-  .challenge p {
-    margin-bottom: 26px;
-    color: #2b1609;
-    font-size: 16px;
-  }
-
-  .concerts {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .concerts li {
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    padding: 18px 20px;
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-  }
-
-  .concert-date {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 44px;
-    font: 700 12px/1 var(--font-sans);
-    letter-spacing: 0.12em;
-    color: var(--color-lime);
-  }
-
-  .concert-date b {
-    margin-bottom: 6px;
-    font: 400 38px/1 var(--font-serif);
-    letter-spacing: 0;
-    color: var(--color-text);
-  }
-
-  .concert-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: block;
+    margin: 44px auto 0;
+    padding: 14px 26px;
     font-size: 15px;
-    color: var(--color-text-muted);
-  }
-
-  .concert-info b {
-    font-size: 17px;
-    color: var(--color-text);
-  }
-
-  .concert-price {
-    padding: 7px 12px;
-    border: 1px solid #3a3a3a;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 14px;
-  }
-
-  .quote {
-    display: block;
-    margin-bottom: 14px;
-    padding: 22px;
-    border-radius: 16px;
-    background: var(--color-bg-elevated);
-    transition: background var(--transition-fast);
-  }
-
-  .quote:hover {
-    background: var(--color-bg-surface);
-  }
-
-  .quote-meta {
-    display: block;
-    font-weight: 700;
-    font-size: 14px;
-  }
-
-  .quote-meta b {
-    color: var(--color-lime);
-  }
-
-  .quote-text {
-    display: block;
-    margin-top: 10px;
-    font: 400 24px/1.25 var(--font-serif);
-  }
-
-  .artists {
-    margin-top: 80px;
-  }
-
-  @media (max-width: 1280px) {
-    .split {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .side {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 40px;
-    }
   }
 
   @media (max-width: 900px) {
-    .recap {
-      grid-template-columns: minmax(0, 1fr);
-      margin-top: 36px;
-      padding: 32px 24px;
+    .artists {
+      margin-top: 24px;
     }
-    .fan {
-      height: 200px;
-      order: -1;
+    .stories {
+      gap: 14px;
     }
-    .fan-card {
-      width: 150px;
+    .stories :global(.story) {
+      width: 66px;
     }
-    .fan-card:nth-child(4),
-    .fan-card:nth-child(5) {
+    .stories :global(img),
+    .stories :global(.story-fallback) {
+      width: 60px;
+      height: 60px;
+    }
+    .sep {
       display: none;
     }
-    .fan-card:nth-child(2) {
-      transform: translate(calc(-50% - 80px), -48%) rotate(-7deg);
-    }
-    .fan-card:nth-child(3) {
-      transform: translate(calc(-50% + 80px), -48%) rotate(6deg);
-    }
-    .split {
-      margin-top: 48px;
-    }
-    .challenge h2 {
-      font-size: 38px;
+    .toolbar {
+      margin: 24px 0 20px;
     }
   }
 </style>

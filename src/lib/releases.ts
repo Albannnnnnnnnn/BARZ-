@@ -66,27 +66,3 @@ export async function fetchWeeklyReleases(
   }
   return [...weeks.entries()].map(([week_start, releases]) => ({ week_start, releases })) as unknown as WeeklyReleases[];
 }
-
-// Données de la barre latérale, partagées par toutes les pages : une seule requête par build
-type SidebarData = {
-  followed: { name: string; slug: string; image_url: string | null; isNew: boolean }[];
-  upcoming: ReleaseRow[];
-};
-let sidebarPromise: Promise<SidebarData> | null = null;
-
-export function getSidebarData(): Promise<SidebarData> {
-  sidebarPromise ??= (async () => {
-    const today = getToday();
-    const rows = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today, -14), addDays(today, 60));
-    const todayIso = format(today, 'yyyy-MM-dd');
-    const upcoming = rows.filter((r) => r.release_date > todayIso).reverse();
-
-    const followed = new Map<string, SidebarData['followed'][number]>();
-    for (const r of rows) {
-      if (!r.artist || !r.metadata?.watched || followed.has(r.artist.slug)) continue;
-      followed.set(r.artist.slug, { ...r.artist, isNew: r.release_date >= format(addDays(today, -7), 'yyyy-MM-dd') });
-    }
-    return { followed: [...followed.values()].slice(0, 4), upcoming };
-  })();
-  return sidebarPromise;
-}

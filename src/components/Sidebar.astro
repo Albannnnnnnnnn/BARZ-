@@ -1,7 +1,6 @@
 ---
-// Barre latérale (PC) : logo, navigation, artistes suivis, prochain vendredi
+// Barre latérale (PC) : logo et navigation
 import NavIcon from './NavIcon.astro';
-import { getSidebarData } from '../lib/releases';
 import { NAV_ITEMS, activeNav } from '../lib/nav';
 
 interface Props {
@@ -10,8 +9,6 @@ interface Props {
 
 const { currentPath } = Astro.props;
 const active = activeNav(currentPath);
-const { followed, upcoming } = await getSidebarData();
-const upcomingTitles = upcoming.slice(0, 2).map((r) => r.title).join(' · ');
 ---
 
 <aside class="sidebar">
@@ -25,61 +22,7 @@ const upcomingTitles = upcoming.slice(0, 2).map((r) => r.title).join(' · ');
       </a>
     ))}
   </nav>
-
-  <section class="followed" aria-labelledby="followed-title">
-    <h2 id="followed-title" class="side-title">Artistes suivis</h2>
-    {followed.length > 0 ? (
-      <ul id="side-followed">
-        {followed.map((a) => (
-          <li>
-            <a href={`/BARZ-/artiste?a=${a.slug}`}>
-              {a.image_url ? <img src={a.image_url} alt="" loading="lazy" /> : <span class="avatar-fallback">{a.name[0]}</span>}
-              <span class="name">{a.name}</span>
-              {a.isNew && <span class="dot" title="Nouvelle sortie" />}
-            </a>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p class="side-empty" id="side-followed">Tes artistes apparaîtront ici après le prochain sync.</p>
-    )}
-  </section>
-
-  <a class="next" href="/BARZ-/a-venir" aria-label="Calendrier des sorties à venir">
-    <span class="next-label">Prochain vendredi</span>
-    {upcoming.length > 0 ? (
-      <>
-        <strong>{upcoming.length} sortie{upcoming.length > 1 ? 's' : ''} attendue{upcoming.length > 1 ? 's' : ''}</strong>
-        <span class="next-titles">{upcomingTitles}</span>
-      </>
-    ) : (
-      <>
-        <strong>Rien d’annoncé</strong>
-        <span class="next-titles">Les annonces arrivent au fil de la semaine</span>
-      </>
-    )}
-  </a>
 </aside>
-
-<script>
-  import { BASE, escapeHtml, myFollows } from '../scripts/social';
-
-  // Connecté : la liste devient celle des artistes que le membre suit
-  myFollows()
-    .then((follows) => {
-      const slot = document.getElementById('side-followed');
-      if (!slot || !follows.length) return;
-      slot.outerHTML = `<ul id="side-followed">${follows
-        .slice(0, 5)
-        .map(
-          (a) => `<li><a href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${
-            a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" />` : `<span class="avatar-fallback">${escapeHtml(a.name[0])}</span>`
-          }<span class="name">${escapeHtml(a.name)}</span></a></li>`
-        )
-        .join('')}${follows.length > 5 ? `<li><a class="more" href="${BASE}artistes?genre=followed">+ ${follows.length - 5} autres</a></li>` : ''}</ul>`;
-    })
-    .catch(() => {});
-</script>
 
 <style>
   .sidebar {
@@ -134,115 +77,4 @@ const upcomingTitles = upcoming.slice(0, 2).map((r) => r.title).join(' · ');
     color: var(--color-ink) !important;
   }
 
-  .side-title {
-    margin: 52px 0 18px 14px;
-    font: 600 12px/1 var(--font-sans);
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-  }
-
-  .followed ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    padding-left: 14px;
-  }
-
-  .followed :global(li a) {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 16px;
-    color: var(--color-text);
-  }
-
-  .followed :global(li a:hover .name) {
-    text-decoration: underline;
-  }
-
-  .followed :global(.more) {
-    font-size: 14px;
-    color: var(--color-text-muted) !important;
-  }
-
-  .followed :global(ul) {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    padding-left: 14px;
-  }
-
-  .followed :global(img),
-  .followed :global(.avatar-fallback) {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-
-  .followed :global(.avatar-fallback) {
-    display: grid;
-    place-items: center;
-    background: var(--color-bg-hover);
-    font-family: var(--font-serif);
-    font-size: 18px;
-  }
-
-  .followed :global(.name) {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--color-lime);
-    margin-right: 8px;
-  }
-
-  .side-empty {
-    padding-left: 14px;
-    font-size: 14px;
-    color: var(--color-text-dim);
-  }
-
-  .next {
-    margin-top: auto;
-    transition: background var(--transition-fast);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 22px 20px;
-    border-radius: 16px;
-    background: var(--color-bg-elevated);
-  }
-
-  .next:hover {
-    background: var(--color-bg-surface);
-  }
-
-  .next-label {
-    font: 700 12px/1 var(--font-sans);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--color-lime);
-  }
-
-  .next strong {
-    font: 400 30px/1 var(--font-serif);
-    color: var(--color-text);
-  }
-
-  .next-titles {
-    font-size: 14px;
-    color: var(--color-text-muted);
-  }
 </style>

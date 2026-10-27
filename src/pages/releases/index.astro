@@ -3,6 +3,7 @@
 import Layout from '../../layouts/Layout.astro';
 import AlbumTile from '../../components/AlbumTile.astro';
 import GenreChips from '../../components/GenreChips.astro';
+import SortiesTabs from '../../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../../lib/supabase';
 import { chipIdsFor, fetchReleasesBetween } from '../../lib/releases';
 import { getReleaseTypeLabel } from '../../lib/utils';
@@ -12,8 +13,9 @@ const releases = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1
 
 <Layout title="Toutes les sorties" description="Toutes les sorties référencées sur BARZ¡, filtrables par genre.">
   <div class="bz-page">
-    <span class="bz-eyebrow">Charts</span>
-    <h1 class="bz-display">Toutes <em>les sorties.</em></h1>
+    <span class="bz-eyebrow">Tout le catalogue</span>
+    <h1 class="bz-display">Sorties</h1>
+    <SortiesTabs active="toutes" />
     <p class="count">{releases.length} sortie{releases.length > 1 ? 's' : ''} référencée{releases.length > 1 ? 's' : ''}, de la plus récente à la plus ancienne.</p>
 
     {releases.length > 0 ? (
@@ -40,7 +42,7 @@ const releases = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1
 
 <style>
   .count {
-    margin: 20px 0 40px;
+    margin: 28px 0 32px;
     font-size: 17px;
     color: var(--color-text-muted);
   }

@@ -6,6 +6,7 @@ import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
 import Cover from '../components/Cover.astro';
+import SortiesTabs from '../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { getReleaseTypeLabel } from '../lib/utils';
@@ -31,24 +32,15 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 <Layout title="À venir" description="Le calendrier des sorties musicales annoncées pour les prochains mois.">
   <div class="bz-page">
-    <div class="head">
-      <div>
-        <span class="bz-eyebrow">Calendrier</span>
-        <h1 class="bz-display">Ce qui <em>arrive.</em></h1>
+    <span class="bz-eyebrow">Les 4 prochains mois</span>
+    <h1 class="bz-display">Sorties</h1>
+    <SortiesTabs active="a-venir" upcomingCount={releases.length} />
         <p class="lead">
           {releases.length > 0
             ? `${releases.length} sortie${releases.length > 1 ? 's' : ''} annoncée${releases.length > 1 ? 's' : ''} pour les 4 prochains mois.`
             : 'Aucune sortie annoncée pour l’instant.'}
           <span class="lead-note">Les annonces arrivent au fil des pré-sorties : le calendrier se remplit deux fois par jour.</span>
         </p>
-      </div>
-      <nav class="tabs" aria-label="Modes d’exploration">
-        <a class="bz-chip" href="/BARZ-/search">Découverte</a>
-        <a class="bz-chip" href="/BARZ-/artistes">Artistes</a>
-        <a class="bz-chip" href="/BARZ-/releases">Charts</a>
-        <a class="bz-chip is-active" href="/BARZ-/a-venir" aria-current="page">Calendrier</a>
-      </nav>
-    </div>
 
     <div class="months">
       {months.map((month) => {
@@ -134,23 +126,8 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 </script>
 
 <style>
-  .head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-
-  .tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 12px;
-  }
-
   .lead {
-    margin-top: 18px;
+    margin-top: 28px;
     font-size: 17px;
     color: var(--color-text-muted);
   }
