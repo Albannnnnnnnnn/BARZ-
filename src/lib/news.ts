@@ -13,20 +13,28 @@ export type NewsItem = {
   image: string | null;
 };
 
-// Ajoute ou retire des médias ici : seuls les flux RSS publics sont utilisés
+// Ajoute ou retire des médias ici : seuls les flux RSS publics sont utilisés.
+// lang 'fr' : mis en avant (le public de BARZ¡ est francophone).
 export const NEWS_FEEDS = [
-  { source: 'Tsugi', url: 'https://www.tsugi.fr/feed/' },
-  { source: 'Booska-P', url: 'https://www.booska-p.com/feed/' },
-  { source: 'L’Abcdr du Son', url: 'https://www.abcdrduson.com/feed/' },
-  { source: 'Rolling Stone', url: 'https://www.rollingstone.fr/feed/' },
-  { source: 'Les Inrocks', url: 'https://www.lesinrocks.com/musique/feed/' },
-  { source: 'Pitchfork', url: 'https://pitchfork.com/feed/feed-news/rss' },
-  { source: 'NME', url: 'https://www.nme.com/news/music/feed' },
-];
+  { source: 'Tsugi', url: 'https://www.tsugi.fr/feed/', lang: 'fr' },
+  { source: 'L’Abcdr du Son', url: 'https://www.abcdrduson.com/feed/', lang: 'fr' },
+  { source: 'Rolling Stone', url: 'https://www.rollingstone.fr/feed/', lang: 'fr' },
+  { source: 'Les Inrocks', url: 'https://www.lesinrocks.com/musique/feed/', lang: 'fr' },
+  { source: 'Radio Nova', url: 'https://www.nova.fr/feed/', lang: 'fr' },
+  { source: 'FIP', url: 'https://www.radiofrance.fr/fip/rss', lang: 'fr' },
+  { source: 'Les Oreilles Curieuses', url: 'https://www.lesoreillescurieuses.com/feed/', lang: 'fr' },
+  { source: 'Pitchfork', url: 'https://pitchfork.com/feed/feed-news/rss', lang: 'en' },
+  { source: 'NME', url: 'https://www.nme.com/news/music/feed', lang: 'en' },
+] as const;
 
 const MAX_AGE_DAYS = 14;
 // Certains médias publient beaucoup plus que d'autres : on plafonne pour garder de la variété
-const MAX_PER_SOURCE = 8;
+const MAX_PER_SOURCE = 4;
+const DAY = 86_400_000;
+// Classement : un article anglophone compte comme s'il avait 3 jours de plus,
+// et chaque article supplémentaire d'un même média comme 1 jour de plus
+const ENGLISH_PENALTY = 3 * DAY;
+const REPEAT_PENALTY = DAY;
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -99,14 +107,25 @@ let newsPromise: Promise<NewsItem[]> | null = null;
 
 export function getNews(): Promise<NewsItem[]> {
   newsPromise ??= (async () => {
-    const minDate = getToday().getTime() - MAX_AGE_DAYS * 86_400_000;
+    const minDate = getToday().getTime() - MAX_AGE_DAYS * DAY;
     const all = (await Promise.all(NEWS_FEEDS.map(readFeed))).flat();
     const seen = new Set<string>();
-    return all
-      .filter((n) => Date.parse(n.date) >= minDate && Date.parse(n.date) <= getToday().getTime() + 86_400_000)
+    const english = new Set<string>(NEWS_FEEDS.filter((f) => f.lang === 'en').map((f) => f.source));
+    const recent = all
+      .filter((n) => Date.parse(n.date) >= minDate && Date.parse(n.date) <= getToday().getTime() + DAY)
       .filter((n) => !seen.has(n.link) && seen.add(n.link))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .filter((n, _, list) => list.filter((m) => m.source === n.source).indexOf(n) < MAX_PER_SOURCE);
+      .sort((a, b) => b.date.localeCompare(a.date));
+    // Rang de chaque article dans son média (0 = le plus récent), puis score
+    const rankInSource = new Map<string, number>();
+    const scored = recent.map((n) => {
+      const rank = rankInSource.get(n.source) ?? 0;
+      rankInSource.set(n.source, rank + 1);
+      return { n, rank, score: Date.parse(n.date) - (english.has(n.source) ? ENGLISH_PENALTY : 0) - rank * REPEAT_PENALTY };
+    });
+    return scored
+      .filter((s) => s.rank < MAX_PER_SOURCE)
+      .sort((a, b) => b.score - a.score)
+      .map((s) => s.n);
   })();
   return newsPromise;
 }
