@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS lastfm_artists (
 );
 
 ALTER TABLE lastfm_artists ENABLE ROW LEVEL SECURITY;
+-- Privé : ces données ne servent qu'aux recommandations du membre
 DROP POLICY IF EXISTS "Lastfm imports are public" ON lastfm_artists;
-CREATE POLICY "Lastfm imports are public" ON lastfm_artists FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users read their own lastfm import" ON lastfm_artists;
+CREATE POLICY "Users read their own lastfm import" ON lastfm_artists FOR SELECT USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users manage their lastfm import" ON lastfm_artists;
 CREATE POLICY "Users manage their lastfm import" ON lastfm_artists FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
