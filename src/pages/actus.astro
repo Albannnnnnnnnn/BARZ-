@@ -5,9 +5,11 @@ import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import Scene from '../components/Scene.astro';
 import { getNews, type NewsItem } from '../lib/news';
+import { CONCERTS_CITY, getConcertsOrDemo } from '../lib/concerts';
 import { DEMO_CONCERTS, DEMO_NEWS } from '../data/demo';
 
 const news = await getNews();
+const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
 // À la une : l'actu la plus récente qui a une image ; à côté : 3 autres, de médias différents si possible
 const withImage = news.filter((n) => n.image);
 const feature = withImage[0] ?? news[0];
@@ -103,19 +105,26 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
     <section class="concerts" aria-labelledby="concerts-title">
       <div class="bz-section-head">
         <h2 id="concerts-title" class="bz-h2">Concerts près de toi</h2>
-        <span class="bz-link">Paris ▾</span>
+        <span class="bz-link">{CONCERTS_CITY}</span>
       </div>
       <div class="concert-grid">
-        {DEMO_CONCERTS.map((c) => (
-          <article class="concert">
-            <Scene variant={c.scene} class="concert-photo" />
-            <div class="concert-info">
-              <span class="date"><b>{c.day}</b>{c.month}</span>
-              <span class="who"><b>{c.artist}</b>{c.venue}</span>
-            </div>
-            <span class="tickets">Billets · {c.price}</span>
-          </article>
-        ))}
+        {concerts.slice(0, 8).map((c, i) => {
+          const Tag = c.url ? 'a' : 'article';
+          return (
+            <Tag class="concert" href={c.url || undefined} target={c.url ? '_blank' : undefined} rel={c.url ? 'noopener' : undefined}>
+              {c.image ? (
+                <img class="concert-photo" src={c.image} alt="" loading="lazy" referrerpolicy="no-referrer" />
+              ) : (
+                <Scene variant={i} class="concert-photo" />
+              )}
+              <div class="concert-info">
+                <span class="date"><b>{c.day}</b>{c.month}</span>
+                <span class="who"><b>{c.artist}{c.watched && <span class="followed"> · suivi</span>}</b>{c.venue}</span>
+              </div>
+              <span class="tickets">{c.price ? `Billets · ${c.price}` : 'Billets'}</span>
+            </Tag>
+          );
+        })}
       </div>
     </section>
   </div>
@@ -291,8 +300,17 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
     flex-direction: column;
   }
 
-  .concert :global(.concert-photo) {
+  .concert :global(.concert-photo),
+  .concert img.concert-photo {
+    width: 100%;
     aspect-ratio: 3 / 2;
+    object-fit: cover;
+  }
+
+  .followed {
+    color: var(--color-lime);
+    font-weight: 600;
+    font-size: 14px;
   }
 
   .concert-info {

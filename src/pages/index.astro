@@ -9,6 +9,7 @@ import GenreChips from '../components/GenreChips.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { chipIdsFor, fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { getReleaseTypeLabel } from '../lib/utils';
+import { getConcertsOrDemo } from '../lib/concerts';
 import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CHALLENGE, DEMO_CONCERTS } from '../data/demo';
 
 const today = getToday();
@@ -26,6 +27,7 @@ const watched = sorted.filter((r) => r.metadata?.watched).slice(0, 6);
 const eyebrow = `Vendredi ${format(friday, 'd MMMM', { locale: fr })} · Semaine ${getISOWeek(friday)}`;
 const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
 const quotes = DEMO_BARZ.slice(0, 2);
+const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
 ---
 
 <Layout title="Vendredi" description="Les sorties musicales du vendredi, triées pour toi.">
@@ -104,13 +106,16 @@ const quotes = DEMO_BARZ.slice(0, 2);
         </section>
 
         <section>
-          <div class="bz-section-head"><h2 class="bz-h2">Concerts</h2></div>
+          <div class="bz-section-head"><h2 class="bz-h2">Concerts</h2><a class="bz-link" href="/BARZ-/actus#concerts-title">Tout voir</a></div>
           <ul class="concerts">
-            {DEMO_CONCERTS.slice(0, 3).map((c) => (
+            {concerts.slice(0, 3).map((c) => (
               <li>
                 <span class="concert-date"><b>{c.day}</b>{c.month}</span>
-                <span class="concert-info"><b>{c.artist}</b>{c.venue}</span>
-                <span class="concert-price">{c.price}</span>
+                <span class="concert-info">
+                  {c.url ? <a href={c.url} target="_blank" rel="noopener"><b>{c.artist}</b></a> : <b>{c.artist}</b>}
+                  {c.venue}
+                </span>
+                {c.price && <span class="concert-price">{c.price}</span>}
               </li>
             ))}
           </ul>
