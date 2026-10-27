@@ -90,9 +90,36 @@ const jsonLd = {
           {release.deezer_url && (
             <a class:list={['bz-btn', release.spotify_url ? 'bz-btn--outline' : 'bz-btn--lime']} href={release.deezer_url} target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
           )}
-          <span class="bz-btn bz-btn--outline" title="Bientôt : il faut d’abord les comptes utilisateurs">+ Spin list</span>
+        </div>
+        <div class="shelves" data-release-id={release.id}>
+          <button type="button" class="bz-chip" data-shelf="spin_list" aria-pressed="false">+ Spin list</button>
+          <button type="button" class="bz-chip" data-shelf="listened" aria-pressed="false">✓ Écouté</button>
         </div>
       </div>
+    </section>
+
+    <section class="barz" aria-labelledby="barz-title" data-release-id={release.id}>
+      <div class="bz-section-head">
+        <h2 id="barz-title" class="bz-h2">Les <em>Barz</em></h2>
+        <span class="barz-avg" id="barz-avg"></span>
+      </div>
+      <form class="barz-form" id="barz-form" hidden>
+        <label class="bz-field score-field">
+          Ta note
+          <span class="score-row">
+            <input type="range" name="score" min="0" max="10" step="0.5" value="7" />
+            <output name="score-out">7.0</output>
+          </span>
+        </label>
+        <label class="bz-field">
+          Ton Barz
+          <textarea class="bz-input" name="body" maxlength="280" rows="3" placeholder="Ce que tu en as pensé, en une phrase…" required></textarea>
+        </label>
+        <p class="bz-notice" id="barz-message" hidden></p>
+        <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Publier mon Barz</button>
+      </form>
+      <a class="bz-notice login-hint" id="barz-login" href="/BARZ-/connexion" hidden>Connecte-toi pour noter cette sortie et écrire ton Barz →</a>
+      <div class="barz-list" id="barz-list"></div>
     </section>
 
     {related.length > 0 && (
@@ -112,6 +139,92 @@ const jsonLd = {
     )}
   </div>
 </Layout>
+
+<script>
+  import { barzCardHtml, barzFeed, formatScore, getSession, isOnShelf, loginUrl, saveBarz, setOnShelf, wireBarzActions, authErrorMessage, type Shelf } from '../../scripts/social';
+
+  const releaseId = document.querySelector<HTMLElement>('.shelves')!.dataset.releaseId!;
+
+  // Spin list / Écouté
+  const shelfButtons = document.querySelectorAll<HTMLButtonElement>('[data-shelf]');
+  const paintShelf = (button: HTMLButtonElement, on: boolean) => {
+    button.classList.toggle('is-active', on);
+    button.setAttribute('aria-pressed', String(on));
+  };
+  shelfButtons.forEach(async (button) => {
+    paintShelf(button, await isOnShelf(button.dataset.shelf as Shelf, releaseId));
+    button.addEventListener('click', async () => {
+      const session = await getSession();
+      if (!session) return void (location.href = loginUrl());
+      const on = button.getAttribute('aria-pressed') !== 'true';
+      paintShelf(button, on);
+      try {
+        await setOnShelf(button.dataset.shelf as Shelf, releaseId, on);
+      } catch (err) {
+        paintShelf(button, !on);
+        alert(authErrorMessage(err instanceof Error ? err.message : String(err)));
+      }
+    });
+  });
+
+  // Barz de cette sortie
+  const list = document.getElementById('barz-list')!;
+  const avg = document.getElementById('barz-avg')!;
+  const form = document.getElementById('barz-form') as HTMLFormElement;
+  const message = document.getElementById('barz-message')!;
+  let myId: string | null = null;
+
+  async function render() {
+    try {
+      const barz = await barzFeed({ releaseId, limit: 50 });
+      list.innerHTML = barz.length
+        ? barz.map((b) => barzCardHtml(b, myId, { showRelease: false })).join('')
+        : '<p class="bz-empty">Aucun Barz pour l’instant. Sois le premier à donner ton avis.</p>';
+      avg.textContent = barz.length
+        ? `${formatScore(barz.reduce((sum, b) => sum + Number(b.score), 0) / barz.length)} / 10 · ${barz.length} avis`
+        : '';
+      const mine = barz.find((b) => b.user_id === myId);
+      if (mine) {
+        (form.elements.namedItem('score') as HTMLInputElement).value = String(mine.score);
+        (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);
+        (form.elements.namedItem('body') as HTMLTextAreaElement).value = mine.body;
+      }
+    } catch (err) {
+      list.innerHTML = `<p class="bz-empty">${authErrorMessage(err instanceof Error ? err.message : String(err))}</p>`;
+    }
+  }
+
+  getSession().then((session) => {
+    myId = session?.user.id ?? null;
+    form.hidden = !session;
+    const hint = document.getElementById('barz-login') as HTMLAnchorElement;
+    hint.hidden = !!session;
+    hint.href = loginUrl();
+    render();
+  });
+
+  form.addEventListener('input', () => {
+    (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(Number((form.elements.namedItem('score') as HTMLInputElement).value));
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const body = String(data.get('body') ?? '').trim();
+    if (!body) return;
+    try {
+      await saveBarz(releaseId, Number(data.get('score')), body);
+      message.hidden = true;
+      render();
+    } catch (err) {
+      message.textContent = authErrorMessage(err instanceof Error ? err.message : String(err));
+      message.className = 'bz-notice bz-notice--error';
+      message.hidden = false;
+    }
+  });
+
+  wireBarzActions(list, render);
+</script>
 
 <style>
   .back {
@@ -198,8 +311,79 @@ const jsonLd = {
     font-size: 16px;
   }
 
+  .shelves {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .barz {
+    margin-top: 88px;
+  }
+
+  .barz-avg {
+    font-weight: 700;
+    color: var(--color-lime);
+  }
+
+  .barz-form {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 20px 28px;
+    align-items: start;
+    margin-bottom: 32px;
+    padding: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: 22px;
+  }
+
+  .barz-form .bz-notice,
+  .barz-form .bz-btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .score-row input {
+    flex: 1;
+    accent-color: var(--color-lime);
+  }
+
+  .score-row output {
+    font: 400 40px/1 var(--font-serif);
+    color: var(--color-lime);
+  }
+
+  .login-hint {
+    display: block;
+    margin-bottom: 28px;
+    color: var(--color-lime) !important;
+    font-weight: 600;
+  }
+
+  .barz-form[hidden],
+  .login-hint[hidden] {
+    display: none;
+  }
+
   .related {
     margin-top: 88px;
+  }
+
+  @media (max-width: 900px) {
+    .barz-form {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 20px;
+    }
+    .barz-form .bz-notice,
+    .barz-form .bz-btn {
+      grid-column: 1;
+    }
   }
 
   @media (max-width: 1100px) {

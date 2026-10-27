@@ -26,20 +26,7 @@ export function getToday(): Date {
   return override ? parseISO(override) : new Date();
 }
 
-// Puces de genre des maquettes → genres stockés par le sync
-export const GENRE_CHIPS: { id: string; label: string; genres: string[] }[] = [
-  { id: 'rap', label: 'Rap', genres: ['rap'] },
-  { id: 'electro', label: 'Électro', genres: ['electronic'] },
-  { id: 'pop', label: 'Pop', genres: ['pop'] },
-  { id: 'jazz', label: 'Jazz', genres: ['jazz'] },
-  { id: 'rock', label: 'Rock', genres: ['rock', 'metal'] },
-  { id: 'soul', label: 'Soul', genres: ['soul', 'rnb'] },
-  { id: 'monde', label: 'Monde', genres: ['world', 'latin', 'reggae'] },
-];
-
-export function chipIdsFor(genres: string[] = []): string[] {
-  return GENRE_CHIPS.filter((c) => c.genres.some((g) => genres.includes(g))).map((c) => c.id);
-}
+export { GENRE_CHIPS, chipIdsFor } from './genres';
 
 const RELEASE_FIELDS =
   'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_url, deezer_url, metadata, artist:artists!artist_id(name, slug, image_url)';

@@ -17,8 +17,8 @@
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Astro 5 + React Islands |
-| Database | Supabase (PostgreSQL) |
+| Frontend | Astro 5 (site statique) |
+| Database | Supabase (PostgreSQL + Auth) |
 | APIs | Deezer API + Spotify Web API |
 | CI/CD | GitHub Actions |
 | Hosting | GitHub Pages |
@@ -83,6 +83,28 @@ npm run dev
 npm run sync:releases
 # Vérifier dans Supabase Dashboard > Table Editor > releases
 ```
+
+## 👤 Comptes utilisateurs (Barz, spin list, écoutés)
+
+1. Supabase → **SQL Editor** → coller `supabase/social.sql` → **Run** (crée profils, Barz, j'aime, spin list, écoutés + règles RLS)
+2. Supabase → **Authentication → URL Configuration** :
+   - Site URL : `https://albannnnnnnnnn.github.io/BARZ-/`
+   - Redirect URLs : `https://albannnnnnnnnn.github.io/BARZ-/**` et `http://localhost:4321/BARZ-/**`
+3. Supabase → **Authentication → Sign In / Providers → Email** : désactiver « Confirm email » si tu ne veux pas d'e-mail de confirmation
+   (l'envoi d'e-mails intégré à Supabase est limité à quelques messages par heure)
+
+Le site est statique : tout ce qui dépend de l'utilisateur est lu et écrit par le navigateur (`src/scripts/social.ts`)
+avec la clé **anon** ; les règles RLS empêchent de modifier les données des autres. La clé service_role n'est jamais envoyée au navigateur.
+
+⚠️ `npm run sync:releases -- --reset` refuse de s'exécuter dès que des utilisateurs ont écrit des Barz ou rempli leur spin list
+(supprimer les sorties supprimerait aussi leurs données).
+
+## 🎤 Concerts et actus
+
+- **Actus** : flux RSS de médias musicaux (`src/lib/news.ts`), lus à chaque build ; le site est reconstruit chaque matin.
+- **Concerts** : API Discovery de Ticketmaster (`src/lib/concerts.ts`). Créer une clé gratuite sur
+  [developer.ticketmaster.com](https://developer-acct.ticketmaster.com/user/register), puis l'ajouter dans `.env`
+  et dans les secrets GitHub sous le nom `TICKETMASTER_API_KEY`. Sans clé, des concerts de démonstration s'affichent.
 
 ## 📦 Déploiement GitHub Pages
 

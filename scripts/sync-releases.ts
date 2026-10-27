@@ -451,6 +451,13 @@ async function main() {
   if (releases.length === 0) throw new Error('Aucune sortie trouvée (Deezer et Spotify) : rien à enregistrer.');
 
   if (RESET) {
+    // Supprimer les sorties effacerait aussi les Barz, spin lists et écoutés qui y sont liés
+    for (const table of ['barz', 'spin_list', 'listened']) {
+      const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
+      if (!error && (count ?? 0) > 0) {
+        throw new Error(`--reset refusé : la table ${table} contient ${count} ligne(s) d'utilisateurs, qui seraient supprimées. Lance le sync sans --reset.`);
+      }
+    }
     console.log('🧹 Suppression des anciennes sorties et artistes...');
     must(await supabase.from('releases').delete().not('id', 'is', null), 'Suppression releases');
     must(await supabase.from('artists').delete().not('id', 'is', null), 'Suppression artists');

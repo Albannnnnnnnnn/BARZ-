@@ -1,75 +1,98 @@
 ---
-// PAGE COMMUNAUTÉ : les Barz du jour, écoute commune, blend, top contributeurs (contenu de démonstration)
+// PAGE COMMUNAUTÉ : vrais Barz (lus par le navigateur), écriture d'un Barz, top contributeurs.
+// Tant que personne n'a écrit de Barz, la maquette (src/data/demo.ts) reste affichée.
+import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
 import Cover from '../components/Cover.astro';
 import Scene from '../components/Scene.astro';
+import { getSupabaseServerSafe } from '../lib/supabase';
+import { fetchReleasesBetween, getToday } from '../lib/releases';
 import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
+
+const today = getToday();
+const recent = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today, -45), addDays(today, 30));
+const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist?.name ?? 'Artiste inconnu'}` }));
 ---
 
-<Layout title="Communauté" description="Les Barz du jour : avis de la communauté, écoutes communes et blends.">
+<Layout title="Communauté" description="Les Barz du jour : les avis de la communauté sur les sorties de la semaine.">
   <div class="bz-page">
     <span class="bz-eyebrow">Communauté</span>
     <h1 class="bz-display">Les <em>Barz</em> du jour.</h1>
 
     <div class="layout">
       <div class="feed">
-        <form class="composer" onsubmit="return false">
-          <span class="me">A</span>
-          <label for="barz-input" class="sr-only">Écris ton Barz</label>
-          <input id="barz-input" type="text" placeholder="Qu’as-tu écouté aujourd’hui ? Écris ton Barz…" />
-          <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" title="Bientôt : il faut d’abord les comptes utilisateurs">Publier</button>
+        <form class="composer" id="composer">
+          <span class="me" id="composer-me">A</span>
+          <div class="composer-fields">
+            <label class="sr-only" for="composer-release">Sortie</label>
+            <input id="composer-release" class="composer-release" list="release-choices" placeholder="Quelle sortie ? (titre ou artiste)" autocomplete="off" />
+            <datalist id="release-choices">
+              {choices.map((c) => <option value={c.label} data-id={c.id} />)}
+            </datalist>
+            <label class="sr-only" for="composer-body">Ton Barz</label>
+            <input id="composer-body" class="composer-body" maxlength="280" placeholder="Qu’as-tu écouté aujourd’hui ? Écris ton Barz…" autocomplete="off" />
+          </div>
+          <label class="composer-score">
+            <span class="sr-only">Note sur 10</span>
+            <input id="composer-score" type="number" min="0" max="10" step="0.5" value="7" />
+            <span>/10</span>
+          </label>
+          <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Publier</button>
         </form>
+        <p class="bz-notice" id="composer-message" hidden></p>
 
-        {DEMO_BARZ.map((post) => {
-          const album = DEMO_ALBUMS[post.album];
-          return (
-            <article class="post">
-              <div class="post-body">
-                <header>
-                  <span class="avatar" style={`background:${post.color}`}>{post.name[0]}</span>
-                  <b>{post.name}</b>
-                  <span class="handle">{post.handle} · {post.time}</span>
-                </header>
-                <p class="text">{post.text}</p>
-                <footer>
-                  <span class="likes">♥ {post.likes}</span>
-                  <span>Répondre</span>
-                  <span>Partager</span>
-                </footer>
-              </div>
-              <div class="post-album">
-                <Cover title={album.title} palette={album.palette} />
-                <div class="post-album-row"><b>{album.title}</b><span class="bz-score">{post.score}</span></div>
-              </div>
-            </article>
-          );
-        })}
+        <div id="feed-live" class="barz-list" hidden></div>
+
+        <div id="feed-demo">
+          <p class="demo-note">Exemples de Barz : écris le premier vrai !</p>
+          {DEMO_BARZ.map((post) => {
+            const album = DEMO_ALBUMS[post.album];
+            return (
+              <article class="post">
+                <div class="post-body">
+                  <header>
+                    <span class="avatar" style={`background:${post.color}`}>{post.name[0]}</span>
+                    <b>{post.name}</b>
+                    <span class="handle">{post.handle} · {post.time}</span>
+                  </header>
+                  <p class="text">{post.text}</p>
+                  <footer>
+                    <span>♥ {post.likes}</span>
+                  </footer>
+                </div>
+                <div class="post-album">
+                  <Cover title={album.title} palette={album.palette} />
+                  <div class="post-album-row"><b>{album.title}</b><span class="bz-score">{post.score}</span></div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
 
       <aside class="side">
         <section class="live">
           <Scene variant={1} class="live-bg" />
           <div class="live-body">
-            <span class="live-eyebrow">En direct · Écoute commune</span>
-            <h2>Kintsugi en entier, ce soir 21 h</h2>
-            <span class="bz-btn bz-btn--lime bz-btn--small">Rejoindre · 342 inscrits</span>
+            <span class="live-eyebrow">Bientôt · Écoute commune</span>
+            <h2>Écouter un album ensemble, en direct</h2>
+            <span class="bz-btn bz-btn--lime bz-btn--small">Bientôt disponible</span>
           </div>
         </section>
 
         <section class="blend">
           <span class="bz-eyebrow">Blend</span>
-          <h2>Toi et Inès avez 72 % de goûts en commun.</h2>
-          <span class="bz-btn bz-btn--lime bz-btn--small">Créer une playlist commune</span>
+          <h2>Compare tes goûts avec ceux d’un autre membre.</h2>
+          <span class="bz-btn bz-btn--lime bz-btn--small">Bientôt disponible</span>
         </section>
 
         <section>
           <div class="bz-section-head"><h2 class="bz-h2">Top contributeurs</h2></div>
-          <ol class="top">
+          <ol class="top" id="top-list">
             {DEMO_CONTRIBUTORS.map((handle, i) => (
               <li>
                 <span class="rank">{i + 1}</span>
                 <span class="who">{handle}</span>
-                <span class="bz-btn bz-btn--outline">Suivre</span>
               </li>
             ))}
           </ol>
@@ -78,6 +101,77 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
     </div>
   </div>
 </Layout>
+
+<script>
+  import { BASE, authErrorMessage, barzCardHtml, barzFeed, escapeHtml, getMyProfile, getSession, loginUrl, saveBarz, wireBarzActions } from '../scripts/social';
+
+  const live = document.getElementById('feed-live')!;
+  const demo = document.getElementById('feed-demo')!;
+  const topList = document.getElementById('top-list')!;
+  const form = document.getElementById('composer') as HTMLFormElement;
+  const message = document.getElementById('composer-message')!;
+  let myId: string | null = null;
+
+  async function render() {
+    try {
+      const barz = await barzFeed({ limit: 40 });
+      if (!barz.length) return;
+      demo.hidden = true;
+      live.hidden = false;
+      live.innerHTML = barz.map((b) => barzCardHtml(b, myId)).join('');
+
+      // Top contributeurs : nombre de Barz, puis j'aime reçus
+      const scores = new Map<string, { username: string; barz: number; likes: number }>();
+      for (const b of barz) {
+        if (!b.profile) continue;
+        const s = scores.get(b.user_id) ?? { username: b.profile.username, barz: 0, likes: 0 };
+        s.barz++;
+        s.likes += b.likes.length;
+        scores.set(b.user_id, s);
+      }
+      const top = [...scores.values()].sort((a, b) => b.barz - a.barz || b.likes - a.likes).slice(0, 5);
+      topList.innerHTML = top
+        .map((s, i) => `<li><span class="rank">${i + 1}</span><a class="who" href="${BASE}profil?u=${encodeURIComponent(s.username)}">@${escapeHtml(s.username)}</a><span class="count">${s.barz} Barz</span></li>`)
+        .join('');
+    } catch (err) {
+      // Tables sociales absentes ou réseau coupé : on garde la maquette
+      console.warn('Barz indisponibles :', err);
+    }
+  }
+
+  getSession().then((session) => (myId = session?.user.id ?? null)).then(render);
+  getMyProfile().then((profile) => {
+    if (profile) document.getElementById('composer-me')!.textContent = profile.display_name.slice(0, 1).toUpperCase();
+  });
+
+  const show = (text: string, kind: 'error' | 'ok') => {
+    message.textContent = text;
+    message.className = `bz-notice bz-notice--${kind}`;
+    message.hidden = false;
+  };
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!(await getSession())) return void (location.href = loginUrl());
+    const releaseInput = document.getElementById('composer-release') as HTMLInputElement;
+    const option = [...document.querySelectorAll<HTMLOptionElement>('#release-choices option')].find((o) => o.value === releaseInput.value);
+    const body = (document.getElementById('composer-body') as HTMLInputElement).value.trim();
+    const score = Number((document.getElementById('composer-score') as HTMLInputElement).value);
+    if (!option) return show('Choisis une sortie dans la liste (tape un titre ou un artiste).', 'error');
+    if (!body) return show('Écris ton Barz avant de publier.', 'error');
+    if (!(score >= 0 && score <= 10)) return show('La note doit être entre 0 et 10.', 'error');
+    try {
+      await saveBarz(option.dataset.id!, score, body);
+      form.reset();
+      show('Barz publié !', 'ok');
+      render();
+    } catch (err) {
+      show(authErrorMessage(err instanceof Error ? err.message : String(err)), 'error');
+    }
+  });
+
+  wireBarzActions(live, render);
+</script>
 
 <style>
   .layout {
@@ -90,14 +184,31 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
   .feed {
     display: flex;
     flex-direction: column;
-    gap: 26px;
+    gap: 22px;
+  }
+
+  #feed-demo {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  #feed-demo[hidden],
+  #feed-live[hidden],
+  .bz-notice[hidden] {
+    display: none;
+  }
+
+  .demo-note {
+    font-size: 14px;
+    color: var(--color-text-dim);
   }
 
   .composer {
     display: flex;
     align-items: center;
-    gap: 18px;
-    padding: 18px 20px 18px 22px;
+    gap: 16px;
+    padding: 16px 18px 16px 20px;
     border: 1px solid var(--color-border);
     border-radius: 22px;
   }
@@ -114,61 +225,88 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
     font: 400 26px/1 var(--font-serif);
   }
 
-  .composer input {
+  .composer-fields {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .composer input {
     border: 0;
     outline: none;
     background: transparent;
     color: var(--color-text);
     font: 400 17px/1.3 var(--font-sans);
+    min-width: 0;
+  }
+
+  .composer .composer-release {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-lime);
   }
 
   .composer input::placeholder {
     color: #8b877f;
   }
 
+  .composer-score {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--color-text-muted);
+  }
+
+  .composer-score input {
+    width: 52px;
+    padding: 6px 8px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 700;
+  }
+
   .post {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 210px;
+    grid-template-columns: minmax(0, 1fr) 200px;
     gap: 32px;
-    padding: 32px;
+    padding: 30px;
     border-radius: 22px;
     background: var(--color-bg-elevated);
+    opacity: 0.75;
   }
 
   .post header {
     display: flex;
     align-items: center;
     gap: 14px;
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .avatar {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     color: var(--color-ink);
-    font: 700 18px/1 var(--font-sans);
+    font: 700 17px/1 var(--font-sans);
   }
 
   .handle {
     color: var(--color-text-muted);
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .text {
-    margin: 26px 0 24px;
-    font: 400 clamp(30px, 2.6vw, 40px) / 1.15 var(--font-serif);
+    margin: 22px 0;
+    font: 400 clamp(26px, 2.4vw, 36px) / 1.15 var(--font-serif);
     color: var(--color-text);
   }
 
   .post footer {
-    display: flex;
-    gap: 30px;
-    font-size: 16px;
     color: var(--color-text-muted);
   }
 
@@ -176,8 +314,8 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 14px;
-    font-size: 16px;
+    margin-top: 12px;
+    font-size: 15px;
   }
 
   .side {
@@ -188,7 +326,7 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
 
   .live {
     position: relative;
-    min-height: 300px;
+    min-height: 280px;
     border-radius: 22px;
     overflow: hidden;
     display: flex;
@@ -223,7 +361,7 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
   .live h2,
   .blend h2 {
     margin: 14px 0 20px;
-    font: 400 36px/1.1 var(--font-serif);
+    font: 400 34px/1.1 var(--font-serif);
     color: var(--color-text);
   }
 
@@ -240,21 +378,26 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
     gap: 22px;
   }
 
-  .top li {
+  .top :global(li) {
     display: flex;
     align-items: center;
     gap: 16px;
     font-size: 18px;
   }
 
-  .rank {
+  .top :global(.rank) {
     width: 18px;
     font: italic 400 26px/1 var(--font-serif);
     color: var(--color-text-muted);
   }
 
-  .who {
+  .top :global(.who) {
     flex: 1;
+  }
+
+  .top :global(.count) {
+    font-size: 14px;
+    color: var(--color-text-muted);
   }
 
   @media (max-width: 1280px) {
@@ -267,6 +410,12 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
     .layout {
       margin-top: 32px;
     }
+    .composer {
+      flex-wrap: wrap;
+    }
+    .me {
+      display: none;
+    }
     .post {
       grid-template-columns: minmax(0, 1fr) 96px;
       gap: 16px;
@@ -274,14 +423,7 @@ import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
     }
     .text {
       font-size: 24px;
-      margin: 16px 0;
-    }
-    .post footer {
-      gap: 18px;
-      font-size: 14px;
-    }
-    .composer .bz-btn {
-      padding: 10px 14px;
+      margin: 14px 0;
     }
   }
 </style>

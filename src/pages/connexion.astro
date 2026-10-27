@@ -1,0 +1,131 @@
+---
+// CONNEXION / INSCRIPTION (e-mail + mot de passe, Supabase Auth)
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Connexion" description="Connecte-toi à BARZ¡ pour noter, écrire tes Barz et remplir ta spin list.">
+  <div class="bz-page auth">
+    <span class="bz-eyebrow">Ton compte</span>
+    <h1 class="bz-display" id="auth-title">Content de te <em>revoir.</em></h1>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="bz-chip is-active" data-mode="login" role="tab" aria-selected="true">Connexion</button>
+      <button type="button" class="bz-chip" data-mode="signup" role="tab" aria-selected="false">Créer un compte</button>
+    </div>
+
+    <form id="auth-form" class="form" novalidate>
+      <label class="bz-field signup-only" hidden>
+        Pseudo
+        <input class="bz-input" name="username" autocomplete="username" placeholder="alban.mmi" pattern="[a-zA-Z0-9._]{3,24}" />
+      </label>
+      <label class="bz-field">
+        E-mail
+        <input class="bz-input" name="email" type="email" autocomplete="email" required />
+      </label>
+      <label class="bz-field">
+        Mot de passe
+        <input class="bz-input" name="password" type="password" autocomplete="current-password" minlength="6" required />
+      </label>
+      <p id="auth-message" class="bz-notice" hidden></p>
+      <button type="submit" class="bz-btn bz-btn--lime" id="auth-submit">Se connecter</button>
+    </form>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, supabase, authErrorMessage, getSession } from '../scripts/social';
+
+  const form = document.getElementById('auth-form') as HTMLFormElement;
+  const message = document.getElementById('auth-message')!;
+  const submit = document.getElementById('auth-submit') as HTMLButtonElement;
+  const title = document.getElementById('auth-title')!;
+  const next = new URLSearchParams(location.search).get('next') || `${BASE}profil`;
+  let mode: 'login' | 'signup' = 'login';
+
+  const show = (text: string, kind: 'error' | 'ok' | 'info' = 'info') => {
+    message.textContent = text;
+    message.className = `bz-notice${kind === 'info' ? '' : ` bz-notice--${kind}`}`;
+    message.hidden = false;
+  };
+
+  // Déjà connecté : on file directement à la suite
+  getSession().then((session) => {
+    if (session) location.replace(next);
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((tab) =>
+    tab.addEventListener('click', () => {
+      mode = tab.dataset.mode as 'login' | 'signup';
+      document.querySelectorAll('[data-mode]').forEach((t) => {
+        t.classList.toggle('is-active', t === tab);
+        t.setAttribute('aria-selected', String(t === tab));
+      });
+      form.querySelectorAll<HTMLElement>('.signup-only').forEach((el) => (el.hidden = mode !== 'signup'));
+      (form.elements.namedItem('password') as HTMLInputElement).autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+      submit.textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+      title.innerHTML = mode === 'signup' ? 'Rejoins la <em>commu.</em>' : 'Content de te <em>revoir.</em>';
+      message.hidden = true;
+    })
+  );
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!supabase) return show('Supabase n’est pas configuré sur ce site.', 'error');
+    const data = new FormData(form);
+    const email = String(data.get('email') ?? '').trim();
+    const password = String(data.get('password') ?? '');
+    const username = String(data.get('username') ?? '').trim().toLowerCase();
+    if (!email || password.length < 6) return show('Renseigne ton e-mail et un mot de passe d’au moins 6 caractères.', 'error');
+    if (mode === 'signup' && !/^[a-z0-9._]{3,24}$/.test(username)) {
+      return show('Pseudo : 3 à 24 caractères, lettres, chiffres, points ou _.', 'error');
+    }
+
+    submit.disabled = true;
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        location.replace(next);
+      } else {
+        const { data: result, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { username, display_name: username }, emailRedirectTo: `${location.origin}${BASE}connexion` },
+        });
+        if (error) throw error;
+        if (result.session) location.replace(next);
+        else show('Compte créé ! Clique sur le lien reçu par e-mail pour l’activer, puis connecte-toi.', 'ok');
+      }
+    } catch (err) {
+      show(authErrorMessage(err instanceof Error ? err.message : String(err)), 'error');
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .auth {
+    max-width: 640px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin: 40px 0 28px;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form .bz-btn {
+    align-self: flex-start;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>

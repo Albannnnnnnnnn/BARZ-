@@ -1,5 +1,5 @@
 ---
-// Barre du haut : recherche, date du jour, notifications, avatar
+// Barre du haut : recherche, date du jour, notifications, compte
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import NavIcon from './NavIcon.astro';
@@ -17,13 +17,26 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   </form>
   <div class="right">
     <span class="date">{dateLabel}</span>
-    <button type="button" class="bell" aria-label="Notifications (1 nouvelle)">
+    <button type="button" class="bell" aria-label="Notifications">
       <NavIcon name="bell" size={20} />
-      <span class="badge" />
     </button>
-    <a href="/BARZ-/profil" class="avatar" aria-label="Mon profil">A</a>
+    <!-- Remplacé par l'initiale du membre une fois connecté -->
+    <a href="/BARZ-/connexion" class="account is-guest" id="account-link">Connexion</a>
   </div>
 </header>
+
+<script>
+  import { BASE, getMyProfile } from '../scripts/social';
+
+  getMyProfile().then((profile) => {
+    const link = document.getElementById('account-link') as HTMLAnchorElement | null;
+    if (!link || !profile) return;
+    link.textContent = profile.display_name.slice(0, 1).toUpperCase();
+    link.href = `${BASE}profil`;
+    link.setAttribute('aria-label', `Mon profil (${profile.display_name})`);
+    link.classList.remove('is-guest');
+  });
+</script>
 
 <style>
   .topbar {
@@ -92,17 +105,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     cursor: pointer;
   }
 
-  .badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--color-orange);
-  }
-
-  .avatar {
+  .account {
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -111,6 +114,14 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     background: var(--color-lime);
     color: var(--color-ink) !important;
     font: 400 26px/1 var(--font-serif);
+  }
+
+  .account.is-guest {
+    width: auto;
+    height: auto;
+    padding: 13px 20px;
+    border-radius: 999px;
+    font: 700 15px/1 var(--font-sans);
   }
 
   @media (max-width: 900px) {
@@ -126,10 +137,14 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
       padding: 12px 18px;
       font-size: 15px;
     }
-    .avatar {
+    .account {
       width: 42px;
       height: 42px;
       font-size: 22px;
+    }
+    .account.is-guest {
+      padding: 11px 14px;
+      font-size: 14px;
     }
   }
 </style>
