@@ -12,7 +12,7 @@ const active = activeNav(currentPath);
 ---
 
 <aside class="sidebar">
-  <a href="/BARZ-/" class="logo" aria-label="BARZ¡ — accueil">BARZ<span>¡</span></a>
+  <a href="/BARZ-/" class="logo" aria-label="BARZ¡ — accueil"><img src="/BARZ-/icon-192.png" alt="" width="48" height="48" /><span class="word">BARZ<span>¡</span></span></a>
 
   <nav class="nav" aria-label="Navigation principale">
     {NAV_ITEMS.map((item) => (
@@ -38,6 +38,9 @@ const active = activeNav(currentPath);
   }
 
   .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     padding-left: 18px;
     font: 900 44px/1 var(--font-sans);
     font-stretch: 125%;
@@ -45,7 +48,14 @@ const active = activeNav(currentPath);
     color: var(--color-text);
   }
 
-  .logo span {
+  .logo img {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  .word span {
     color: var(--color-accent);
   }
 

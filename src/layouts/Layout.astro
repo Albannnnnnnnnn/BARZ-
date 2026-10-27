@@ -16,7 +16,7 @@ interface Props {
 const {
   title,
   description = 'BARZ¡ — les sorties du vendredi, l’actu musicale et de quoi sortir de ta bulle.',
-  image = '/og-default.svg',
+  image = 'og-default.png', // relatif à l'adresse du site (…/BARZ-/)
   type = 'website',
 } = Astro.props;
 
@@ -49,7 +49,8 @@ const currentPath = Astro.url.pathname;
 
     <slot name="json-ld" />
 
-    <link rel="icon" type="image/svg+xml" href="/BARZ-/favicon.svg" />
+    <link rel="icon" type="image/png" href="/BARZ-/favicon.png" />
+    <link rel="apple-touch-icon" href="/BARZ-/apple-touch-icon.png" />
     <link rel="manifest" href="/BARZ-/manifest.json" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
