@@ -121,6 +121,7 @@ export function authErrorMessage(message: string): string {
   if (/already registered/i.test(message)) return 'Un compte existe déjà avec cet e-mail : connecte-toi.';
   if (/password.*(6|characters|short)/i.test(message)) return 'Le mot de passe doit faire au moins 6 caractères.';
   if (/rate limit/i.test(message)) return 'Trop de tentatives, réessaie dans quelques minutes.';
+  if (/signups? (are|is) (disabled|not allowed)/i.test(message)) return 'Les inscriptions sont fermées pour le moment.';
   if (/relation .* does not exist|schema cache/i.test(message)) return 'Les tables sociales n’existent pas encore dans Supabase (voir supabase/social.sql).';
   return message;
 }
