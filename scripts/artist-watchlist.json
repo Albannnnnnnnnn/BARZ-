@@ -1,0 +1,35 @@
+{
+  "_info": "Artistes suivis par le sync : leurs nouvelles sorties sont récupérées et étiquetées avec le genre de leur liste. Ajoute ou retire des noms librement (nom exact tel qu'il apparaît sur Spotify).",
+  "rap": [
+    "Ninho", "Jul", "SDM", "Gazo", "Tiakola", "Damso", "Booba", "Nekfeu", "Orelsan", "PNL",
+    "Laylow", "Josman", "Freeze Corleone", "Alpha Wann", "Werenoi", "Hamza", "SCH", "Niska",
+    "Vald", "Dinos", "Zola", "Leto", "Kalash Criminel", "Luther", "La Fève", "Rsko", "Theodora",
+    "Kendrick Lamar", "Drake", "Travis Scott", "Tyler, The Creator", "J. Cole", "Future",
+    "Playboi Carti", "Doechii", "Little Simz", "Central Cee", "Dave", "JID", "Earl Sweatshirt"
+  ],
+  "electronic": [
+    "Justice", "Fred again..", "Kaytranada", "Bicep", "Jamie xx", "Four Tet", "Peggy Gou",
+    "Charlotte de Witte", "Disclosure", "L'Impératrice", "Bon Entendeur", "Folamour"
+  ],
+  "pop": [
+    "Angèle", "Clara Luciani", "Stromae", "Pomme", "Zaho de Sagazan", "Aya Nakamura",
+    "Charli xcx", "Dua Lipa", "Billie Eilish", "Sabrina Carpenter", "Chappell Roan",
+    "Taylor Swift", "The Weeknd", "Lorde"
+  ],
+  "jazz": [
+    "Kamasi Washington", "Yussef Dayes", "Ezra Collective", "Nubya Garcia", "Shabaka",
+    "BADBADNOTGOOD", "Thundercat", "Esperanza Spalding", "Laufey", "Makaya McCraven"
+  ],
+  "soul": [
+    "SZA", "Frank Ocean", "Daniel Caesar", "Cleo Sol", "SAULT", "Jorja Smith", "Tems",
+    "Steve Lacy", "Brent Faiyaz", "Victoria Monét"
+  ],
+  "rock": [
+    "Tame Impala", "Fontaines D.C.", "Arctic Monkeys", "IDLES", "Phoenix", "Turnstile",
+    "The Smile", "Black Country, New Road", "Geese", "Wet Leg"
+  ],
+  "world": [
+    "Burna Boy", "Rema", "Ayra Starr", "Bad Bunny", "ROSALÍA", "Tinariwen", "Asake",
+    "Tems", "Wizkid", "Amadou & Mariam"
+  ]
+}

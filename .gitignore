@@ -45,3 +45,5 @@ supabase/.temp/
 
 # Turbo
 .turbo/
+# Astro (régénéré automatiquement)
+.astro/

@@ -2,15 +2,15 @@
 
 > Ton calendrier des sorties musicales. Tous les vendredis, découvre les nouveaux albums, EPs et singles.
 
-[![Deploy to GitHub Pages](https://github.com/alban/BARZ/actions/workflows/deploy.yml/badge.svg)](https://github.com/alban/BARZ/actions/workflows/deploy.yml)
-[![Sync Releases](https://github.com/alban/BARZ/actions/workflows/sync-releases.yml/badge.svg)](https://github.com/alban/BARZ/actions/workflows/sync-releases.yml)
+[![Deploy to GitHub Pages](https://github.com/Albannnnnnnnnn/BARZ-/actions/workflows/deploy.yml/badge.svg)](https://github.com/Albannnnnnnnnn/BARZ-/actions/workflows/deploy.yml)
+[![Sync Releases](https://github.com/Albannnnnnnnnn/BARZ-/actions/workflows/sync-releases.yml/badge.svg)](https://github.com/Albannnnnnnnnn/BARZ-/actions/workflows/sync-releases.yml)
 
 ## ✨ Fonctionnalités
 
 - **📅 Calendrier hebdomadaire interactif** — Navigue semaine par semaine, focus sur le vendredi
 - **🎭 Filtres par genre** — Multi-sélection, URL partageable
 - **💿 Fiches releases riches** — Cover, tracklist (Spotify), liens streaming, crédits
-- **🔄 Sync automatique** — Nouvelles sorties chaque jeudi via GitHub Actions
+- **🔄 Sync automatique** — Nouvelles sorties chaque vendredi et mardi via GitHub Actions, puis redéploiement du site
 - **🚀 100% gratuit** — Hébergé sur GitHub Pages, données via Supabase (free tier)
 
 ## 🛠 Stack
@@ -19,7 +19,7 @@
 |-------|------|
 | Frontend | Astro 5 + React Islands |
 | Database | Supabase (PostgreSQL) |
-| APIs | MusicBrainz, Last.fm, Spotify Web API |
+| APIs | Spotify Web API |
 | CI/CD | GitHub Actions |
 | Hosting | GitHub Pages |
 
@@ -28,8 +28,8 @@
 ### 1. Cloner et installer
 
 ```bash
-git clone https://github.com/alban/BARZ.git
-cd BARZ
+git clone https://github.com/Albannnnnnnnnn/BARZ-.git
+cd BARZ-
 npm install
 ```
 
@@ -44,9 +44,9 @@ npm install
 
 | Service | Où obtenir | Requis |
 |---------|------------|--------|
-| MusicBrainz | Pas de clé, juste User-Agent | ✅ |
-| Last.fm | [last.fm/api](https://www.last.fm/api) | ✅ |
-| Spotify | [developer.spotify.com](https://developer.spotify.com) | Optionnel |
+| Spotify | [developer.spotify.com](https://developer.spotify.com) (Client ID + Secret) | ✅ |
+
+Les artistes suivis par le sync sont listés dans `scripts/artist-watchlist.json`, rangés par genre : ajoute ou retire des noms librement.
 
 ### 4. Variables d'environnement
 
@@ -62,13 +62,7 @@ SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_KEY=your-service-role-key
 SUPABASE_PROJECT_ID=your-project-id
 
-# MusicBrainz (Requis)
-MUSICBRAINZ_USER_AGENT=BARZ/1.0 (your-email@example.com)
-
-# Last.fm (Requis)
-LASTFM_API_KEY=your-lastfm-api-key
-
-# Spotify (Optionnel - pour tracklist, durées, URLs)
+# Spotify (Requis - source des sorties)
 SPOTIFY_CLIENT_ID=your-spotify-client-id
 SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 ```
@@ -102,14 +96,12 @@ npm run sync:releases
 | `SUPABASE_URL` | URL du projet Supabase |
 | `SUPABASE_ANON_KEY` | Clé anon (publique) |
 | `SUPABASE_SERVICE_KEY` | Clé service_role (privée) |
-| `LASTFM_API_KEY` | Clé Last.fm |
-| `SPOTIFY_CLIENT_ID` | Client ID Spotify (optionnel) |
-| `SPOTIFY_CLIENT_SECRET` | Client Secret Spotify (optionnel) |
-| `MUSICBRAINZ_EMAIL` | Email pour User-Agent MusicBrainz |
+| `SPOTIFY_CLIENT_ID` | Client ID Spotify |
+| `SPOTIFY_CLIENT_SECRET` | Client Secret Spotify |
 
 ### 3. Sync automatique
 
-Le workflow `sync-releases.yml` s'exécute **chaque jeudi 18h UTC** (19h/20h FR) pour avoir les données fraîches pour le vendredi.
+Le workflow `sync-releases.yml` s'exécute **le vendredi et le mardi à 6h UTC**. Quand il réussit, `deploy.yml` reconstruit le site : le site étant statique, c'est ce qui fait apparaître les nouvelles sorties.
 
 Déclencher manuellement : Actions > Sync Weekly Releases > Run workflow
 
@@ -134,6 +126,7 @@ src/
 │   └── Layout.astro
 ├── lib/
 │   ├── supabase.ts              # Clients server/browser
+│   ├── releases.ts              # Sorties groupées par semaine
 │   ├── api.ts                   # Wrappers MusicBrainz/Last.fm/Spotify
 │   ├── utils.ts                 # Formatage dates, slugs, couleurs
 │   └── types.ts                 # Types TypeScript partagés
@@ -141,7 +134,8 @@ src/
     └── global.css
 
 scripts/
-└── sync-releases.ts             # Pipeline sync hebdo
+├── sync-releases.ts             # Pipeline sync (Spotify)
+└── artist-watchlist.json        # Artistes suivis, par genre
 
 .github/workflows/
 ├── sync-releases.yml            # Cron jeudi 18h
@@ -169,7 +163,7 @@ npm run dev              # Serveur dev
 npm run build            # Build production (→ ./dist)
 npm run preview          # Prévisualiser le build
 npm run sync:releases    # Sync manuel des sorties
-npm run sync:artists     # Sync artistes (à implémenter)
+npm run sync:releases -- --reset   # Vide les sorties et artistes avant le sync
 ```
 
 ## 📝 TODO / Prochaines étapes
@@ -189,4 +183,4 @@ MIT — Fait avec ❤️ pour la musique
 
 ---
 
-**Données fournies par** [MusicBrainz](https://musicbrainz.org) • [Last.fm](https://last.fm) • [Spotify Web API](https://developer.spotify.com)
+**Données fournies par** [Spotify Web API](https://developer.spotify.com)

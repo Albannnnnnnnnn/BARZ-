@@ -7,15 +7,17 @@ let serverClientError: Error | null = null;
 
 function createServerClient(): SupabaseClient<Database> | null {
   const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  // Les pages ne font que lire des tables publiques : la clé anon suffit.
+  // La clé service_role (tous les droits) reste réservée au script de sync.
+  const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-  if (!url || !serviceKey) {
-    serverClientError = new Error('Missing Supabase server env vars: SUPABASE_URL, SUPABASE_SERVICE_KEY');
+  if (!url || !key) {
+    serverClientError = new Error('Missing Supabase server env vars: SUPABASE_URL, SUPABASE_ANON_KEY');
     return null;
   }
 
   try {
-    return createClient<Database>(url, serviceKey, {
+    return createClient<Database>(url, key, {
       auth: { persistSession: false },
     });
   } catch (e) {

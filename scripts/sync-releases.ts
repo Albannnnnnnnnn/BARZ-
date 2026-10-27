@@ -1,333 +1,321 @@
+// Sync des sorties récentes depuis Spotify
+//
+//   npm run sync:releases              → sorties des 14 derniers jours (et à venir si connues)
+//   npm run sync:releases -- --reset   → vide d'abord les tables releases et artists
+//
+// Trois sources, de la plus précise à la plus large :
+//   1. scripts/artist-watchlist.json : artistes suivis, étiquetés par genre
+//   2. artistes populaires des genres que la recherche Spotify sait filtrer
+//   3. nouveautés générales Spotify (tag:new), sans genre
+//
+// MusicBrainz a été abandonné : sa recherche par date ne sait pas distinguer "2026" de "2026-10-23"
+// et plafonne à 500 résultats, ce qui remplissait la base de sorties sans rapport avec la semaine.
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import {
-  searchUpcomingReleaseGroups,
-  getReleaseGroupDetails,
-  getCoverArtUrl,
-  getArtistTags,
-  getAlbumTags,
-  getArtistInfo,
-  searchSpotifyAlbum,
-  getSpotifyAlbum,
-  getSpotifyNewReleases,
-  mapReleaseType,
-  normalizeGenres,
-  slugify,
-} from '../src/lib/api.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
+const DAYS_BACK = Number(process.env.SYNC_DAYS_BACK ?? 14);
+const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 21);
+const GENRE_SEARCH_PAGES = Number(process.env.SYNC_GENRE_PAGES ?? 3);
+const RESET = process.argv.includes('--reset');
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');
-  process.exit(1);
+// Genres que le filtre `genre:` de la recherche d'artistes Spotify renvoie correctement
+// (testé : "rap", "house", "afrobeats" ne renvoient rien d'exploitable)
+const SEARCHABLE_GENRES: Record<string, string> = {
+  electronic: 'electronic',
+  pop: 'pop',
+  rock: 'rock',
+  soul: 'soul',
+  rnb: 'r&b',
+  jazz: 'jazz',
+};
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    console.error(`❌ Variable d'environnement manquante : ${name}`);
+    process.exit(1);
+  }
+  return value;
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_KEY'), {
+  auth: { persistSession: false },
+});
+const SPOTIFY_CLIENT_ID = requireEnv('SPOTIFY_CLIENT_ID');
+const SPOTIFY_CLIENT_SECRET = requireEnv('SPOTIFY_CLIENT_SECRET');
 
-// MusicBrainz retourne parfois des dates partielles ("2003" ou "2002-08")
-// PostgreSQL type date exige du YYYY-MM-DD complet → on complète avec le 1er du mois
-function normalizeDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '1970-01-01';
-  const parts = dateStr.split('-');
-  if (parts.length === 1) return `${dateStr}-01-01`;
-  if (parts.length === 2) return `${dateStr}-01`;
-  return dateStr;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+
+// supabase-js renvoie les erreurs au lieu de les lever : on les lève pour ne plus rien perdre en silence
+function must<T>(res: { data: T; error: { message: string } | null }, context: string): T {
+  if (res.error) throw new Error(`${context} : ${res.error.message}`);
+  return res.data;
 }
 
-// Normalise pour la déduplication (artist name + title)
-function normalizeKey(text: string): string {
+function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '')
-    .trim();
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
 }
 
-async function upsertArtist(artist: { mbid: string; name: string; genres?: string[]; popularity?: number; image_url?: string }) {
-  const slug = slugify(artist.name);
-  const { data, error } = await supabase
-    .from('artists')
-    .upsert({ mbid: artist.mbid, name: artist.name, slug, genres: artist.genres || null, popularity: artist.popularity || 0, image_url: artist.image_url || null },
-      { onConflict: 'mbid', ignoreDuplicates: false })
-    .select('id')
-    .single();
-  if (error) throw error;
-  return data.id;
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
 }
 
-async function upsertLabel(label: { mbid: string; name: string; image_url?: string }) {
-  const slug = slugify(label.name);
-  const { data, error } = await supabase.from('labels').upsert(
-    { mbid: label.mbid, name: label.name, slug, image_url: label.image_url || null },
-    { onConflict: 'mbid', ignoreDuplicates: false }
-  ).select('id').single();
-  if (error) throw error;
-  return data.id;
+// ============================================================
+// SPOTIFY
+// ============================================================
+let spotifyToken: string | null = null;
+let spotifyTokenExpires = 0;
+let spotifyCalls = 0;
+
+async function getSpotifyToken(): Promise<string> {
+  if (spotifyToken && Date.now() < spotifyTokenExpires - 60_000) return spotifyToken;
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`,
+    },
+    body: 'grant_type=client_credentials',
+  });
+  if (!res.ok) throw new Error(`Spotify : authentification refusée (${res.status}). Vérifie SPOTIFY_CLIENT_ID / SECRET.`);
+  const data = await res.json();
+  spotifyToken = data.access_token;
+  spotifyTokenExpires = Date.now() + data.expires_in * 1000;
+  return spotifyToken!;
 }
 
-async function upsertRelease(release: any) {
-  const slug = slugify(release.title);
-  const { data, error } = await supabase.from('releases').upsert(
-    { ...release, slug },
-    { onConflict: 'mbid', ignoreDuplicates: false }
-  ).select('id').single();
-  if (error) throw error;
-  return data.id;
-}
+// Les apps Spotify en mode développement ont une limite stricte sur une fenêtre glissante de 30 s :
+// on espace les appels plutôt que de se faire bloquer
+const SPOTIFY_MIN_INTERVAL_MS = Number(process.env.SYNC_SPOTIFY_INTERVAL_MS ?? 600);
+let lastSpotifyCall = 0;
 
-async function refreshWeeklyView() {
-  try {
-    const { error } = await supabase.rpc('refresh_weekly_releases');
-    if (error) console.warn('⚠️ Could not refresh materialized view:', error.message);
-    else console.log('✅ Materialized view refreshed');
-  } catch (err) {
-    console.warn('⚠️ Could not refresh materialized view:', err instanceof Error ? err.message : err);
-  }
-}
-
-interface UnifiedRelease {
-  source: 'spotify' | 'musicbrainz' | 'both';
-  mbid?: string;
-  spotify_id?: string;
-  title: string;
-  artist_name: string;
-  release_date?: string;
-  cover_url?: string | null;
-  total_tracks?: number;
-  spotify_url?: string | null;
-  metadata?: any;
-}
-
-async function main() {
-  console.log('🚀 Starting hybrid releases sync (Spotify + MusicBrainz)...');
-
-  // 1. Fetch from Spotify (fast batch — no 1 req/sec limit)
-  console.log('🔍 Fetching new releases from Spotify...');
-  const spotifyReleases = await getSpotifyNewReleases(50);
-  console.log(`📦 Spotify: ${spotifyReleases.length} new releases`);
-
-  // 2. Fetch from MusicBrainz with pagination (4 pages × 25 = 100)
-  console.log('🔍 Fetching release groups from MusicBrainz...');
-  const allMBReleaseGroups: any[] = [];
-  const MB_PAGES = 4;
-  const MB_PAGE_SIZE = 25;
-  for (let offset = 0; offset < MB_PAGES * MB_PAGE_SIZE; offset += MB_PAGE_SIZE) {
-    const page = await searchUpcomingReleaseGroups('', '', MB_PAGE_SIZE, offset);
-    allMBReleaseGroups.push(...page);
-    if (offset < MB_PAGES * MB_PAGE_SIZE - MB_PAGE_SIZE) {
-      await new Promise(r => setTimeout(r, 1100));
-    }
-  }
-  console.log(`📦 MusicBrainz: ${allMBReleaseGroups.length} release groups`);
-
-  // 3. Build unified list with Spotify first
-  const unified: UnifiedRelease[] = [];
-
-  for (const s of spotifyReleases) {
-    unified.push({
-      source: 'spotify',
-      spotify_id: s.id,
-      title: s.name,
-      artist_name: s.artists?.[0]?.name || 'Unknown',
-      release_date: s.release_date,
-      cover_url: s.images?.[0]?.url || null,
-      total_tracks: s.total_tracks,
-      spotify_url: s.external_urls?.spotify || null,
-      metadata: { spotify: s },
+async function spotifyFetch(endpoint: string): Promise<any | null> {
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const wait = lastSpotifyCall + SPOTIFY_MIN_INTERVAL_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastSpotifyCall = Date.now();
+    spotifyCalls++;
+    const res = await fetch(`https://api.spotify.com/v1${endpoint}`, {
+      headers: { Authorization: `Bearer ${await getSpotifyToken()}` },
     });
-  }
-
-  // Add MusicBrainz releases, deduplicating against Spotify
-  for (const mb of allMBReleaseGroups) {
-    const mbArtist = mb['artist-credit']?.[0]?.artist?.name || '';
-    const existing = unified.find(u =>
-      u.source !== 'spotify' &&
-      normalizeKey(u.artist_name) === normalizeKey(mbArtist) &&
-      normalizeKey(u.title) === normalizeKey(mb.title || '')
-    );
-
-    if (existing) {
-      existing.source = 'both';
-      existing.mbid = mb.id;
-      if (!existing.release_date) existing.release_date = mb['first-release-date'];
-      existing.metadata = { ...existing.metadata, musicbrainz: mb };
-    } else {
-      unified.push({
-        source: 'musicbrainz',
-        mbid: mb.id,
-        title: mb.title || 'Unknown',
-        artist_name: mbArtist || 'Unknown',
-        release_date: mb['first-release-date'],
-        metadata: { musicbrainz: mb },
-      });
+    if (res.ok) return res.json();
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get('Retry-After') ?? 5);
+      if (retryAfter > 600) throw new Error(`Spotify bloque les requêtes pendant ${Math.round(retryAfter / 60)} min. Réessaie plus tard.`);
+      console.log(`   ⏳ Spotify demande d'attendre ${retryAfter}s (après ${spotifyCalls} appels)`);
+      await sleep(retryAfter * 1000);
+      continue;
     }
-  }
-
-  console.log(`📊 Total unique releases: ${unified.length}`);
-
-  // 4. Process each unique release
-  let processed = 0;
-  let errors = 0;
-
-  for (const release of unified) {
-    try {
-      let artistId: string | null = null;
-      let labelId: string | null = null;
-      let coverUrl = release.cover_url ?? null;
-      let genres: string[] = ['unknown'];
-      let releaseDate = normalizeDate(release.release_date);
-      let mbDetails: any = null;
-      let spotifyData: any = {};
-
-      // --- MusicBrainz path (for musicbrainz-only or both) ---
-      if (release.source === 'musicbrainz' || release.source === 'both') {
-        mbDetails = release.metadata?.musicbrainz || (release.mbid ? await getReleaseGroupDetails(release.mbid) : null);
-
-        if (mbDetails) {
-          const mainArtist = mbDetails['artist-credit']?.[0]?.artist;
-          if (mainArtist) {
-            try {
-              const mbGenres = mbDetails.tags?.map(t => t.name.toLowerCase()) || [];
-              const [artistTags, albumTags, artistInfo] = await Promise.all([
-                getArtistTags(mainArtist.name),
-                getAlbumTags(mainArtist.name, mbDetails.title),
-                getArtistInfo(mainArtist.name),
-              ]);
-              genres = normalizeGenres([...mbGenres, ...artistTags, ...albumTags]);
-              artistId = await upsertArtist({ mbid: mainArtist.id, name: mainArtist.name, genres, popularity: artistInfo?.listeners || 0 });
-            } catch (err) {
-              console.warn(`⚠️ Artist enrichment failed for ${release.mbid}:`, err instanceof Error ? err.message : err);
-            }
-          }
-
-          const labelCredit = mbDetails['artist-credit']?.find((ac: any) => ac.artist?.type === 'label')?.artist;
-          if (labelCredit) {
-            try {
-              labelId = await upsertLabel({ mbid: labelCredit.id, name: labelCredit.name });
-            } catch (err) {
-              console.warn(`⚠️ Label upsert failed:`, err instanceof Error ? err.message : err);
-            }
-          }
-
-          if (!coverUrl && mbDetails.releases?.[0]?.id) {
-            try {
-              coverUrl = await getCoverArtUrl(mbDetails.releases[0].id);
-            } catch {
-              // ignore cover art failures
-            }
-          }
-        }
-      }
-
-      // --- Spotify path (for spotify-only or both) ---
-      const spotifyRelease = release.metadata?.spotify;
-      if (spotifyRelease) {
-        spotifyData = {
-          spotify_id: spotifyRelease.id,
-          spotify_url: spotifyRelease.external_urls?.spotify,
-          track_count: spotifyRelease.total_tracks,
-          total_duration_ms: spotifyRelease.total_tracks ? spotifyRelease.total_tracks * 60000 : 0,
-        };
-        if (!coverUrl && spotifyRelease.images?.[0]) {
-          coverUrl = spotifyRelease.images[0].url;
-        }
-      } else if (release.source !== 'spotify' && release.artist_name && release.title) {
-        // Try Spotify search for MusicBrainz-only releases
-        try {
-          const spotifySearch = await searchSpotifyAlbum(release.artist_name, release.title);
-          const spotifyAlbum = spotifySearch?.albums?.items?.[0];
-          if (spotifyAlbum) {
-            const fullAlbum = await getSpotifyAlbum(spotifyAlbum.id);
-            if (fullAlbum) {
-              spotifyData = {
-                spotify_id: fullAlbum.id,
-                spotify_url: fullAlbum.external_urls.spotify,
-                track_count: fullAlbum.total_tracks,
-                total_duration_ms: fullAlbum.tracks?.items.reduce((sum, t) => sum + t.duration_ms, 0),
-              };
-              if (!coverUrl) coverUrl = fullAlbum.images?.[0]?.url || null;
-            }
-          }
-        } catch {
-          // ignore Spotify search failures
-        }
-      }
-
-      // --- Upsert ---
-      const upsertData: any = {
-        mbid: release.mbid,
-        spotify_id: spotifyData.spotify_id || release.spotify_id,
-        title: release.title,
-        artist_id: artistId,
-        label_id: labelId,
-        release_date: releaseDate,
-        release_type: release.source === 'musicbrainz' ? mapReleaseType(mbDetails?.['primary-type']) : mapReleaseType(release.metadata?.spotify?.album_type),
-        cover_url: coverUrl,
-        genres,
-        track_count: spotifyData.track_count || 0,
-        total_duration_ms: spotifyData.total_duration_ms,
-        spotify_url: spotifyData.spotify_url,
-        metadata: release.metadata,
-      };
-
-      if (upsertData.mbid) {
-        await upsertRelease(upsertData);
-      } else if (upsertData.spotify_id) {
-        // No MBID — try to find existing by spotify_id, else insert
-        const { data: existing, error: selErr } = await supabase
-          .from('releases')
-          .select('id')
-          .eq('spotify_id', upsertData.spotify_id)
-          .single();
-        if (selErr && selErr.code !== 'PGRST116') throw selErr;
-        if (existing) {
-          const { error: updErr } = await supabase
-            .from('releases')
-            .update({ ...upsertData, slug: slugify(release.title) })
-            .eq('id', existing.id);
-          if (updErr) throw updErr;
-        } else {
-          const { error: insErr } = await supabase
-            .from('releases')
-            .insert({ ...upsertData, slug: slugify(release.title) })
-            .select('id')
-            .single();
-          if (insErr) throw insErr;
-        }
-      } else {
-        const { error: insErr } = await supabase
-          .from('releases')
-          .insert({ ...upsertData, slug: slugify(release.title) })
-          .select('id')
-          .single();
-        if (insErr) throw insErr;
-      }
-
-      processed++;
-      if (processed % 10 === 0) console.log(`📊 Processed ${processed}/${unified.length}...`);
-    } catch (err) {
-      errors++;
-      console.error(`❌ Error processing ${release.title}:`, err instanceof Error ? err.message : err);
+    if (res.status === 404) return null;
+    if (res.status >= 500) {
+      await sleep(1000 * attempt);
+      continue;
     }
+    throw new Error(`Spotify ${res.status} sur ${endpoint}`);
   }
-
-  await refreshWeeklyView();
-
-  console.log(`
-✅ Sync completed!
-   Processed: ${processed}
-   Errors: ${errors}
-  `);
-
-  if (errors > processed * 0.5) {
-    console.error('⚠️ High error rate, check logs');
-    process.exit(1);
-  }
+  throw new Error(`Spotify : abandon après plusieurs essais sur ${endpoint}`);
 }
 
-main().catch(err => {
-  console.error('💥 Fatal error:', err);
+type Artist = { id: string; name: string; image: string | null; genres: Set<string> };
+type Found = { album: any; genres: Set<string> };
+
+const JUNK_TITLE = /slowed|sped up|reverb|vocals only|instrumental|karaoke|8d audio|nightcore/i;
+
+function releaseType(album: any): string | null {
+  if (album.album_type === 'album') return 'album';
+  if (album.album_type === 'compilation') return 'compilation';
+  if (album.album_type === 'single' && album.total_tracks >= 4) return 'ep';
+  return null; // les singles ne sont pas des "sorties" au sens de l'app
+}
+
+function inWindow(album: any, from: string, to: string): boolean {
+  return album?.release_date_precision === 'day' && album.release_date >= from && album.release_date <= to;
+}
+
+function normalizeName(name: string): string {
+  return slugify(name).replace(/-/g, '');
+}
+
+async function resolveArtist(name: string): Promise<any | null> {
+  const json = await spotifyFetch(`/search?type=artist&limit=10&market=FR&q=${encodeURIComponent(`artist:"${name}"`)}`);
+  const items: any[] = json?.artists?.items || [];
+  return items.find((a) => normalizeName(a.name) === normalizeName(name)) ?? null;
+}
+
+async function recentAlbumsOf(artistId: string, from: string, to: string, groups: string[]): Promise<any[]> {
+  const out: any[] = [];
+  for (const group of groups) {
+    const json = await spotifyFetch(`/artists/${artistId}/albums?include_groups=${group}&limit=10&market=FR`);
+    for (const album of json?.items || []) {
+      if (inWindow(album, from, to) && releaseType(album) && !JUNK_TITLE.test(album.name)) out.push(album);
+    }
+  }
+  return out;
+}
+
+// ============================================================
+// MAIN
+// ============================================================
+async function main() {
+  const today = new Date();
+  const from = isoDate(new Date(today.getTime() - DAYS_BACK * 86_400_000));
+  const to = isoDate(new Date(today.getTime() + DAYS_AHEAD * 86_400_000));
+  console.log(`🚀 Sync des sorties du ${from} au ${to}`);
+
+  await getSpotifyToken();
+
+  const artists = new Map<string, Artist>();
+  const found = new Map<string, Found>();
+
+  const rememberArtist = (a: any, genre?: string) => {
+    const known = artists.get(a.id) ?? { id: a.id, name: a.name, image: a.images?.[0]?.url ?? null, genres: new Set<string>() };
+    known.image ??= a.images?.[0]?.url ?? null;
+    if (genre) known.genres.add(genre);
+    artists.set(a.id, known);
+  };
+  const rememberAlbum = (album: any, genre?: string) => {
+    const entry = found.get(album.id) ?? { album, genres: new Set<string>() };
+    if (genre) entry.genres.add(genre);
+    found.set(album.id, entry);
+  };
+
+  // 1. Artistes suivis
+  const watchlist = JSON.parse(readFileSync(new URL('./artist-watchlist.json', import.meta.url), 'utf8'));
+  const watched = Object.entries(watchlist).filter(([key]) => !key.startsWith('_')) as [string, string[]][];
+  const notFound: string[] = [];
+  console.log(`⭐ Artistes suivis (${watched.reduce((n, [, names]) => n + names.length, 0)})...`);
+  for (const [genre, names] of watched) {
+    for (const name of names) {
+      const artist = await resolveArtist(name);
+      if (!artist) {
+        notFound.push(name);
+        continue;
+      }
+      rememberArtist(artist, genre);
+      for (const album of await recentAlbumsOf(artist.id, from, to, ['album', 'single'])) rememberAlbum(album, genre);
+    }
+  }
+  console.log(`   ${found.size} sorties trouvées`);
+  if (notFound.length) console.log(`   ⚠️ Introuvables sur Spotify : ${notFound.join(', ')}`);
+
+  // 2. Artistes populaires par genre
+  console.log('🎛  Artistes populaires par genre...');
+  for (const [genre, spotifyGenre] of Object.entries(SEARCHABLE_GENRES)) {
+    for (let page = 0; page < GENRE_SEARCH_PAGES; page++) {
+      const json = await spotifyFetch(
+        `/search?type=artist&limit=10&offset=${page * 10}&market=FR&q=${encodeURIComponent(`genre:${spotifyGenre}`)}`
+      );
+      for (const artist of json?.artists?.items || []) {
+        rememberArtist(artist, genre);
+        for (const album of await recentAlbumsOf(artist.id, from, to, ['album'])) rememberAlbum(album, genre);
+      }
+    }
+  }
+  console.log(`   ${found.size} sorties au total`);
+
+  // 3. Nouveautés générales (le genre vient de l'artiste s'il est déjà connu)
+  console.log('🆕 Nouveautés Spotify...');
+  for (let offset = 0; offset < 100; offset += 10) {
+    const json = await spotifyFetch(`/search?type=album&limit=10&offset=${offset}&market=FR&q=tag:new`);
+    const items: any[] = json?.albums?.items || [];
+    if (!items.length) break;
+    for (const album of items) {
+      if (album && inWindow(album, from, to) && releaseType(album) && !JUNK_TITLE.test(album.name)) rememberAlbum(album);
+    }
+  }
+  console.log(`   ${found.size} sorties au total`);
+  if (found.size === 0) throw new Error('Aucune sortie trouvée : rien à enregistrer.');
+
+  // Photos des artistes principaux qu'on n'a pas encore (ceux venant des nouveautés)
+  for (const { album } of found.values()) {
+    const main = album.artists[0];
+    if (!artists.get(main.id)?.image) {
+      const full = await spotifyFetch(`/artists/${main.id}`);
+      rememberArtist(full ?? main);
+    }
+    const artist = artists.get(main.id)!;
+    for (const g of found.get(album.id)!.genres) artist.genres.add(g);
+  }
+
+  if (RESET) {
+    console.log('🧹 Suppression des anciennes sorties et artistes...');
+    must(await supabase.from('releases').delete().not('id', 'is', null), 'Suppression releases');
+    must(await supabase.from('artists').delete().not('id', 'is', null), 'Suppression artists');
+  }
+
+  // Enregistrement des artistes
+  const usedArtistIds = new Set([...found.values()].map(({ album }) => album.artists[0].id));
+  const artistRows = [...usedArtistIds].map((id) => {
+    const a = artists.get(id)!;
+    return {
+      spotify_id: a.id,
+      name: a.name,
+      slug: `${slugify(a.name) || 'artiste'}-${a.id.slice(0, 6).toLowerCase()}`,
+      image_url: a.image,
+      genres: [...a.genres],
+      updated_at: new Date().toISOString(),
+    };
+  });
+  const artistIds = new Map<string, string>();
+  for (const part of chunk(artistRows, 100)) {
+    const saved = must(
+      await supabase.from('artists').upsert(part, { onConflict: 'spotify_id' }).select('id, spotify_id'),
+      'Enregistrement artists'
+    );
+    for (const a of saved ?? []) artistIds.set(a.spotify_id, a.id);
+  }
+
+  // Enregistrement des sorties
+  const releaseRows = [...found.values()].map(({ album, genres }) => {
+    const main = album.artists[0];
+    const allGenres = new Set([...genres, ...(artists.get(main.id)?.genres ?? [])]);
+    return {
+      spotify_id: album.id,
+      title: album.name,
+      slug: `${slugify(`${main.name} ${album.name}`) || 'sortie'}-${album.id.slice(0, 6).toLowerCase()}`,
+      artist_id: artistIds.get(main.id) ?? null,
+      release_date: album.release_date,
+      release_type: releaseType(album),
+      cover_url: album.images?.[0]?.url ?? null,
+      genres: [...allGenres],
+      track_count: album.total_tracks ?? 0,
+      spotify_url: album.external_urls?.spotify ?? null,
+      metadata: { featuring: album.artists.slice(1).map((a: any) => a.name) },
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+  let saved = 0;
+  for (const part of chunk(releaseRows, 100)) {
+    const rows = must(
+      await supabase.from('releases').upsert(part, { onConflict: 'spotify_id' }).select('id'),
+      'Enregistrement releases'
+    );
+    saved += rows?.length ?? 0;
+  }
+
+  const byGenre: Record<string, number> = {};
+  for (const r of releaseRows) for (const g of r.genres) byGenre[g] = (byGenre[g] ?? 0) + 1;
+  console.log(`
+✅ Sync terminée (${spotifyCalls} appels Spotify)
+   Sorties enregistrées : ${saved}
+   Artistes             : ${artistIds.size}
+   Par genre            : ${Object.entries(byGenre).map(([g, n]) => `${g} ${n}`).join(', ') || 'aucun'}
+   Sans genre           : ${releaseRows.filter((r) => r.genres.length === 0).length}
+`);
+}
+
+main().catch((err) => {
+  console.error('💥 Échec du sync :', err instanceof Error ? err.message : err);
   process.exit(1);
 });

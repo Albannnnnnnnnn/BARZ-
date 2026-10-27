@@ -2,6 +2,7 @@
 // VUE CALENDRIER MENSUAL
 import Layout from '../layouts/Layout.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
+import { fetchWeeklyReleases } from '../lib/releases';
 import CalendarView from '../components/CalendarView.tsx';
 import { format, addMonths, subMonths, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -14,25 +15,7 @@ const monthStart = format(currentMonth, 'yyyy-MM');
 const nextMonth = format(addMonths(currentMonth, 1), 'yyyy-MM');
 const prevMonth = format(subMonths(currentMonth, 1), 'yyyy-MM');
 
-let weeklyData: any[] = [];
-if (supabase) {
-  try {
-    const { data, error } = await supabase
-      .from('weekly_releases')
-      .select('*')
-      .gte('week_start', format(subMonths(currentMonth, 1), 'yyyy-MM-dd'))
-      .lte('week_start', format(addMonths(currentMonth, 2), 'yyyy-MM-dd'))
-      .order('week_start', { ascending: true });
-
-    if (!error && data) {
-      weeklyData = data;
-    }
-  } catch (e) {
-    console.warn('Supabase query failed:', e);
-  }
-} else {
-  console.warn('Supabase not configured, using empty data for build');
-}
+const weeklyData = await fetchWeeklyReleases(supabase, subMonths(currentMonth, 1), addMonths(currentMonth, 2));
 
 const allGenres = [...new Set(
   (weeklyData || []).flatMap(w => w.releases || []).flatMap((r: any) => r.genres || [])

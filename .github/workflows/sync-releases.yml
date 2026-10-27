@@ -2,8 +2,10 @@ name: Sync Weekly Releases
 
 on:
   schedule:
-    # Jeudi 18h UTC = Jeudi 19h/20h heure française (été/hiver)
-    - cron: '0 18 * * 4'
+    # Vendredi 6h UTC (7h/8h en France) : les sorties de minuit sont en ligne
+    - cron: '0 6 * * 5'
+    # Mardi 6h UTC : rattrape les sorties ajoutées en retard sur Spotify
+    - cron: '0 6 * * 2'
   workflow_dispatch: # Permet lancement manuel
 
 permissions:
@@ -12,14 +14,12 @@ permissions:
 
 jobs:
   sync:
-    name: Sync releases from MusicBrainz/Last.fm/Spotify
+    name: Sync releases from Spotify
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-      MUSICBRAINZ_USER_AGENT: BARZ/1.0 (${{ secrets.MUSICBRAINZ_EMAIL || 'github-actions@barz.app' }})
-      LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
       SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
       SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
 
@@ -38,13 +38,6 @@ jobs:
 
       - name: Run sync script
         run: npm run sync:releases
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          MUSICBRAINZ_USER_AGENT: BARZ/1.0 (${{ secrets.MUSICBRAINZ_EMAIL || 'github-actions@barz.app' }})
-          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
 
       - name: Notify on failure
         if: failure()
