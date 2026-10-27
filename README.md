@@ -19,7 +19,7 @@
 |-------|------|
 | Frontend | Astro 5 + React Islands |
 | Database | Supabase (PostgreSQL) |
-| APIs | Spotify Web API |
+| APIs | Deezer API + Spotify Web API |
 | CI/CD | GitHub Actions |
 | Hosting | GitHub Pages |
 
@@ -44,7 +44,10 @@ npm install
 
 | Service | Où obtenir | Requis |
 |---------|------------|--------|
-| Spotify | [developer.spotify.com](https://developer.spotify.com) (Client ID + Secret) | ✅ |
+| Deezer | Aucune clé nécessaire | ✅ (genres, fans, label, charts) |
+| Spotify | [developer.spotify.com](https://developer.spotify.com) (Client ID + Secret) | Recommandé (lien d'écoute, photos d'artistes) |
+
+Les deux sources sont fusionnées (code-barres UPC, sinon artiste + titre). Si Spotify est bloqué ou indisponible, le sync continue avec Deezer seul.
 
 Les artistes suivis par le sync sont listés dans `scripts/artist-watchlist.json`, rangés par genre : ajoute ou retire des noms librement.
 
@@ -134,7 +137,7 @@ src/
     └── global.css
 
 scripts/
-├── sync-releases.ts             # Pipeline sync (Spotify)
+├── sync-releases.ts             # Pipeline sync (Deezer + Spotify)
 └── artist-watchlist.json        # Artistes suivis, par genre
 
 .github/workflows/
@@ -183,4 +186,4 @@ MIT — Fait avec ❤️ pour la musique
 
 ---
 
-**Données fournies par** [Spotify Web API](https://developer.spotify.com)
+**Données fournies par** [Deezer](https://developers.deezer.com) • [Spotify Web API](https://developer.spotify.com)

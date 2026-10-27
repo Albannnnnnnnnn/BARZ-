@@ -15,7 +15,8 @@ export type ReleaseRow = {
   genres: string[];
   track_count: number;
   spotify_url: string | null;
-  metadata: { watched?: boolean; featuring?: string[] } | null;
+  deezer_url: string | null;
+  metadata: { watched?: boolean; featuring?: string[]; fans?: number | null; label?: string | null } | null;
   artist: { name: string; slug: string; image_url: string | null } | null;
 };
 
@@ -41,7 +42,7 @@ export function chipIdsFor(genres: string[] = []): string[] {
 }
 
 const RELEASE_FIELDS =
-  'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_url, metadata, artist:artists!artist_id(name, slug, image_url)';
+  'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_url, deezer_url, metadata, artist:artists!artist_id(name, slug, image_url)';
 
 export async function fetchReleasesBetween(
   supabase: SupabaseClient<any> | null,

@@ -79,10 +79,16 @@ const jsonLd = {
           {genreLabels.length > 0 && (
             <div><dt>Genre</dt><dd>{genreLabels.join(' · ')}</dd></div>
           )}
+          {release.metadata?.label && (
+            <div><dt>Label</dt><dd>{release.metadata.label}</dd></div>
+          )}
         </dl>
         <div class="actions">
           {release.spotify_url && (
             <a class="bz-btn bz-btn--lime" href={release.spotify_url} target="_blank" rel="noopener">Écouter sur Spotify ↗</a>
+          )}
+          {release.deezer_url && (
+            <a class:list={['bz-btn', release.spotify_url ? 'bz-btn--outline' : 'bz-btn--lime']} href={release.deezer_url} target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
           )}
           <span class="bz-btn bz-btn--outline" title="Bientôt : il faut d’abord les comptes utilisateurs">+ Spin list</span>
         </div>

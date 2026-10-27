@@ -16,9 +16,9 @@ const today = getToday();
 const friday = addDays(today, -((today.getDay() - 5 + 7) % 7));
 const releases = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(friday, -6), addDays(friday, 6));
 
-// Les artistes suivis d'abord, puis les albums avant les EP
-const rank = (r: ReleaseRow) => (r.metadata?.watched ? 0 : 2) + (r.release_type === 'album' ? 0 : 1);
-const sorted = [...releases].sort((a, b) => rank(a) - rank(b));
+// Les artistes suivis d'abord, puis les sorties les plus suivies sur Deezer
+const fans = (r: ReleaseRow) => r.metadata?.fans ?? 0;
+const sorted = [...releases].sort((a, b) => Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || fans(b) - fans(a));
 const count = sorted.length;
 const fan = sorted.slice(0, 5);
 const watched = sorted.filter((r) => r.metadata?.watched).slice(0, 6);
