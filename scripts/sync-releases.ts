@@ -11,7 +11,7 @@
 // MusicBrainz a été abandonné : sa recherche par date ne sait pas distinguer "2026" de "2026-10-23"
 // et plafonne à 500 résultats, ce qui remplissait la base de sorties sans rapport avec la semaine.
 import 'dotenv/config';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
 const DAYS_BACK = Number(process.env.SYNC_DAYS_BACK ?? 14);
@@ -96,6 +96,19 @@ async function getSpotifyToken(): Promise<string> {
 
 // Les apps Spotify en mode développement ont une limite stricte sur une fenêtre glissante de 30 s :
 // on espace les appels plutôt que de se faire bloquer
+// Quand Spotify impose un long blocage, on note sa fin ici pour ne pas le relancer en réessayant trop tôt
+const BLOCK_FILE = new URL('../.spotify-blocked-until', import.meta.url);
+
+function checkSpotifyBlock() {
+  if (!existsSync(BLOCK_FILE)) return;
+  const until = Number(readFileSync(BLOCK_FILE, 'utf8'));
+  if (Date.now() < until) {
+    const at = new Date(until).toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+    console.error(`⛔ Spotify bloque encore l'app jusqu'à ${at} environ. Réessaie après (chaque essai pendant le blocage peut le prolonger).`);
+    process.exit(1);
+  }
+}
+
 const SPOTIFY_MIN_INTERVAL_MS = Number(process.env.SYNC_SPOTIFY_INTERVAL_MS ?? 600);
 let lastSpotifyCall = 0;
 
@@ -111,7 +124,10 @@ async function spotifyFetch(endpoint: string): Promise<any | null> {
     if (res.ok) return res.json();
     if (res.status === 429) {
       const retryAfter = Number(res.headers.get('Retry-After') ?? 5);
-      if (retryAfter > 600) throw new Error(`Spotify bloque les requêtes pendant ${Math.round(retryAfter / 60)} min. Réessaie plus tard.`);
+      if (retryAfter > 600) {
+        writeFileSync(BLOCK_FILE, String(Date.now() + retryAfter * 1000));
+        throw new Error(`Spotify bloque les requêtes pendant ${Math.round(retryAfter / 60)} min. Réessaie plus tard.`);
+      }
       console.log(`   ⏳ Spotify demande d'attendre ${retryAfter}s (après ${spotifyCalls} appels)`);
       await sleep(retryAfter * 1000);
       continue;
@@ -172,6 +188,7 @@ async function main() {
   const to = isoDate(new Date(today.getTime() + DAYS_AHEAD * 86_400_000));
   console.log(`🚀 Sync des sorties du ${from} au ${to}`);
 
+  checkSpotifyBlock();
   await getSpotifyToken();
 
   const artists = new Map<string, Artist>();

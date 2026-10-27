@@ -47,3 +47,6 @@ supabase/.temp/
 .turbo/
 # Astro (régénéré automatiquement)
 .astro/
+
+# Fin du blocage Spotify (écrit par le sync)
+.spotify-blocked-until
