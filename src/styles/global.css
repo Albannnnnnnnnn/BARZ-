@@ -3,36 +3,32 @@
    ============================================================================ */
 
 :root {
-  /* Fond (maquettes BARZ¡) */
-  --color-bg: #0b0b0b;
-  --color-bg-elevated: #151515;
-  --color-bg-surface: #1b1b1b;
-  --color-bg-hover: #232323;
-  --color-border: #242424;
-  --color-border-hover: #363636;
-  --color-text: #f3efe6;
-  --color-text-muted: #9a978f;
-  --color-text-dim: #6b6964;
+  /* Thème « Papier marine » : fond crème, encre bleu nuit, accent bleu marine */
+  --color-bg: #f3ecdc;
+  --color-bg-elevated: #e8e2d2;
+  --color-bg-surface: #e1dac8;
+  --color-bg-hover: #ddd6c4;
+  --color-paper: #fbf7ee;
+  --color-border: #d6d0c0;
+  --color-border-hover: #bfb8a6;
+  --color-text: #141a2e;
+  --color-text-muted: #545a6b;
+  --color-text-dim: #656b7c;
 
-  /* Palette des maquettes */
-  --color-lime: #dcf75b;
-  --color-ink: #0b0b0b;
-  --color-cream: #efebe3;
+  /* Accent : boutons, onglet actif, raisons de reco, ¡ du logo */
+  --color-accent: #1f3468;
+  --color-accent-hover: #2b4482;
+  --color-accent-soft: #dfe3ec;
+  --color-accent-line: #b9c3d9;
+  --color-on-accent: #f3ecdc;
+
+  /* Autres couleurs */
+  --color-ink: #141a2e;
+  --color-cream: #f3ecdc;
   --color-orange: #ec6a3e;
   --color-blue: #3a6cf4;
   --color-violet: #8a7cf5;
   --color-sand: #e2c27a;
-
-  /* Alias historiques */
-  --color-accent-lime: var(--color-lime);
-  --color-accent-lime-dark: #b9d63a;
-  --color-accent-lime-glow: rgba(220, 247, 91, 0.3);
-  --color-accent: var(--color-lime);
-  --color-accent-hover: #e8ff7a;
-  --color-accent-dark: #b9d63a;
-  --color-accent-light: var(--color-ink);
-  --color-accent-muted: #3a4214;
-  --color-accent-glow: rgba(220, 247, 91, 0.3);
   --color-surface-cream: var(--color-cream);
 
   /* Typographie */
@@ -75,12 +71,12 @@
   --radius-full: 9999px;
 
   /* Ombres */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 24px 80px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 3px rgba(20, 26, 46, 0.08);
+  --shadow-md: 0 4px 20px rgba(20, 26, 46, 0.1);
+  --shadow-lg: 0 12px 60px rgba(20, 26, 46, 0.12);
+  --shadow-xl: 0 24px 80px rgba(20, 26, 46, 0.14);
   --shadow-accent: 0 0 0 1px var(--color-accent), 0 20px 60px rgba(225, 29, 72, 0.35);
-  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glass: 0 8px 32px rgba(20, 26, 46, 0.1);
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -92,28 +88,6 @@
   --max-width: 1320px;
   --header-height: 64px;
   --glass-blur: 20px;
-}
-
-[data-theme="light"] {
-  --color-bg: #fafafa;
-  --color-bg-elevated: #ffffff;
-  --color-bg-hover: #f4f4f5;
-  --color-border: #e4e4e7;
-  --color-border-hover: #d4d4d8;
-  --color-text: #18181b;
-  --color-text-muted: #52525b;
-  --color-text-dim: #71717a;
-  --color-accent: #be123c;
-  --color-accent-hover: #e11d48;
-  --color-accent-dark: #9f1236;
-  --color-accent-light: #ffe4e6;
-  --color-accent-muted: #fff1f2;
-  --color-accent-glow: rgba(190, 18, 60, 0.2);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 24px 80px rgba(0, 0, 0, 0.03);
-  --shadow-accent: 0 0 0 1px var(--color-accent), 0 20px 60px rgba(190, 18, 60, 0.15);
-  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.04);
 }
 
 /* Reset */
@@ -216,13 +190,13 @@ a:focus-visible {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--color-lime);
-  color: var(--color-ink);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--color-accent-hover);
-  color: var(--color-ink);
+  color: var(--color-on-accent);
 }
 
 .btn-secondary {
@@ -344,8 +318,8 @@ select.input { cursor: pointer; }
 }
 
 .badge-type {
-  background: linear-gradient(135deg, var(--color-accent-muted) 0%, var(--color-accent-dark) 100%);
-  color: var(--color-accent-light);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -457,8 +431,8 @@ select.input { cursor: pointer; }
 
 /* Selection */
 ::selection {
-  background: var(--color-lime);
-  color: var(--color-ink);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 /* Focus */
@@ -570,9 +544,9 @@ select.input { cursor: pointer; }
 }
 
 /* Lime utilities */
-.text-lime { color: var(--color-accent-lime); }
-.bg-lime { background-color: var(--color-accent-lime); }
-.text-lime-dark { color: var(--color-accent-lime-dark); }
+.text-lime { color: var(--color-accent); }
+.bg-lime { background-color: var(--color-accent); }
+.text-lime-dark { color: var(--color-accent); }
 
 /* Serif font utilities */
 .font-serif { font-family: var(--font-serif); }

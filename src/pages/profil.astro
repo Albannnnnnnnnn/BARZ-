@@ -245,7 +245,7 @@ import Layout from '../layouts/Layout.astro';
         collection.classList.add('is-artists');
         collection.innerHTML = artists.length
           ? artists.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('')
-          : `<p class="bz-empty">Aucun artiste suivi. <a href="${BASE}artistes" style="color:var(--color-lime)">Parcourir le catalogue →</a></p>`;
+          : `<p class="bz-empty">Aucun artiste suivi. <a href="${BASE}artistes" style="color:var(--color-accent)">Parcourir le catalogue →</a></p>`;
         return;
       }
       collection.classList.remove('is-artists');
@@ -446,7 +446,7 @@ import Layout from '../layouts/Layout.astro';
   }
 
   .cta b {
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .cta[hidden],
@@ -466,8 +466,8 @@ import Layout from '../layouts/Layout.astro';
     padding: 56px;
     border-radius: 28px;
     background:
-      radial-gradient(ellipse 60% 120% at 90% 10%, #5d6b2a 0%, transparent 70%),
-      linear-gradient(100deg, #4a2a1e 0%, #2e2a1d 50%, #3c4721 100%);
+      radial-gradient(ellipse 60% 120% at 90% 10%, var(--color-accent-line) 0%, transparent 70%),
+      linear-gradient(100deg, var(--color-accent-soft) 0%, var(--color-paper) 55%, var(--color-accent-soft) 100%);
   }
 
   .avatar {
@@ -476,8 +476,8 @@ import Layout from '../layouts/Layout.astro';
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--color-lime);
-    color: var(--color-ink);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
     font: 400 110px/1 var(--font-serif);
   }
 
@@ -492,7 +492,7 @@ import Layout from '../layouts/Layout.astro';
     margin-top: 14px;
     font-size: 18px;
     line-height: 1.5;
-    color: #d9d3c6;
+    color: var(--color-text-muted);
   }
 
   .bilan-link {
@@ -530,7 +530,7 @@ import Layout from '../layouts/Layout.astro';
     align-self: center;
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .block {
@@ -624,7 +624,7 @@ import Layout from '../layouts/Layout.astro';
     font: 600 12px/1 var(--font-sans);
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #cfc8b8;
+    color: var(--color-text-muted);
   }
 
   .layout {
@@ -637,7 +637,7 @@ import Layout from '../layouts/Layout.astro';
   .dna {
     padding: 36px 32px;
     border-radius: 22px;
-    background: var(--color-cream);
+    background: var(--color-paper);
     color: var(--color-ink);
   }
 
@@ -703,7 +703,7 @@ import Layout from '../layouts/Layout.astro';
     flex-direction: column;
     gap: 16px;
     font-size: 18px;
-    color: #cfcbc2;
+    color: var(--color-text-muted);
   }
 
   .activity :global(b) {
@@ -712,7 +712,7 @@ import Layout from '../layouts/Layout.astro';
 
   .activity :global(a) {
     text-decoration: underline;
-    text-decoration-color: #444;
+    text-decoration-color: var(--color-text-dim);
     text-underline-offset: 4px;
   }
 

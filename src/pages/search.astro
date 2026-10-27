@@ -265,13 +265,13 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     font: 600 15px/1 var(--font-sans);
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #cfcbc2;
+    color: var(--color-text-muted);
   }
 
   .cursor-word {
     margin: 18px 0 26px;
     font: italic 400 clamp(56px, 5.6vw, 88px) / 1 var(--font-serif);
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   input[type='range'] {
@@ -280,7 +280,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     height: 8px;
     border-radius: 999px;
     appearance: none;
-    background: linear-gradient(to right, var(--color-lime) var(--fill), #333 var(--fill));
+    background: linear-gradient(to right, var(--color-accent) var(--fill), var(--color-border-hover) var(--fill));
     cursor: pointer;
   }
 
@@ -289,16 +289,16 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--color-lime);
+    background: var(--color-accent);
     border: 3px solid var(--color-bg);
-    box-shadow: 0 0 0 1px var(--color-lime);
+    box-shadow: 0 0 0 1px var(--color-accent);
   }
 
   input[type='range']::-moz-range-thumb {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--color-lime);
+    background: var(--color-accent);
     border: 3px solid var(--color-bg);
   }
 
@@ -316,7 +316,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     margin-top: 34px;
     font-size: 16px;
     line-height: 1.6;
-    color: #cfcbc2;
+    color: var(--color-text-muted);
   }
 
   .cursor-why strong {
@@ -356,7 +356,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     top: 10px;
     left: 10px;
     right: 0;
-    border-top: 1px dotted var(--color-lime);
+    border-top: 1px dotted var(--color-accent);
     opacity: 0.7;
   }
 
@@ -378,13 +378,13 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     width: 21px;
     height: 21px;
     border-radius: 50%;
-    border: 2px solid var(--color-lime);
+    border: 2px solid var(--color-accent);
     background: var(--color-bg);
     margin-bottom: 30px;
   }
 
   .rabbit :global(.is-start .rabbit-dot) {
-    background: var(--color-lime);
+    background: var(--color-accent);
   }
 
   .rabbit :global(.rabbit-kind) {
@@ -407,7 +407,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
 
   .rabbit :global(.rabbit-title.is-link) {
     text-decoration: underline;
-    text-decoration-color: var(--color-lime);
+    text-decoration-color: var(--color-accent);
     text-underline-offset: 6px;
     text-decoration-thickness: 2px;
   }

@@ -161,8 +161,8 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--color-lime);
-    color: var(--color-ink);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
     font: 400 26px/1 var(--font-serif);
   }
 
@@ -186,11 +186,11 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   .composer .composer-release {
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .composer input::placeholder {
-    color: #8b877f;
+    color: var(--color-text-dim);
   }
 
   .composer-score {
@@ -203,7 +203,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   .composer-score input {
     width: 52px;
     padding: 6px 8px;
-    border: 1px solid #333;
+    border: 1px solid var(--color-border-hover);
     border-radius: 10px;
     text-align: center;
     font-weight: 700;

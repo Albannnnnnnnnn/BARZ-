@@ -250,7 +250,7 @@ import Layout from '../layouts/Layout.astro';
   }
 
   .cta b {
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .cta[hidden],
@@ -276,21 +276,22 @@ import Layout from '../layouts/Layout.astro';
     max-width: 880px;
     padding: clamp(24px, 5vw, 56px);
     border-radius: 28px;
-    background: #f3ecdc;
-    color: #1b1a17;
+    background: var(--color-paper);
+    box-shadow: 0 0 0 1px var(--color-border);
+    color: var(--color-ink);
   }
 
   .card-eyebrow {
     font: 700 13px/1 var(--font-sans);
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #6b6556;
+    color: var(--color-text-muted);
   }
 
   .card h1 {
     margin-top: 14px;
     font: 400 clamp(44px, 7vw, 84px) / 0.95 var(--font-serif);
-    color: #1b1a17;
+    color: var(--color-ink);
     overflow-wrap: anywhere;
   }
 
@@ -298,7 +299,7 @@ import Layout from '../layouts/Layout.astro';
     margin-top: 28px;
     font-size: 18px;
     line-height: 1.5;
-    color: #4a463d;
+    color: var(--color-text-muted);
   }
 
   .numbers {
@@ -307,15 +308,15 @@ import Layout from '../layouts/Layout.astro';
     gap: 16px;
     margin: 36px 0 8px;
     padding: 24px 0;
-    border-top: 1px solid #d8cfbb;
-    border-bottom: 1px solid #d8cfbb;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .numbers :global(dt) {
     font: 600 12px/1.2 var(--font-sans);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #6b6556;
+    color: var(--color-text-muted);
   }
 
   .numbers :global(dd) {
@@ -335,7 +336,7 @@ import Layout from '../layouts/Layout.astro';
     font: 700 12px/1 var(--font-sans);
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #6b6556;
+    color: var(--color-text-muted);
   }
 
   #genres {
@@ -360,14 +361,14 @@ import Layout from '../layouts/Layout.astro';
   #genres :global(.bar) {
     height: 10px;
     border-radius: 5px;
-    background: #e3d9c3;
+    background: var(--color-bg-hover);
     overflow: hidden;
   }
 
   #genres :global(.bar span) {
     display: block;
     height: 100%;
-    background: #1b1a17;
+    background: var(--color-accent);
   }
 
   #genres :global(.pct) {
@@ -380,7 +381,7 @@ import Layout from '../layouts/Layout.astro';
     grid-template-columns: 96px minmax(0, 1fr);
     gap: 16px;
     align-items: center;
-    color: #1b1a17;
+    color: var(--color-ink);
   }
 
   #record :global(.bz-cover) {
@@ -392,35 +393,34 @@ import Layout from '../layouts/Layout.astro';
     flex-direction: column;
     gap: 4px;
     font-size: 15px;
-    color: #4a463d;
+    color: var(--color-text-muted);
   }
 
   #record :global(b) {
     font: 400 26px/1.05 var(--font-serif);
-    color: #1b1a17;
+    color: var(--color-ink);
   }
 
   #record :global(.bz-score) {
     align-self: flex-start;
     margin-top: 6px;
-    background: #1b1a17;
   }
 
   #record :global(.quote) {
     margin-top: 14px;
     font: italic 400 20px/1.3 var(--font-serif);
-    color: #2d2a25;
+    color: var(--color-ink);
   }
 
   .list {
     font-size: 17px;
     line-height: 1.5;
-    color: #2d2a25;
+    color: var(--color-ink);
   }
 
   .list :global(a) {
     font-weight: 700;
-    color: #1b1a17;
+    color: var(--color-ink);
     text-decoration: underline;
     text-underline-offset: 4px;
   }
@@ -443,7 +443,7 @@ import Layout from '../layouts/Layout.astro';
 
   .share-status {
     font-size: 15px;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   @media (max-width: 700px) {

@@ -290,13 +290,13 @@ const weekData = sorted.map((r) => ({
   .visit {
     margin-top: 28px;
     padding: 20px 22px;
-    border: 1px solid #3b4220;
+    border: 1px solid var(--color-accent-line);
     border-radius: 18px;
   }
 
   .visit .label {
     margin-bottom: 14px;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .visit-items {
@@ -317,12 +317,12 @@ const weekData = sorted.map((r) => ({
   .visit-items :global(a) {
     color: var(--color-text);
     text-decoration: underline;
-    text-decoration-color: #555;
+    text-decoration-color: var(--color-text-dim);
     text-underline-offset: 4px;
   }
 
   .visit-items :global(a:hover) {
-    text-decoration-color: var(--color-lime);
+    text-decoration-color: var(--color-accent);
   }
 
   .challenge {
@@ -334,7 +334,7 @@ const weekData = sorted.map((r) => ({
     padding: 22px;
     border-radius: 22px;
     background:
-      radial-gradient(ellipse 70% 140% at 100% 0%, #3c4721 0%, transparent 70%),
+      radial-gradient(ellipse 70% 140% at 100% 0%, var(--color-accent-soft) 0%, transparent 70%),
       var(--color-bg-elevated);
   }
 
@@ -346,7 +346,7 @@ const weekData = sorted.map((r) => ({
     font: 700 12px/1 var(--font-sans);
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .challenge :global(h2) {
@@ -368,7 +368,7 @@ const weekData = sorted.map((r) => ({
 
   .challenge :global(.challenge-done) {
     font-weight: 700;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .challenge :global(.challenge-actions) {
@@ -434,7 +434,7 @@ const weekData = sorted.map((r) => ({
 
   .stories :global(.story.is-new img),
   .stories :global(.story.is-new .story-fallback) {
-    box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-lime);
+    box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-accent);
   }
 
   .stories :global(.story:hover img),
@@ -455,7 +455,7 @@ const weekData = sorted.map((r) => ({
     margin-top: -4px;
     font-size: 11px;
     font-weight: 600;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .toolbar {
@@ -488,7 +488,7 @@ const weekData = sorted.map((r) => ({
   .select {
     appearance: none;
     padding: 8px 34px 8px 15px;
-    border: 1px solid #343434;
+    border: 1px solid var(--color-border-hover);
     border-radius: 999px;
     background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a09a' stroke-width='3'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 13px center;
     color: var(--color-text);

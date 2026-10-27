@@ -46,7 +46,7 @@ const active = activeNav(currentPath);
   }
 
   .logo span {
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .nav {
@@ -63,7 +63,7 @@ const active = activeNav(currentPath);
     padding: 13px 18px;
     border-radius: 12px;
     font: 600 17px/1 var(--font-sans);
-    color: #cfcbc2;
+    color: var(--color-text-muted);
     transition: background var(--transition-fast), color var(--transition-fast);
   }
 
@@ -73,8 +73,8 @@ const active = activeNav(currentPath);
   }
 
   .nav-item.is-active {
-    background: var(--color-lime);
-    color: var(--color-ink) !important;
+    background: var(--color-accent);
+    color: var(--color-on-accent) !important;
   }
 
 </style>

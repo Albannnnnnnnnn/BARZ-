@@ -137,7 +137,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
-    background: #111;
+    background: var(--color-bg-elevated);
   }
 
   .feature :global(.feature-bg),
@@ -171,8 +171,8 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
     display: inline-block;
     padding: 6px 14px;
     border-radius: 999px;
-    background: var(--color-lime);
-    color: var(--color-ink);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
     font: 700 14px/1 var(--font-sans);
     text-transform: uppercase;
   }
@@ -235,7 +235,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
   .brief:hover h3,
   .card:hover h3 {
     text-decoration: underline;
-    text-decoration-color: var(--color-lime);
+    text-decoration-color: var(--color-accent);
     text-underline-offset: 4px;
   }
 
@@ -300,7 +300,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
   }
 
   .followed {
-    color: var(--color-lime);
+    color: var(--color-accent);
     font-weight: 600;
     font-size: 14px;
   }
@@ -317,7 +317,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
     align-items: center;
     font: 700 12px/1 var(--font-sans);
     letter-spacing: 0.12em;
-    color: var(--color-lime);
+    color: var(--color-accent);
   }
 
   .date b {

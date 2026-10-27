@@ -48,7 +48,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     gap: 32px;
     padding: 22px 56px;
     border-bottom: 1px solid var(--color-border);
-    background: rgba(11, 11, 11, 0.88);
+    background: rgba(243, 236, 220, 0.9);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
@@ -61,9 +61,9 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   .search input {
     width: 100%;
     padding: 15px 26px;
-    border: 1px solid #2c2c2c;
+    border: 1px solid var(--color-border);
     border-radius: 999px;
-    background: #141414;
+    background: var(--color-paper);
     color: var(--color-text);
     font: 400 16px/1 var(--font-sans);
     outline: none;
@@ -71,11 +71,11 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   }
 
   .search input::placeholder {
-    color: #8b877f;
+    color: var(--color-text-dim);
   }
 
   .search input:focus {
-    border-color: var(--color-lime);
+    border-color: var(--color-accent);
   }
 
   .right {
@@ -100,7 +100,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     border: 0;
     display: grid;
     place-items: center;
-    background: #1d1d1d;
+    background: var(--color-bg-elevated);
     color: var(--color-text);
     cursor: pointer;
   }
@@ -111,8 +111,8 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--color-lime);
-    color: var(--color-ink) !important;
+    background: var(--color-accent);
+    color: var(--color-on-accent) !important;
     font: 400 26px/1 var(--font-serif);
   }
 
