@@ -1,0 +1,79 @@
+---
+// Lecteur intégré (Spotify, Apple Music, Deezer) : simples lecteurs officiels en iframe,
+// sans appel à leurs API. Seul l'onglet choisi est chargé.
+interface Props {
+  title: string;
+  spotifyId?: string | null;
+  appleUrl?: string | null;
+  deezerUrl?: string | null;
+}
+
+const { title, spotifyId, appleUrl, deezerUrl } = Astro.props;
+const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
+
+const players = [
+  spotifyId && { id: 'spotify', label: 'Spotify', src: `https://open.spotify.com/embed/album/${spotifyId}?theme=0`, height: 352 },
+  appleUrl && { id: 'apple', label: 'Apple Music', src: appleUrl.replace('://music.apple.com', '://embed.music.apple.com'), height: 450 },
+  deezerId && { id: 'deezer', label: 'Deezer', src: `https://widget.deezer.com/widget/dark/album/${deezerId}?tracklist=true`, height: 380 },
+].filter(Boolean) as { id: string; label: string; src: string; height: number }[];
+---
+
+{players.length > 0 && (
+  <section class="player" aria-label={`Écouter ${title}`}>
+    <div class="tabs" role="tablist">
+      {players.map((p, i) => (
+        <button type="button" class="bz-chip" class:list={{ 'is-active': i === 0 }} role="tab" aria-selected={i === 0 ? 'true' : 'false'} data-src={p.src} data-height={p.height}>
+          {p.label}
+        </button>
+      ))}
+    </div>
+    <iframe
+      class="frame"
+      src={players[0].src}
+      height={players[0].height}
+      title={`Lecteur ${players[0].label} : ${title}`}
+      loading="lazy"
+      allow="autoplay *; encrypted-media *; clipboard-write; fullscreen *; picture-in-picture"
+      sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"
+    ></iframe>
+  </section>
+)}
+
+<script>
+  document.querySelectorAll<HTMLElement>('.player').forEach((player) => {
+    const frame = player.querySelector('iframe')!;
+    player.querySelector('[role="tablist"]')!.addEventListener('click', (event) => {
+      const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-src]');
+      if (!tab || tab.classList.contains('is-active')) return;
+      player.querySelectorAll('[data-src]').forEach((t) => {
+        t.classList.toggle('is-active', t === tab);
+        t.setAttribute('aria-selected', String(t === tab));
+      });
+      frame.src = tab.dataset.src!;
+      frame.height = tab.dataset.height!;
+      frame.title = `Lecteur ${tab.textContent?.trim()}`;
+    });
+  });
+</script>
+
+<style>
+  .player {
+    margin-top: 64px;
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .frame {
+    display: block;
+    width: 100%;
+    max-width: 760px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--color-bg-elevated);
+  }
+</style>

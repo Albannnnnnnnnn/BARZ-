@@ -5,6 +5,7 @@ import { fr } from 'date-fns/locale';
 import Layout from '../../layouts/Layout.astro';
 import Cover from '../../components/Cover.astro';
 import AlbumTile from '../../components/AlbumTile.astro';
+import Player from '../../components/Player.astro';
 import { getSupabaseServerSafe } from '../../lib/supabase';
 import { GENRE_CHIPS, fetchReleasesBetween, type ReleaseRow } from '../../lib/releases';
 import { getReleaseTypeLabel } from '../../lib/utils';
@@ -90,6 +91,9 @@ const jsonLd = {
           {release.deezer_url && (
             <a class:list={['bz-btn', release.spotify_url ? 'bz-btn--outline' : 'bz-btn--lime']} href={release.deezer_url} target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
           )}
+          {release.apple_music_url && (
+            <a class="bz-btn bz-btn--outline" href={release.apple_music_url} target="_blank" rel="noopener">Apple Music ↗</a>
+          )}
         </div>
         <div class="shelves" data-release-id={release.id}>
           <button type="button" class="bz-chip" data-shelf="spin_list" aria-pressed="false">+ Spin list</button>
@@ -97,6 +101,8 @@ const jsonLd = {
         </div>
       </div>
     </section>
+
+    <Player title={release.title} spotifyId={release.spotify_id} appleUrl={release.apple_music_url} deezerUrl={release.deezer_url} />
 
     <section class="barz" aria-labelledby="barz-title" data-release-id={release.id}>
       <div class="bz-section-head">

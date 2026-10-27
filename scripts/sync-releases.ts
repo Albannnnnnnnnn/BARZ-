@@ -32,6 +32,8 @@ import {
 const DAYS_BACK = Number(process.env.SYNC_DAYS_BACK ?? 14);
 const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 21);
 const DEEZER_CHART_SIZE = Number(process.env.SYNC_DEEZER_CHART_SIZE ?? 40);
+// L'API iTunes tolère ~20 requêtes/min : on plafonne par sync (le reste passe au sync suivant)
+const APPLE_LOOKUPS_PER_RUN = Number(process.env.SYNC_APPLE_LOOKUPS ?? 60);
 const RESET = process.argv.includes('--reset');
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -417,14 +419,59 @@ async function main() {
       watched: r.watched,
       fans: r.deezer?.fans ?? null,
       label: r.deezer?.label ?? null,
-      upc: r.upc,
+      upc: r.upc as string | null,
       sources: [r.deezer && 'deezer', r.spotify && 'spotify'].filter(Boolean),
     },
     updated_at: new Date().toISOString(),
   }));
 
   // Deux sorties différentes peuvent produire le même slug : on garde la première
-  const uniqueRows = [...new Map(releaseRows.map((r) => [r.slug, r])).values()];
+  const uniqueRows: (typeof releaseRows[number] & { apple_music_url?: string | null })[] = [...new Map(releaseRows.map((r) => [r.slug, r])).values()];
+
+  // On ne perd jamais un lien déjà trouvé : un sync où Spotify est bloqué ne doit pas effacer
+  // les liens Spotify de la veille (l'upsert réécrit toute la ligne)
+  const existing = new Map<string, any>();
+  for (const part of chunk(uniqueRows.map((r) => r.slug), 200)) {
+    const rows = must(
+      await supabase.from('releases').select('slug, spotify_id, spotify_url, deezer_url, apple_music_url, cover_url, genres, metadata').in('slug', part),
+      'Lecture releases existantes'
+    ) as any[];
+    for (const row of rows) existing.set(row.slug, row);
+  }
+  for (const row of uniqueRows) {
+    const old = existing.get(row.slug);
+    if (!old) continue;
+    row.spotify_id ??= old.spotify_id;
+    row.spotify_url ??= old.spotify_url;
+    row.deezer_url ??= old.deezer_url;
+    row.cover_url ??= old.cover_url;
+    row.apple_music_url = old.apple_music_url;
+    row.genres = [...new Set([...row.genres, ...(old.genres ?? [])])];
+    row.metadata.upc ??= old.metadata?.upc ?? null;
+    row.metadata.watched ||= !!old.metadata?.watched;
+  }
+
+  // Apple Music : recherche par code-barres (API iTunes, gratuite et sans clé ; ~20 requêtes/min)
+  const toLookup = uniqueRows.filter((r) => !r.apple_music_url && r.metadata.upc).slice(0, APPLE_LOOKUPS_PER_RUN);
+  if (toLookup.length) console.log(`🍎 Apple Music : ${toLookup.length} sorties à rapprocher...`);
+  let appleFound = 0;
+  for (const row of toLookup) {
+    try {
+      const res = await fetch(`https://itunes.apple.com/lookup?country=FR&entity=album&upc=${encodeURIComponent(row.metadata.upc!)}`, {
+        headers: { 'User-Agent': 'BARZ/1.0' },
+        signal: AbortSignal.timeout(15_000),
+      });
+      const album = res.ok ? (await res.json())?.results?.find((x: any) => x.wrapperType === 'collection') : null;
+      if (album?.collectionViewUrl) {
+        row.apple_music_url = String(album.collectionViewUrl).split('?')[0];
+        appleFound++;
+      }
+    } catch {
+      // Apple indisponible : on réessaiera au prochain sync
+    }
+    await sleep(3200);
+  }
+
   let saved = 0;
   for (const part of chunk(uniqueRows, 100)) {
     const rows = must(await supabase.from('releases').upsert(part, { onConflict: 'slug' }).select('id'), 'Enregistrement releases');
@@ -437,6 +484,7 @@ async function main() {
   console.log(`
 ✅ Sync terminée
    Sorties enregistrées : ${saved}  (Deezer ${deezer.length}, Spotify ${spotify.length}, trouvées sur les deux ${both})
+   Apple Music          : ${appleFound} nouveau(x) lien(s)
    Artistes             : ${artistIds.size}
    Par genre            : ${Object.entries(byGenre).map(([g, n]) => `${g} ${n}`).join(', ') || 'aucun'}
    Sans genre           : ${uniqueRows.filter((r) => r.genres.length === 0).length}
