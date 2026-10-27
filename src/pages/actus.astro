@@ -1,42 +1,104 @@
 ---
-// PAGE ACTUS : article à la une, brèves, concerts près de toi (contenu de démonstration)
+// PAGE ACTUS : actus réelles (flux RSS des médias, lus au build) + concerts
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import Scene from '../components/Scene.astro';
+import { getNews, type NewsItem } from '../lib/news';
 import { DEMO_CONCERTS, DEMO_NEWS } from '../data/demo';
 
-const { feature, side } = DEMO_NEWS;
+const news = await getNews();
+// À la une : l'actu la plus récente qui a une image ; à côté : 3 autres, de médias différents si possible
+const withImage = news.filter((n) => n.image);
+const feature = withImage[0] ?? news[0];
+const side: NewsItem[] = [];
+for (const n of withImage.slice(1)) {
+  if (side.length === 3) break;
+  if (!side.some((s) => s.source === n.source) || withImage.length < 8) side.push(n);
+}
+const rest = news.filter((n) => n !== feature && !side.includes(n)).slice(0, 15);
+
+const when = (n: NewsItem) => format(parseISO(n.date), 'd MMM', { locale: fr });
+const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
 ---
 
-<Layout title="Actus" description="L’actualité musicale de la semaine : tournées, festivals, interviews, industrie.">
+<Layout title="Actus" description="L’actualité musicale de la semaine, sélectionnée dans les médias musicaux.">
   <div class="bz-page">
     <span class="bz-eyebrow">Actus</span>
     <h1 class="bz-display">Ce qui bouge <em>cette semaine.</em></h1>
 
-    <div class="news">
-      <article class="feature">
-        <Scene variant={feature.scene} class="feature-bg" />
-        <div class="feature-body">
-          <span class="tag">{feature.tag}</span>
-          <h2>{feature.title}</h2>
-          <p>{feature.meta}</p>
-        </div>
-      </article>
+    {feature ? (
+      <>
+        <div class="news">
+          <a class="feature" href={feature.link} target="_blank" rel="noopener">
+            {feature.image ? (
+              <img class="feature-bg" src={feature.image} alt="" referrerpolicy="no-referrer" />
+            ) : (
+              <Scene variant={3} class="feature-bg" />
+            )}
+            <div class="feature-body">
+              {feature.category && <span class="tag">{feature.category}</span>}
+              <h2>{feature.title}</h2>
+              <p>{meta(feature)} ↗</p>
+            </div>
+          </a>
 
-      <ul class="side">
-        {side.map((n) => (
-          <li>
-            <article class="brief">
-              <Scene variant={n.scene} class="brief-thumb" />
-              <div>
-                <span class="category">{n.category}</span>
-                <h3>{n.title}</h3>
-                <p>{n.meta}</p>
-              </div>
-            </article>
-          </li>
-        ))}
-      </ul>
-    </div>
+          <ul class="side">
+            {side.map((n, i) => (
+              <li>
+                <a class="brief" href={n.link} target="_blank" rel="noopener">
+                  {n.image ? (
+                    <img class="brief-thumb" src={n.image} alt="" loading="lazy" referrerpolicy="no-referrer" />
+                  ) : (
+                    <Scene variant={i} class="brief-thumb" />
+                  )}
+                  <div>
+                    {n.category && <span class="category">{n.category}</span>}
+                    <h3>{n.title}</h3>
+                    <p>{meta(n)}</p>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {rest.length > 0 && (
+          <section class="feed" aria-labelledby="feed-title">
+            <div class="bz-section-head">
+              <h2 id="feed-title" class="bz-h2">Le fil</h2>
+              <span class="sources">Sélection automatique des médias musicaux</span>
+            </div>
+            <div class="feed-grid">
+              {rest.map((n, i) => (
+                <a class="card" href={n.link} target="_blank" rel="noopener">
+                  {n.image ? (
+                    <img class="card-img" src={n.image} alt="" loading="lazy" referrerpolicy="no-referrer" />
+                  ) : (
+                    <Scene variant={i} class="card-img" />
+                  )}
+                  {n.category && <span class="category">{n.category}</span>}
+                  <h3>{n.title}</h3>
+                  <p>{meta(n)}</p>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    ) : (
+      // Aucun flux joignable au moment du build : on garde la maquette plutôt qu'une page vide
+      <div class="news">
+        <article class="feature">
+          <Scene variant={DEMO_NEWS.feature.scene} class="feature-bg" />
+          <div class="feature-body">
+            <span class="tag">{DEMO_NEWS.feature.tag}</span>
+            <h2>{DEMO_NEWS.feature.title}</h2>
+            <p>{DEMO_NEWS.feature.meta}</p>
+          </div>
+        </article>
+      </div>
+    )}
 
     <section class="concerts" aria-labelledby="concerts-title">
       <div class="bz-section-head">
@@ -74,18 +136,28 @@ const { feature, side } = DEMO_NEWS;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
+    background: #111;
   }
 
-  .feature :global(.feature-bg) {
+  .feature :global(.feature-bg),
+  .feature img.feature-bg {
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+  }
+
+  a.feature:hover img.feature-bg {
+    transform: scale(1.03);
   }
 
   .feature::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 55%, transparent 80%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.25) 55%, transparent 80%);
   }
 
   .feature-body {
@@ -105,9 +177,9 @@ const { feature, side } = DEMO_NEWS;
   }
 
   .feature h2 {
-    max-width: 640px;
+    max-width: 680px;
     margin: 18px 0 14px;
-    font: 400 clamp(40px, 4vw, 64px) / 0.98 var(--font-serif);
+    font: 400 clamp(38px, 3.8vw, 60px) / 1 var(--font-serif);
     color: #fff;
   }
 
@@ -137,8 +209,11 @@ const { feature, side } = DEMO_NEWS;
     padding-top: 28px;
   }
 
-  .brief :global(.brief-thumb) {
+  .brief :global(.brief-thumb),
+  .brief img.brief-thumb {
+    width: 100%;
     aspect-ratio: 1;
+    object-fit: cover;
     border-radius: 14px;
   }
 
@@ -149,14 +224,53 @@ const { feature, side } = DEMO_NEWS;
     color: var(--color-orange);
   }
 
-  .brief h3 {
+  .brief h3,
+  .card h3 {
     margin: 12px 0 10px;
-    font: 400 28px/1.1 var(--font-serif);
+    font: 400 26px/1.12 var(--font-serif);
+    color: var(--color-text);
   }
 
-  .brief p {
+  .brief:hover h3,
+  .card:hover h3 {
+    text-decoration: underline;
+    text-decoration-color: var(--color-lime);
+    text-underline-offset: 4px;
+  }
+
+  .brief p,
+  .card p {
     font-size: 15px;
     color: var(--color-text-muted);
+  }
+
+  .feed {
+    margin-top: 76px;
+  }
+
+  .sources {
+    font-size: 14px;
+    color: var(--color-text-dim);
+  }
+
+  .feed-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 40px 28px;
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card :global(.card-img),
+  .card img.card-img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: 14px;
+    margin-bottom: 16px;
   }
 
   .concerts {
@@ -229,6 +343,7 @@ const { feature, side } = DEMO_NEWS;
     .news {
       grid-template-columns: minmax(0, 1fr);
     }
+    .feed-grid,
     .concert-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -249,9 +364,11 @@ const { feature, side } = DEMO_NEWS;
       grid-template-columns: 96px minmax(0, 1fr);
       gap: 16px;
     }
-    .brief h3 {
+    .brief h3,
+    .card h3 {
       font-size: 22px;
     }
+    .feed-grid,
     .concert-grid {
       grid-template-columns: minmax(0, 1fr);
     }

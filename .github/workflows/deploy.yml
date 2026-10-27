@@ -7,6 +7,9 @@ on:
   workflow_run:
     workflows: ['Sync Weekly Releases']
     types: [completed]
+  # Chaque matin : les actus (flux RSS) sont lues au build, il faut reconstruire pour les rafraîchir
+  schedule:
+    - cron: '0 7 * * *'
   workflow_dispatch:
 
 permissions:
