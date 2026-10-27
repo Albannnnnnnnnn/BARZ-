@@ -1,4 +1,3 @@
+# Site de projet étudiant : on ne veut pas apparaître dans les moteurs de recherche
 User-agent: *
-Allow: /
-
-Sitemap: https://alban.github.io/BARZ/sitemap.xml
+Disallow: /
