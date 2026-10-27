@@ -1,0 +1,42 @@
+---
+// PAGE DE RETOUR SPOTIFY : Spotify y renvoie après l'autorisation (?code=…&state=…).
+// Le code est confié à la fonction Supabase « spotify », puis on retourne au profil.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Connexion Spotify" description="Connexion de ton compte Spotify à BARZ¡.">
+  <div class="bz-page">
+    <span class="bz-eyebrow">Spotify</span>
+    <h1 class="bz-display">Connexion <em>en cours…</em></h1>
+    <p class="bz-notice" id="spotify-message">On relie ton compte Spotify à BARZ¡.</p>
+    <a class="bz-btn bz-btn--outline" id="spotify-back" href="/BARZ-/profil" hidden>Retour au profil</a>
+  </div>
+</Layout>
+
+<script>
+  import { errorText } from '../scripts/social';
+  import { finishSpotifyLogin } from '../scripts/spotify';
+
+  const message = document.getElementById('spotify-message')!;
+  finishSpotifyLogin()
+    .then(({ next }) => {
+      message.textContent = 'Compte Spotify relié !';
+      message.className = 'bz-notice bz-notice--ok';
+      location.replace(`${next}${next.includes('?') ? '&' : '?'}spotify=ok`);
+    })
+    .catch((err) => {
+      message.textContent = errorText(err);
+      message.className = 'bz-notice bz-notice--error';
+      document.getElementById('spotify-back')!.hidden = false;
+    });
+</script>
+
+<style>
+  .bz-notice {
+    margin: 28px 0 20px;
+  }
+
+  #spotify-back[hidden] {
+    display: none;
+  }
+</style>

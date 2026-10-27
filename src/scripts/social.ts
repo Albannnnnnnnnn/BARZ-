@@ -19,6 +19,7 @@ export type Profile = {
   favorite_genres?: string[];
   onboarded?: boolean;
   lastfm_username?: string | null;
+  share_listening?: boolean;
 };
 export type ReleaseLite = {
   id: string;
@@ -271,7 +272,7 @@ export async function setFollow(artistId: string, on: boolean) {
   else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
 }
 
-export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null }) {
+export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean }) {
   const session = await requireSession();
   if (!session || !supabase) return;
   must(await supabase.from('profiles').update(fields).eq('id', session.user.id));

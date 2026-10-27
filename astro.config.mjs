@@ -3,6 +3,7 @@ import { loadEnv } from 'vite';
 
 // Le navigateur a besoin de l'URL Supabase et de la clé anon (publique, protégée par les règles RLS)
 // pour la connexion et les fonctions sociales. Jamais la clé service_role.
+// L'identifiant client Spotify est public (connexion PKCE) ; le secret Spotify, lui, reste côté serveur.
 const env = { ...loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), ''), ...process.env };
 
 export default defineConfig({
@@ -18,6 +19,7 @@ export default defineConfig({
     define: {
       'import.meta.env.PUBLIC_SUPABASE_URL': JSON.stringify(env.SUPABASE_URL ?? ''),
       'import.meta.env.PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.SUPABASE_ANON_KEY ?? ''),
+      'import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID': JSON.stringify(env.SPOTIFY_CLIENT_ID ?? ''),
     },
     css: {
       preprocessorOptions: {

@@ -28,6 +28,8 @@ import Layout from '../layouts/Layout.astro';
         <dl class="stats" id="p-stats"></dl>
       </section>
 
+      <div id="p-np" hidden></div>
+
       <section class="block" id="p-picks" hidden aria-labelledby="picks-title">
         <div class="bz-section-head"><h2 id="picks-title" class="bz-h2">Ses coups de cœur</h2></div>
         <div class="bz-tiles" id="p-picks-releases"></div>
@@ -65,6 +67,20 @@ import Layout from '../layouts/Layout.astro';
             </form>
             <ul class="friend-list" id="friend-results"></ul>
             <ul class="friend-list" id="friend-list"></ul>
+          </section>
+
+          <section class="lastfm" id="p-spotify" hidden aria-labelledby="spotify-title">
+            <div class="bz-section-head"><h2 id="spotify-title" class="bz-h2">Spotify</h2></div>
+            <p id="spotify-status">Relie ton compte Spotify pour montrer à tes amis ce que tu écoutes en ce moment.</p>
+            <div class="spotify-actions">
+              <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="spotify-connect">Connecter Spotify</button>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="spotify-disconnect" hidden>Déconnecter</button>
+            </div>
+            <label class="share-toggle" id="share-toggle" hidden>
+              <input type="checkbox" id="share-listening" />
+              <span>Partager mon écoute en direct avec mes amis</span>
+            </label>
+            <p class="bz-notice" id="spotify-notice" hidden></p>
           </section>
 
           <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
@@ -126,6 +142,7 @@ import Layout from '../layouts/Layout.astro';
   } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
   import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
+  import { nowPlaying, nowPlayingHtml, spotifyAvailable, spotifyDisconnect, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
 
   const $ = (id: string) => document.getElementById(id)!;
   const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
@@ -264,6 +281,8 @@ import Layout from '../layouts/Layout.astro';
     const theirTaste = loadTasteOf(profile.id);
     renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
     renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
+    if (isMe) renderSpotify(profile).catch((err) => console.warn('Spotify indisponible :', err));
+    watchNowPlaying(profile, isMe, !!session);
 
     if (!wired) {
       wired = true;
@@ -281,6 +300,94 @@ import Layout from '../layouts/Layout.astro';
       wireFollowButtons($('p-picks-artists'));
       wireFollowButtons($('p-blend-artists'));
       wireFriendActions();
+      wireSpotify();
+    }
+  }
+
+  // ============================================================
+  // SPOTIFY : connexion, partage et écoute en direct
+  // ============================================================
+  let currentProfile: Profile | null = null;
+
+  async function renderSpotify(profile: Profile) {
+    currentProfile = profile;
+    if (!spotifyAvailable()) return;
+    $('p-spotify').hidden = false;
+    if (new URLSearchParams(location.search).get('spotify') === 'ok') showSpotify('Compte Spotify relié ! Active le partage pour que tes amis voient ce que tu écoutes.', 'ok');
+    let status: { connected: boolean; name: string | null };
+    try {
+      status = await spotifyStatus();
+    } catch {
+      $('spotify-status').textContent = 'La connexion Spotify n’est pas encore disponible.';
+      $('spotify-connect').hidden = true;
+      return;
+    }
+    $('spotify-status').textContent = status.connected
+      ? `Relié au compte Spotify${status.name ? ` « ${status.name} »` : ''}.`
+      : 'Relie ton compte Spotify pour montrer à tes amis ce que tu écoutes en ce moment.';
+    $('spotify-connect').hidden = status.connected;
+    $('spotify-disconnect').hidden = !status.connected;
+    $('share-toggle').hidden = !status.connected;
+    (document.getElementById('share-listening') as HTMLInputElement).checked = !!profile.share_listening;
+  }
+
+  function showSpotify(text: string, kind: 'ok' | 'error') {
+    $('spotify-notice').textContent = text;
+    $('spotify-notice').className = `bz-notice bz-notice--${kind}`;
+    $('spotify-notice').hidden = false;
+  }
+
+  function wireSpotify() {
+    $('spotify-connect').addEventListener('click', () => startSpotifyLogin(`${BASE}profil`));
+    $('spotify-disconnect').addEventListener('click', async () => {
+      if (!confirm('Déconnecter ton compte Spotify ? Tes amis ne verront plus ce que tu écoutes.')) return;
+      try {
+        await spotifyDisconnect();
+        await load();
+      } catch (err) {
+        showSpotify(errorText(err), 'error');
+      }
+    });
+    $('share-listening').addEventListener('change', async (event) => {
+      const box = event.target as HTMLInputElement;
+      try {
+        await updateMyProfile({ share_listening: box.checked });
+        if (currentProfile) currentProfile.share_listening = box.checked;
+        showSpotify(box.checked ? 'Tes amis voient maintenant ce que tu écoutes.' : 'Ton écoute n’est plus partagée.', 'ok');
+      } catch (err) {
+        box.checked = !box.checked;
+        showSpotify(errorText(err), 'error');
+      }
+    });
+  }
+
+  // Carte « En écoute » : relue toutes les 30 secondes tant que la page est visible
+  let npTimer: number | undefined;
+  function watchNowPlaying(profile: Profile, isMe: boolean, loggedIn: boolean) {
+    clearInterval(npTimer);
+    const box = $('p-np');
+    box.hidden = true;
+    if (!loggedIn || !spotifyAvailable()) return;
+    const tick = async () => {
+      if (document.hidden) return;
+      const np = (await nowPlaying([profile.id]).catch(() => ({}) as Record<string, null>))[profile.id];
+      if (!np?.title) return void (box.hidden = true);
+      const label = np.playing ? (isMe ? 'Tu écoutes' : 'En écoute') : 'En pause';
+      box.innerHTML = nowPlayingHtml(np, label);
+      box.hidden = false;
+    };
+    tick();
+    npTimer = window.setInterval(tick, 30_000);
+  }
+
+  // Liste d'amis : ce qu'ils écoutent, pour ceux qui partagent
+  async function markListeningFriends(ids: string[]) {
+    if (!ids.length || !spotifyAvailable()) return;
+    const listening = await nowPlaying(ids).catch(() => ({}) as Record<string, null>);
+    for (const [id, np] of Object.entries(listening)) {
+      if (!np?.playing || !np.title) continue;
+      const row = document.querySelector<HTMLElement>(`#friend-list li[data-friend-id="${CSS.escape(id)}"]`);
+      row?.insertAdjacentHTML('beforeend', `<span class="friend-np">♪ ${escapeHtml(np.title)} — ${escapeHtml(np.artists ?? '')}</span>`);
     }
   }
 
@@ -304,7 +411,7 @@ import Layout from '../layouts/Layout.astro';
         : f.status === 'sent'
           ? `<span class="friend-state">Demande envoyée</span>`
           : '';
-    return `<li>
+    return `<li data-friend-id="${escapeHtml(f.profile.id)}">
       <a href="${BASE}profil?u=${encodeURIComponent(f.profile.username)}"><b>${escapeHtml(f.profile.display_name)}</b> <span>@${escapeHtml(f.profile.username)}</span></a>
       ${actions}
     </li>`;
@@ -323,6 +430,7 @@ import Layout from '../layouts/Layout.astro';
         ? sorted.map(friendRowHtml).join('')
         : '<li class="friend-empty">Pas encore d’amis : cherche un membre par son pseudo.</li>';
       $('p-friends').hidden = false; // seulement si la table friendships existe
+      markListeningFriends(all.filter((f) => f.status === 'friends').map((f) => f.profile.id));
       return;
     }
     const status = loggedIn ? await friendStatusWith(profile.id) : 'none';
@@ -510,6 +618,9 @@ import Layout from '../layouts/Layout.astro';
 
   .own-actions[hidden],
   .lastfm[hidden],
+  #p-np[hidden],
+  .share-toggle[hidden],
+  .spotify-actions [hidden],
   .friends[hidden],
   .block[hidden],
   .sub[hidden] {
@@ -590,6 +701,121 @@ import Layout from '../layouts/Layout.astro';
     font-size: 16px;
     line-height: 1.5;
     color: var(--color-text-muted);
+  }
+
+  .spotify-actions {
+    display: flex;
+    gap: 10px;
+    margin: 18px 0 14px;
+  }
+
+  .share-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .share-toggle input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-accent);
+  }
+
+  .friend-list :global(.friend-np) {
+    flex-basis: 100%;
+    font-size: 13px;
+    color: var(--color-accent);
+  }
+
+  #p-np {
+    margin-top: 20px;
+  }
+
+  #p-np :global(.np) {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    max-width: 560px;
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--color-paper);
+    box-shadow: 0 0 0 1px var(--color-border);
+    color: var(--color-text);
+  }
+
+  #p-np :global(img),
+  #p-np :global(.np-cover-empty) {
+    display: block;
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--color-bg-hover);
+  }
+
+  #p-np :global(.np-text) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  #p-np :global(.np-text b) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 400 24px/1.1 var(--font-serif);
+    color: var(--color-text);
+  }
+
+  #p-np :global(.np-label) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: 700 11px/1 var(--font-sans);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  #p-np :global(.np-dot) {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    animation: np-pulse 1.4s ease-in-out infinite;
+  }
+
+  #p-np :global(.np-bar) {
+    height: 4px;
+    margin-top: 4px;
+    border-radius: 2px;
+    background: var(--color-bg-hover);
+    overflow: hidden;
+  }
+
+  #p-np :global(.np-bar span) {
+    display: block;
+    height: 100%;
+    background: var(--color-accent);
+  }
+
+  @keyframes np-pulse {
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #p-np :global(.np-dot) {
+      animation: none;
+    }
   }
 
   .lastfm-form {
