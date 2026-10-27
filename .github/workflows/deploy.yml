@@ -4,12 +4,11 @@ on:
   push:
     branches: ['main']
   # Le site est statique : il faut le reconstruire pour afficher les sorties qui viennent d'être synchronisées
+  # Après chaque sync (2 fois par jour) : nouvelles sorties + actus fraîches (lues au build).
+  # Même si le sync échoue : les sorties déjà en base restent valables et les actus se rafraîchissent.
   workflow_run:
-    workflows: ['Sync Weekly Releases']
+    workflows: ['Sync Releases']
     types: [completed]
-  # Chaque matin : les actus (flux RSS) sont lues au build, il faut reconstruire pour les rafraîchir
-  schedule:
-    - cron: '0 7 * * *'
   workflow_dispatch:
 
 permissions:
@@ -30,7 +29,6 @@ jobs:
   build:
     name: Build Astro site
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

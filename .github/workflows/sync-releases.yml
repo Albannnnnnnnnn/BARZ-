@@ -1,12 +1,12 @@
-name: Sync Weekly Releases
+name: Sync Releases
 
 on:
   schedule:
-    # Vendredi 6h UTC (7h/8h en France) : les sorties de minuit sont en ligne
-    - cron: '0 6 * * 5'
-    # Mardi 6h UTC : rattrape les sorties ajoutées en retard sur Spotify
-    - cron: '0 6 * * 2'
-  workflow_dispatch: # Permet lancement manuel
+    # Tous les jours à 6h UTC (7h/8h en France) : les sorties de minuit
+    - cron: '0 6 * * *'
+    # Tous les jours à 18h UTC (19h/20h en France) : les sorties surprises de la journée
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Permet lancement manuel (reconstruit aussi le catalogue)
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   sync:
-    name: Sync releases from Spotify
+    name: Sync releases (Deezer + Spotify)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -38,8 +38,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Catalogue d'artistes et artistes similaires (base des recommandations)
+      - name: Day of week
+        id: day
+        run: echo "day=$(date -u +%a)" >> "$GITHUB_OUTPUT"
+
+      # Catalogue d'artistes, artistes similaires et import Last.fm (base des recommandations) :
+      # plus long et plus stable, reconstruit le lundi et le vendredi matin, ou à la demande
       - name: Sync artist catalog
+        if: github.event_name == 'workflow_dispatch' || (github.event.schedule == '0 6 * * *' && (contains(fromJSON('["Mon","Fri"]'), steps.day.outputs.day)))
         run: npm run sync:artists
 
       - name: Run sync script
@@ -54,6 +60,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: '🚨 Sync releases failed',
-              body: `The weekly releases sync workflow failed. Check the logs: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              body: `The releases sync workflow failed. Check the logs: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               labels: ['bug', 'sync', 'automated']
             })

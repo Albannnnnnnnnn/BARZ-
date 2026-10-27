@@ -10,7 +10,7 @@
 - **📅 Calendrier hebdomadaire interactif** — Navigue semaine par semaine, focus sur le vendredi
 - **🎭 Filtres par genre** — Multi-sélection, URL partageable
 - **💿 Fiches releases riches** — Cover, tracklist (Spotify), liens streaming, crédits
-- **🔄 Sync automatique** — Nouvelles sorties chaque vendredi et mardi via GitHub Actions, puis redéploiement du site
+- **🔄 Sync automatique** — Nouvelles sorties deux fois par jour via GitHub Actions, puis redéploiement du site
 - **🚀 100% gratuit** — Hébergé sur GitHub Pages, données via Supabase (free tier)
 
 ## 🛠 Stack
@@ -116,7 +116,7 @@ La clé ne part jamais dans le navigateur.
 
 ## 🎤 Concerts et actus
 
-- **Actus** : flux RSS de médias musicaux (`src/lib/news.ts`), lus à chaque build ; le site est reconstruit chaque matin.
+- **Actus** : flux RSS de médias musicaux (`src/lib/news.ts`), lus à chaque build ; le site est reconstruit deux fois par jour.
 - **Concerts** : API Discovery de Ticketmaster (`src/lib/concerts.ts`). Créer une clé gratuite sur
   [developer.ticketmaster.com](https://developer-acct.ticketmaster.com/user/register), puis l'ajouter dans `.env`
   et dans les secrets GitHub sous le nom `TICKETMASTER_API_KEY`. Sans clé, des concerts de démonstration s'affichent.
@@ -141,9 +141,11 @@ La clé ne part jamais dans le navigateur.
 
 ### 3. Sync automatique
 
-Le workflow `sync-releases.yml` s'exécute **le vendredi et le mardi à 6h UTC**. Quand il réussit, `deploy.yml` reconstruit le site : le site étant statique, c'est ce qui fait apparaître les nouvelles sorties.
+Le workflow `sync-releases.yml` s'exécute **tous les jours à 6h et 18h UTC** (les sorties ne tombent pas toujours le vendredi) ;
+le catalogue d'artistes est reconstruit le lundi et le vendredi matin. Après chaque sync, `deploy.yml` reconstruit le site
+(même si le sync a échoué, pour rafraîchir les actus) : le site étant statique, c'est ce qui fait apparaître les nouveautés.
 
-Déclencher manuellement : Actions > Sync Weekly Releases > Run workflow
+Déclencher manuellement : Actions > Sync Releases > Run workflow
 
 ## 📁 Structure du projet
 
