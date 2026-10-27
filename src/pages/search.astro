@@ -1,12 +1,11 @@
 ---
-// PAGE EXPLORER : curseur d'exploration (données réelles), recherche, Rabbit Hole et humeurs (démo)
+// PAGE EXPLORER : curseur d'exploration, recherche et Rabbit Hole (données réelles)
 import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { getReleaseTypeLabel } from '../lib/utils';
-import { DEMO_ALBUMS, DEMO_RABBIT_HOLE, MOODS } from '../data/demo';
 
 const today = getToday();
 const supabase = getSupabaseServerSafe();
@@ -14,12 +13,13 @@ const recent = await fetchReleasesBetween(supabase, addDays(today, -30), today);
 // Tout le catalogue pour la recherche (le site est statique : on filtre dans le navigateur)
 const catalog = await fetchReleasesBetween(supabase, new Date('1900-01-01'), addDays(today, 90));
 
-// Le curseur part des habitudes d'Alban (rap) et s'en éloigne genre par genre
+// Sans compte, le curseur part du rap et s'en éloigne genre par genre ; connecté, c'est le moteur de reco qui choisit
+const LOGIN_HINT = 'Connecte-toi pour que le curseur parte de tes propres goûts.';
 const ZONES = [
-  { word: 'Casanier', genres: ['rap', 'rnb', 'soul'], why: 'Tu écoutes beaucoup de rap : voici les sorties les plus proches de tes habitudes.' },
-  { word: 'Ouvert', genres: ['soul', 'rnb', 'pop', 'electronic'], why: 'Un pas de côté : des disques soul, pop et électro qui partagent des producteurs avec tes artistes.' },
-  { word: 'Curieux', genres: ['electronic', 'jazz'], why: 'Tu écoutes beaucoup de rap ; ces disques sont samplés ou produits par des proches de tes artistes.' },
-  { word: 'Aventurier', genres: ['jazz', 'world', 'latin', 'rock', 'metal', 'reggae', 'folk', 'classical'], why: 'Loin de ta zone de confort : des scènes que tu n’écoutes jamais.' },
+  { word: 'Casanier', genres: ['rap', 'rnb', 'soul'], why: `Les sorties récentes en rap, R&B et soul. ${LOGIN_HINT}` },
+  { word: 'Ouvert', genres: ['soul', 'rnb', 'pop', 'electronic'], why: `Un pas de côté : soul, pop et électro. ${LOGIN_HINT}` },
+  { word: 'Curieux', genres: ['electronic', 'jazz'], why: `Plus loin : électro et jazz. ${LOGIN_HINT}` },
+  { word: 'Aventurier', genres: ['jazz', 'world', 'latin', 'rock', 'metal', 'reggae', 'folk', 'classical'], why: `Loin des sentiers battus : jazz, musiques du monde, rock, metal, reggae, folk, classique. ${LOGIN_HINT}` },
 ];
 const DEFAULT_ZONE = 2;
 
@@ -27,7 +27,6 @@ const pick = (genres: string[]) => {
   const matching = recent.filter((r) => r.genres?.some((g) => genres.includes(g)));
   return matching.slice(0, 4);
 };
-const fallback = Object.values(DEMO_ALBUMS).slice(4, 8);
 const zoneTiles = ZONES.map((z) => pick(z.genres));
 
 const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
@@ -46,7 +45,7 @@ const exploreData = recent.map((r) => ({
 const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.genres ?? []).join(' ')}`.toLowerCase();
 ---
 
-<Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration, Rabbit Hole et humeurs.">
+<Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
   <div class="bz-page">
     <div class="head">
       <div>
@@ -86,41 +85,21 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
         <div class="picks" data-zone={i} hidden={i !== DEFAULT_ZONE} data-why={zone.why} data-word={zone.word}>
           {zoneTiles[i].length > 0
             ? zoneTiles[i].map((r) => <AlbumTile title={r.title} subtitle={subtitleOf(r)} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />)
-            : fallback.map((a) => <AlbumTile title={a.title} subtitle={a.artist} palette={a.palette} />)}
+            : <p class="bz-empty">Pas de sortie récente dans ces genres.</p>}
         </div>
       ))}
       <div class="picks" id="picks-live" hidden></div>
       <script type="application/json" id="explore-data" set:html={JSON.stringify(exploreData)} />
     </section>
 
-    <section class="block" aria-labelledby="rabbit-title">
+    <section class="block" id="rabbit-block" aria-labelledby="rabbit-title" hidden>
       <div class="bz-section-head">
         <h2 id="rabbit-title" class="bz-h2">Rabbit Hole</h2>
         <button type="button" class="bz-link rabbit-new" id="rabbit-new">Nouveau trou →</button>
       </div>
-      <ol class="rabbit" id="rabbit">
-        {DEMO_RABBIT_HOLE.map((step, i) => (
-          <li class:list={{ 'is-start': i === 0 }}>
-            <span class="rabbit-dot" />
-            <span class="rabbit-kind">{step.kind}</span>
-            <span class:list={['rabbit-title', { 'is-link': step.link }]}>{step.title}</span>
-            <span class="rabbit-sub">{step.sub}</span>
-          </li>
-        ))}
-      </ol>
+      <ol class="rabbit" id="rabbit"></ol>
     </section>
 
-    <section class="block" aria-labelledby="moods-title">
-      <div class="bz-section-head"><h2 id="moods-title" class="bz-h2">Par humeur</h2></div>
-      <div class="moods">
-        {MOODS.map((m) => (
-          <div class="mood" style={`background:${m.color};color:${m.ink}`}>
-            <h3>{m.title}</h3>
-            <p>{m.desc}</p>
-          </div>
-        ))}
-      </div>
-    </section>
   </div>
 </Layout>
 
@@ -133,7 +112,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
   const slider = document.getElementById('cursor') as HTMLInputElement | null;
   const word = document.getElementById('cursor-word');
   const why = document.getElementById('cursor-why');
-  const zones = document.querySelectorAll<HTMLElement>('.picks');
+  const zones = document.querySelectorAll<HTMLElement>('.picks[data-zone]');
   const livePicks = document.getElementById('picks-live')!;
   const exploreData: (RecoRelease & { title: string; slug: string; cover_url: string | null; release_type: string })[] = JSON.parse(
     document.getElementById('explore-data')?.textContent || '[]'
@@ -216,7 +195,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
       chain.push(next);
       visited.add(next.id);
     }
-    if (chain.length < 3) return; // pas assez de liens : on garde l'exemple
+    if (chain.length < 3) return; // pas assez de liens : on garde le terrier précédent (ou la section masquée)
     hole.innerHTML = chain
       .map((a, i) => {
         const genre = GENRE_CHIPS.find((c) => c.genres.some((g) => a.genres?.includes(g)))?.label;
@@ -228,6 +207,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
         </li>`;
       })
       .join('');
+    document.getElementById('rabbit-block')!.hidden = false;
   }
 
   document.getElementById('rabbit-new')!.addEventListener('click', () => digHole().catch(() => {}));
@@ -358,6 +338,10 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     margin-top: 72px;
   }
 
+  .block[hidden] {
+    display: none;
+  }
+
   .rabbit {
     list-style: none;
     display: grid;
@@ -374,37 +358,6 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     right: 0;
     border-top: 1px dotted var(--color-lime);
     opacity: 0.7;
-  }
-
-  .rabbit li {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .rabbit-dot {
-    width: 21px;
-    height: 21px;
-    border-radius: 50%;
-    border: 2px solid var(--color-lime);
-    background: var(--color-bg);
-    margin-bottom: 30px;
-  }
-
-  .is-start .rabbit-dot {
-    background: var(--color-lime);
-  }
-
-  .rabbit-kind {
-    font: 600 12px/1 var(--font-sans);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-  }
-
-  .rabbit-title {
-    margin: 12px 0 6px;
-    font: 400 40px/1 var(--font-serif);
   }
 
   .rabbit-new {
@@ -459,44 +412,6 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     text-decoration-thickness: 2px;
   }
 
-  .rabbit-title.is-link {
-    text-decoration: underline;
-    text-decoration-color: var(--color-lime);
-    text-underline-offset: 6px;
-    text-decoration-thickness: 2px;
-  }
-
-  .rabbit-sub {
-    font-size: 16px;
-    color: var(--color-text-muted);
-  }
-
-  .moods {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
-  }
-
-  .mood {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 210px;
-    padding: 26px;
-    border-radius: 18px;
-  }
-
-  .mood h3 {
-    font: 400 46px/1 var(--font-serif);
-    color: inherit;
-  }
-
-  .mood p {
-    font-weight: 600;
-    font-size: 15px;
-    color: inherit;
-  }
-
   @media (max-width: 1280px) {
     .explorer {
       grid-template-columns: minmax(0, 1fr);
@@ -521,19 +436,8 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
     .rabbit {
       grid-template-columns: 1fr 1fr;
     }
-    .rabbit-title {
+    .rabbit :global(.rabbit-title) {
       font-size: 30px;
-    }
-    .moods {
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .mood {
-      min-height: 150px;
-      padding: 18px;
-    }
-    .mood h3 {
-      font-size: 34px;
     }
   }
 </style>

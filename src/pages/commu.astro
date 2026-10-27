@@ -1,13 +1,9 @@
 ---
 // PAGE COMMUNAUTÉ : vrais Barz (lus par le navigateur), écriture d'un Barz, top contributeurs.
-// Tant que personne n'a écrit de Barz, la maquette (src/data/demo.ts) reste affichée.
 import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
-import Cover from '../components/Cover.astro';
-import Scene from '../components/Scene.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday } from '../lib/releases';
-import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CONTRIBUTORS } from '../data/demo';
 
 const today = getToday();
 const recent = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today, -45), addDays(today, 30));
@@ -43,59 +39,13 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
 
         <div id="feed-live" class="barz-list" hidden></div>
 
-        <div id="feed-demo">
-          <p class="demo-note">Exemples de Barz : écris le premier vrai !</p>
-          {DEMO_BARZ.map((post) => {
-            const album = DEMO_ALBUMS[post.album];
-            return (
-              <article class="post">
-                <div class="post-body">
-                  <header>
-                    <span class="avatar" style={`background:${post.color}`}>{post.name[0]}</span>
-                    <b>{post.name}</b>
-                    <span class="handle">{post.handle} · {post.time}</span>
-                  </header>
-                  <p class="text">{post.text}</p>
-                  <footer>
-                    <span>♥ {post.likes}</span>
-                  </footer>
-                </div>
-                <div class="post-album">
-                  <Cover title={album.title} palette={album.palette} />
-                  <div class="post-album-row"><b>{album.title}</b><span class="bz-score">{post.score}</span></div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <p id="feed-empty" class="bz-empty">Aucun Barz pour l’instant. Écris le premier !</p>
       </div>
 
       <aside class="side">
-        <section class="live">
-          <Scene variant={1} class="live-bg" />
-          <div class="live-body">
-            <span class="live-eyebrow">Bientôt · Écoute commune</span>
-            <h2>Écouter un album ensemble, en direct</h2>
-            <span class="bz-btn bz-btn--lime bz-btn--small">Bientôt disponible</span>
-          </div>
-        </section>
-
-        <section class="blend">
-          <span class="bz-eyebrow">Blend</span>
-          <h2>Compare tes goûts avec ceux d’un autre membre.</h2>
-          <span class="bz-btn bz-btn--lime bz-btn--small">Bientôt disponible</span>
-        </section>
-
-        <section>
+        <section id="top" hidden>
           <div class="bz-section-head"><h2 class="bz-h2">Top contributeurs</h2></div>
-          <ol class="top" id="top-list">
-            {DEMO_CONTRIBUTORS.map((handle, i) => (
-              <li>
-                <span class="rank">{i + 1}</span>
-                <span class="who">{handle}</span>
-              </li>
-            ))}
-          </ol>
+          <ol class="top" id="top-list"></ol>
         </section>
       </aside>
     </div>
@@ -106,7 +56,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   import { BASE, authErrorMessage, errorText, barzCardHtml, barzFeed, escapeHtml, getMyProfile, getSession, loginUrl, saveBarz, wireBarzActions } from '../scripts/social';
 
   const live = document.getElementById('feed-live')!;
-  const demo = document.getElementById('feed-demo')!;
+  const empty = document.getElementById('feed-empty')!;
   const topList = document.getElementById('top-list')!;
   const form = document.getElementById('composer') as HTMLFormElement;
   const message = document.getElementById('composer-message')!;
@@ -116,7 +66,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     try {
       const barz = await barzFeed({ limit: 40 });
       if (!barz.length) return;
-      demo.hidden = true;
+      empty.hidden = true;
       live.hidden = false;
       live.innerHTML = barz.map((b) => barzCardHtml(b, myId)).join('');
 
@@ -133,8 +83,9 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
       topList.innerHTML = top
         .map((s, i) => `<li><span class="rank">${i + 1}</span><a class="who" href="${BASE}profil?u=${encodeURIComponent(s.username)}">@${escapeHtml(s.username)}</a><span class="count">${s.barz} Barz</span></li>`)
         .join('');
+      document.getElementById('top')!.hidden = !top.length;
     } catch (err) {
-      // Tables sociales absentes ou réseau coupé : on garde la maquette
+      // Tables sociales absentes ou réseau coupé : on garde le message « aucun Barz »
       console.warn('Barz indisponibles :', err);
     }
   }
@@ -187,21 +138,11 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     gap: 22px;
   }
 
-  #feed-demo {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-  }
-
-  #feed-demo[hidden],
+  #feed-empty[hidden],
   #feed-live[hidden],
+  #top[hidden],
   .bz-notice[hidden] {
     display: none;
-  }
-
-  .demo-note {
-    font-size: 14px;
-    color: var(--color-text-dim);
   }
 
   .composer {
@@ -268,107 +209,10 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     font-weight: 700;
   }
 
-  .post {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 200px;
-    gap: 32px;
-    padding: 30px;
-    border-radius: 22px;
-    background: var(--color-bg-elevated);
-    opacity: 0.75;
-  }
-
-  .post header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 17px;
-  }
-
-  .avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    color: var(--color-ink);
-    font: 700 17px/1 var(--font-sans);
-  }
-
-  .handle {
-    color: var(--color-text-muted);
-    font-size: 15px;
-  }
-
-  .text {
-    margin: 22px 0;
-    font: 400 clamp(26px, 2.4vw, 36px) / 1.15 var(--font-serif);
-    color: var(--color-text);
-  }
-
-  .post footer {
-    color: var(--color-text-muted);
-  }
-
-  .post-album-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 12px;
-    font-size: 15px;
-  }
-
   .side {
     display: flex;
     flex-direction: column;
     gap: 40px;
-  }
-
-  .live {
-    position: relative;
-    min-height: 280px;
-    border-radius: 22px;
-    overflow: hidden;
-    display: flex;
-    align-items: flex-end;
-  }
-
-  .live :global(.live-bg) {
-    position: absolute;
-    inset: 0;
-  }
-
-  .live::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent 70%);
-  }
-
-  .live-body {
-    position: relative;
-    z-index: 1;
-    padding: 26px;
-  }
-
-  .live-eyebrow {
-    font: 700 13px/1 var(--font-sans);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--color-lime);
-  }
-
-  .live h2,
-  .blend h2 {
-    margin: 14px 0 20px;
-    font: 400 34px/1.1 var(--font-serif);
-    color: var(--color-text);
-  }
-
-  .blend {
-    padding: 32px 28px;
-    border: 1px solid #3b4220;
-    border-radius: 22px;
   }
 
   .top {
@@ -415,15 +259,6 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     }
     .me {
       display: none;
-    }
-    .post {
-      grid-template-columns: minmax(0, 1fr) 96px;
-      gap: 16px;
-      padding: 20px;
-    }
-    .text {
-      font-size: 24px;
-      margin: 14px 0;
     }
   }
 </style>

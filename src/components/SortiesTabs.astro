@@ -71,4 +71,11 @@ const tabs = [
       font-size: 14px;
     }
   }
+
+  /* Sur téléphone, les trois onglets prennent toute la largeur : le digest reste accessible par son URL */
+  @media (max-width: 640px) {
+    .digest {
+      display: none;
+    }
+  }
 </style>

@@ -1,5 +1,5 @@
 // Concerts près de toi : API Discovery de Ticketmaster, lue au build.
-// Sans TICKETMASTER_API_KEY, getConcerts() renvoie null et les pages gardent les concerts de démonstration.
+// Sans TICKETMASTER_API_KEY, getConcerts() renvoie null et la page n'affiche pas de concerts.
 import { readFileSync } from 'node:fs';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,13 +43,6 @@ function priceOf(event: any): string | null {
   if (!range?.min) return null;
   const amount = Math.round(range.min);
   return range.currency === 'EUR' || !range.currency ? `${amount} €` : `${amount} ${range.currency}`;
-}
-
-// Concerts réels si la clé est configurée, sinon ceux de la démo (même forme)
-export async function getConcertsOrDemo(demo: { artist: string; day: string; month: string; venue: string; price: string }[]): Promise<{ concerts: Concert[]; real: boolean }> {
-  const real = await getConcerts();
-  if (real && real.length > 0) return { concerts: real, real: true };
-  return { concerts: demo.map((c) => ({ ...c, image: null, url: '', watched: false })), real: false };
 }
 
 let concertsPromise: Promise<Concert[] | null> | null = null;

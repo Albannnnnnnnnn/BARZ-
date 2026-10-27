@@ -1,15 +1,14 @@
 ---
-// PAGE ACTUS : actus réelles (flux RSS des médias, lus au build) + concerts
+// PAGE ACTUS : actus réelles (flux RSS des médias, lus au build) + concerts Ticketmaster s'il y en a
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import Scene from '../components/Scene.astro';
 import { getNews, type NewsItem } from '../lib/news';
-import { CONCERTS_CITY, getConcertsOrDemo } from '../lib/concerts';
-import { DEMO_CONCERTS, DEMO_NEWS } from '../data/demo';
+import { CONCERTS_CITY, getConcerts } from '../lib/concerts';
 
 const news = await getNews();
-const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
+const concerts = (await getConcerts()) ?? [];
 // À la une : l'actu la plus récente qui a une image ; à côté : 3 autres, de médias différents si possible
 const withImage = news.filter((n) => n.image);
 const feature = withImage[0] ?? news[0];
@@ -89,44 +88,37 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
         )}
       </>
     ) : (
-      // Aucun flux joignable au moment du build : on garde la maquette plutôt qu'une page vide
-      <div class="news">
-        <article class="feature">
-          <Scene variant={DEMO_NEWS.feature.scene} class="feature-bg" />
-          <div class="feature-body">
-            <span class="tag">{DEMO_NEWS.feature.tag}</span>
-            <h2>{DEMO_NEWS.feature.title}</h2>
-            <p>{DEMO_NEWS.feature.meta}</p>
-          </div>
-        </article>
-      </div>
+      // Aucun flux joignable au moment du build
+      <p class="bz-empty">Les actus n’ont pas pu être chargées. Elles reviendront à la prochaine mise à jour du site.</p>
     )}
 
-    <section class="concerts" aria-labelledby="concerts-title">
-      <div class="bz-section-head">
-        <h2 id="concerts-title" class="bz-h2">Concerts près de toi</h2>
-        <span class="bz-link">{CONCERTS_CITY}</span>
-      </div>
-      <div class="concert-grid">
-        {concerts.slice(0, 8).map((c, i) => {
-          const Tag = c.url ? 'a' : 'article';
-          return (
-            <Tag class="concert" href={c.url || undefined} target={c.url ? '_blank' : undefined} rel={c.url ? 'noopener' : undefined}>
-              {c.image ? (
-                <img class="concert-photo" src={c.image} alt="" loading="lazy" referrerpolicy="no-referrer" />
-              ) : (
-                <Scene variant={i} class="concert-photo" />
-              )}
-              <div class="concert-info">
-                <span class="date"><b>{c.day}</b>{c.month}</span>
-                <span class="who"><b>{c.artist}{c.watched && <span class="followed"> · suivi</span>}</b>{c.venue}</span>
-              </div>
-              <span class="tickets">{c.price ? `Billets · ${c.price}` : 'Billets'}</span>
-            </Tag>
-          );
-        })}
-      </div>
-    </section>
+    {concerts.length > 0 && (
+      <section class="concerts" aria-labelledby="concerts-title">
+        <div class="bz-section-head">
+          <h2 id="concerts-title" class="bz-h2">Concerts près de toi</h2>
+          <span class="bz-link">{CONCERTS_CITY}</span>
+        </div>
+        <div class="concert-grid">
+          {concerts.slice(0, 8).map((c, i) => {
+            const Tag = c.url ? 'a' : 'article';
+            return (
+              <Tag class="concert" href={c.url || undefined} target={c.url ? '_blank' : undefined} rel={c.url ? 'noopener' : undefined}>
+                {c.image ? (
+                  <img class="concert-photo" src={c.image} alt="" loading="lazy" referrerpolicy="no-referrer" />
+                ) : (
+                  <Scene variant={i} class="concert-photo" />
+                )}
+                <div class="concert-info">
+                  <span class="date"><b>{c.day}</b>{c.month}</span>
+                  <span class="who"><b>{c.artist}{c.watched && <span class="followed"> · suivi</span>}</b>{c.venue}</span>
+                </div>
+                <span class="tickets">{c.price ? `Billets · ${c.price}` : 'Billets'}</span>
+              </Tag>
+            );
+          })}
+        </div>
+      </section>
+    )}
   </div>
 </Layout>
 

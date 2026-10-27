@@ -1,91 +1,65 @@
 ---
-// PAGE PROFIL : son propre profil (connecté), celui d'un membre (?u=pseudo), sinon la maquette.
+// PAGE PROFIL : son propre profil (connecté), celui d'un membre (?u=pseudo), sinon une invitation à se connecter.
 // Les vraies données sont lues par le navigateur (src/scripts/social.ts).
 import Layout from '../layouts/Layout.astro';
-import AlbumTile from '../components/AlbumTile.astro';
-import { DEMO_ALBUMS, DEMO_USER } from '../data/demo';
-
-const user = DEMO_USER;
 ---
 
 <Layout title="Profil" description="Ton ADN musical, ta spin list, tes Barz.">
   <div class="bz-page">
     <a class="bz-notice cta" id="profile-cta" href="/BARZ-/connexion">
-      Ceci est un exemple de profil. <b>Connecte-toi ou crée ton compte</b> pour avoir le tien →
+      <b>Connecte-toi ou crée ton compte</b> pour avoir ton profil : spin list, Barz, artistes suivis et ADN musical →
     </a>
     <p class="bz-notice bz-notice--error" id="profile-error" hidden></p>
 
-    <section class="hero">
-      <span class="avatar" id="p-avatar">{user.name[0]}</span>
-      <div class="identity">
-        <h1 id="p-name">{user.name}</h1>
-        <p id="p-bio">{user.handle} · {user.bio}</p>
-        <div class="own-actions" id="p-own" hidden>
-          <a class="bz-btn bz-btn--outline" href="/BARZ-/bienvenue?next=/BARZ-/profil">Modifier mes goûts</a>
-          <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
-        </div>
-      </div>
-      <dl class="stats" id="p-stats">
-        {user.stats.map((s) => (
-          <div>
-            <dt>{s.label}</dt>
-            <dd>{s.value}</dd>
+    <div id="p-content" hidden>
+      <section class="hero">
+        <span class="avatar" id="p-avatar"></span>
+        <div class="identity">
+          <h1 id="p-name"></h1>
+          <p id="p-bio"></p>
+          <div class="own-actions" id="p-own" hidden>
+            <a class="bz-btn bz-btn--outline" href="/BARZ-/bienvenue?next=/BARZ-/profil">Modifier mes goûts</a>
+            <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
           </div>
-        ))}
-      </dl>
-    </section>
+        </div>
+        <dl class="stats" id="p-stats"></dl>
+      </section>
 
-    <div class="layout">
-      <div class="left">
-        <section class="dna" aria-labelledby="dna-title">
-          <h2 id="dna-title">Ton ADN musical</h2>
-          <ul id="p-dna">
-            {user.dna.map((d) => (
-              <li>
-                <span>{d.genre}</span>
-                <span class="bar"><span style={`width:${d.pct}%`} /></span>
-                <span class="pct">{d.pct} %</span>
-              </li>
-            ))}
-          </ul>
-          <p id="p-dna-note">{user.dnaNote}</p>
-        </section>
+      <div class="layout">
+        <div class="left">
+          <section class="dna" aria-labelledby="dna-title">
+            <h2 id="dna-title">Ton ADN musical</h2>
+            <ul id="p-dna"></ul>
+            <p id="p-dna-note"></p>
+          </section>
 
-        <section class="activity" aria-labelledby="activity-title">
-          <div class="bz-section-head"><h2 id="activity-title" class="bz-h2">Activité récente</h2></div>
-          <ul id="p-activity">
-            {user.activity.map(([verb, rest]) => (
-              <li><b>{verb}</b> {rest}</li>
-            ))}
-          </ul>
-        </section>
+          <section class="activity" aria-labelledby="activity-title">
+            <div class="bz-section-head"><h2 id="activity-title" class="bz-h2">Activité récente</h2></div>
+            <ul id="p-activity"></ul>
+          </section>
 
-        <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
-          <div class="bz-section-head"><h2 id="lastfm-title" class="bz-h2">Last.fm</h2></div>
-          <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait à chaque synchronisation (vendredi et mardi matin).</p>
-          <form id="lastfm-form" class="lastfm-form">
-            <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
-            <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
-            <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
-          </form>
-          <p class="bz-notice" id="lastfm-status" hidden></p>
+          <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
+            <div class="bz-section-head"><h2 id="lastfm-title" class="bz-h2">Last.fm</h2></div>
+            <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait à chaque synchronisation (vendredi et mardi matin).</p>
+            <form id="lastfm-form" class="lastfm-form">
+              <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
+              <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
+              <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
+            </form>
+            <p class="bz-notice" id="lastfm-status" hidden></p>
+          </section>
+        </div>
+
+        <section class="collection" aria-label="Collections">
+          <div class="bz-chips" role="tablist" id="p-tabs">
+            <button type="button" class="bz-chip is-active" role="tab" aria-selected="true" data-tab="spin_list">Spin list</button>
+            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="listened">Écoutés</button>
+            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="barz">Barz</button>
+            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="artists">Artistes</button>
+          </div>
+          <div class="spin" id="p-collection"></div>
         </section>
       </div>
-
-      <section class="collection" aria-label="Collections">
-        <div class="bz-chips" role="tablist" id="p-tabs">
-          <button type="button" class="bz-chip is-active" role="tab" aria-selected="true" data-tab="spin_list">Spin list</button>
-          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="listened">Écoutés</button>
-          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="barz">Barz</button>
-          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="artists">Artistes</button>
-        </div>
-        <div class="spin" id="p-collection">
-          {user.spinList.map((item) => {
-            const album = DEMO_ALBUMS[item.album as keyof typeof DEMO_ALBUMS];
-            return <AlbumTile title={album.title} subtitle={`${album.artist} · ${item.type}`} palette={album.palette} badge={item.score} checked />;
-          })}
-        </div>
-      </section>
     </div>
   </div>
 </Layout>
@@ -166,10 +140,11 @@ const user = DEMO_USER;
       const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
       profile = data as Profile | null;
     }
-    if (!profile) return; // pas connecté : on garde l'exemple
+    if (!profile) return; // pas connecté : on garde l'invitation
 
     const isMe = session?.user.id === profile.id;
     $('profile-cta').hidden = true;
+    $('p-content').hidden = false;
     document.title = `${profile.display_name} | BARZ¡`;
 
     const [spin, listened, barz, follows, mine] = await Promise.all([
