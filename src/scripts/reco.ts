@@ -7,6 +7,7 @@
 // 3. Score de chaque sortie, réglé par le curseur d'exploration :
 //    0 = mes habitudes (proximité), 1 = inconnu total (genres éloignés, artistes moins connus).
 // Chaque score vient avec sa raison, affichée à l'utilisateur ("Parce que tu suis X").
+// 4. Pour deux amis : les sorties qui plaisent aux deux, et leurs artistes en commun.
 import { GENRE_CHIPS } from '../lib/genres';
 import { getMyProfile, getSession, supabase } from './social';
 
@@ -36,29 +37,46 @@ function chipOf(genre: string): string | null {
 }
 
 let tastePromise: Promise<Taste | null> | null = null;
+const othersTaste = new Map<string, Promise<Taste | null>>();
 
+const fallback = (err: unknown) => {
+  console.warn('Profil de goûts indisponible :', err);
+  return null;
+};
+
+// Mes goûts (membre connecté)
 export function loadTaste(): Promise<Taste | null> {
-  tastePromise ??= buildTaste().catch((err) => {
-    console.warn('Profil de goûts indisponible :', err);
-    return null;
-  });
+  tastePromise ??= getSession()
+    .then((session) => (session ? buildTaste(session.user.id, true) : null))
+    .catch(fallback);
   return tastePromise;
 }
 
-async function buildTaste(): Promise<Taste | null> {
-  const session = await getSession();
-  if (!session || !supabase) return null;
-  const uid = session.user.id;
+// Les goûts d'un autre membre, à partir de ses données publiques (son import Last.fm reste privé)
+export function loadTasteOf(userId: string): Promise<Taste | null> {
+  if (!othersTaste.has(userId)) {
+    othersTaste.set(
+      userId,
+      getSession()
+        .then((session) => buildTaste(userId, session?.user.id === userId))
+        .catch(fallback)
+    );
+  }
+  return othersTaste.get(userId)!;
+}
+
+async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
+  if (!supabase) return null;
   const ARTIST = 'artist:artists(id, name, genres)';
   const RELEASE = `release:releases(id, genres, artist:artists!artist_id(id, name, genres))`;
 
   const [profile, follows, listened, spin, barz, lastfm] = await Promise.all([
-    getMyProfile(),
+    isMe ? getMyProfile() : supabase.from('profiles').select('favorite_genres').eq('id', uid).maybeSingle().then((r) => r.data as { favorite_genres?: string[] } | null),
     supabase.from('follows').select(ARTIST).eq('user_id', uid),
     supabase.from('listened').select(RELEASE).eq('user_id', uid),
     supabase.from('spin_list').select(RELEASE).eq('user_id', uid),
     supabase.from('barz').select(`score, ${RELEASE}`).eq('user_id', uid),
-    supabase.from('lastfm_artists').select(`playcount, ${ARTIST}`).eq('user_id', uid).not('artist_id', 'is', null),
+    isMe ? supabase.from('lastfm_artists').select(`playcount, ${ARTIST}`).eq('user_id', uid).not('artist_id', 'is', null) : Promise.resolve({ data: [] }),
   ]);
 
   const taste: Taste = {
@@ -175,4 +193,38 @@ export function scoreRelease<T extends RecoRelease>(r: T, taste: Taste, explore 
 
 export function rank<T extends RecoRelease>(items: T[], taste: Taste, explore = 0.15): Scored<T>[] {
   return items.map((r) => scoreRelease(r, taste, explore)).sort((a, b) => b.score - a.score);
+}
+
+// Artistes aimés par les deux, du plus partagé au moins partagé
+export function sharedArtists(a: Taste, b: Taste): { id: string; name: string }[] {
+  return [...a.artistWeights.entries()]
+    .filter(([id, w]) => w > 0 && (b.artistWeights.get(id) ?? 0) > 0)
+    .map(([id, w]) => ({ id, name: a.names.get(id) ?? '', shared: Math.min(w, b.artistWeights.get(id)!) }))
+    .sort((x, y) => y.shared - x.shared)
+    .map(({ id, name }) => ({ id, name }));
+}
+
+// Sorties qui plaisent aux deux : on garde celles qui parlent à chacun, classées sur le moins enthousiaste des deux
+export function rankForTwo<T extends RecoRelease>(items: T[], a: Taste, b: Taste): Scored<T>[] {
+  const bothGenre = (r: T) => {
+    const g = r.genres.find((genre) => a.genreWeights.has(genre) && b.genreWeights.has(genre) && chipOf(genre));
+    return g ? chipOf(g) : null;
+  };
+  return items
+    .map((r) => {
+      const sa = scoreRelease(r, a);
+      const sb = scoreRelease(r, b);
+      if (!sa.familiar || !sb.familiar) return null;
+      const id = r.artistId ?? '';
+      let reason = 'Proche de vos goûts à tous les deux';
+      if (a.followed.has(id) && b.followed.has(id)) reason = `Vous suivez tous les deux ${r.artistName}`;
+      else if ((a.artistWeights.get(id) ?? 0) > 0 && (b.artistWeights.get(id) ?? 0) > 0) reason = `Vous aimez tous les deux ${r.artistName}`;
+      else {
+        const label = bothGenre(r);
+        if (label) reason = `Vous aimez tous les deux le ${label.toLowerCase()}`;
+      }
+      return { item: r, score: Math.min(sa.score, sb.score), reason, familiar: true };
+    })
+    .filter((s): s is Scored<T> => !!s)
+    .sort((x, y) => y.score - x.score);
 }

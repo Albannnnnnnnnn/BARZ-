@@ -336,3 +336,69 @@ export function releaseTileHtml(r: { title: string; slug: string; cover_url: str
     ${options.reason ? `<span class="bz-reason">${escapeHtml(options.reason)}</span>` : ''}
   </a>`;
 }
+
+// ============================================================
+// AMIS (supabase/friends.sql) : demande, puis acceptation
+// ============================================================
+export type FriendStatus = 'none' | 'sent' | 'received' | 'friends';
+export type Friendship = { requester_id: string; addressee_id: string; status: 'pending' | 'accepted'; created_at: string };
+export type FriendEntry = { profile: Pick<Profile, 'id' | 'username' | 'display_name'>; status: FriendStatus; since: string };
+
+const pairFilter = (a: string, b: string) => `and(requester_id.eq.${a},addressee_id.eq.${b}),and(requester_id.eq.${b},addressee_id.eq.${a})`;
+
+export async function friendStatusWith(otherId: string): Promise<FriendStatus> {
+  const session = await getSession();
+  if (!session || !supabase) return 'none';
+  const row = must(await supabase.from('friendships').select('requester_id, status').or(pairFilter(session.user.id, otherId)).maybeSingle()) as Pick<Friendship, 'requester_id' | 'status'> | null;
+  if (!row) return 'none';
+  if (row.status === 'accepted') return 'friends';
+  return row.requester_id === session.user.id ? 'sent' : 'received';
+}
+
+export async function sendFriendRequest(otherId: string) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  must(await supabase.from('friendships').insert({ requester_id: session.user.id, addressee_id: otherId }));
+}
+
+export async function acceptFriendRequest(requesterId: string) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  must(await supabase.from('friendships').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('requester_id', requesterId).eq('addressee_id', session.user.id));
+}
+
+// Refuser, annuler une demande ou retirer un ami
+export async function removeFriendship(otherId: string) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  must(await supabase.from('friendships').delete().or(pairFilter(session.user.id, otherId)));
+}
+
+// Mes amis et demandes en cours, avec le profil de l'autre personne
+export async function myFriendships(): Promise<FriendEntry[]> {
+  const session = await getSession();
+  if (!session || !supabase) return [];
+  const me = session.user.id;
+  const rows = must(
+    await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id, status, created_at, requester:profiles!friendships_requester_id_fkey(id, username, display_name), addressee:profiles!friendships_addressee_id_fkey(id, username, display_name)')
+      .or(`requester_id.eq.${me},addressee_id.eq.${me}`)
+      .order('created_at', { ascending: false })
+  ) as any[];
+  return rows
+    .map((r) => {
+      const mine = r.requester_id === me;
+      const status: FriendStatus = r.status === 'accepted' ? 'friends' : mine ? 'sent' : 'received';
+      return { profile: mine ? r.addressee : r.requester, status, since: r.created_at };
+    })
+    .filter((f) => f.profile);
+}
+
+// Recherche d'un membre par pseudo ou nom affiché
+export async function searchMembers(query: string): Promise<Pick<Profile, 'id' | 'username' | 'display_name'>[]> {
+  if (!supabase) return [];
+  const q = query.trim().replace(/^@/, '').replace(/[%_,()]/g, '');
+  if (q.length < 2) return [];
+  return must(await supabase.from('profiles').select('id, username, display_name').or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(8)) as any[];
+}

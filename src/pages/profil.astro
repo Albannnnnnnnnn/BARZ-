@@ -1,6 +1,7 @@
 ---
 // PAGE PROFIL : son propre profil (connecté), celui d'un membre (?u=pseudo), sinon une invitation à se connecter.
 // Les vraies données sont lues par le navigateur (src/scripts/social.ts).
+// Amis : demande puis acceptation (supabase/friends.sql) ; entre amis, la section « Pour vous deux ».
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -21,8 +22,24 @@ import Layout from '../layouts/Layout.astro';
             <a class="bz-btn bz-btn--outline" href="/BARZ-/bienvenue?next=/BARZ-/profil">Modifier mes goûts</a>
             <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
           </div>
+          <div class="own-actions" id="p-friend" hidden></div>
         </div>
         <dl class="stats" id="p-stats"></dl>
+      </section>
+
+      <section class="block" id="p-picks" hidden aria-labelledby="picks-title">
+        <div class="bz-section-head"><h2 id="picks-title" class="bz-h2">Ses coups de cœur</h2></div>
+        <div class="bz-tiles" id="p-picks-releases"></div>
+        <h3 class="sub" id="p-picks-artists-title">Artistes préférés</h3>
+        <div class="bz-artists" id="p-picks-artists"></div>
+      </section>
+
+      <section class="block" id="p-blend" hidden aria-labelledby="blend-title">
+        <div class="bz-section-head"><h2 id="blend-title" class="bz-h2">Pour vous deux</h2></div>
+        <p class="blend-note" id="p-blend-note"></p>
+        <div class="bz-tiles" id="p-blend-releases"></div>
+        <h3 class="sub" id="p-blend-artists-title" hidden>Vos artistes en commun</h3>
+        <div class="bz-artists" id="p-blend-artists"></div>
       </section>
 
       <div class="layout">
@@ -36,6 +53,17 @@ import Layout from '../layouts/Layout.astro';
           <section class="activity" aria-labelledby="activity-title">
             <div class="bz-section-head"><h2 id="activity-title" class="bz-h2">Activité récente</h2></div>
             <ul id="p-activity"></ul>
+          </section>
+
+          <section class="friends" id="p-friends" hidden aria-labelledby="friends-title">
+            <div class="bz-section-head"><h2 id="friends-title" class="bz-h2">Amis</h2></div>
+            <form id="friend-search" class="lastfm-form" role="search">
+              <label class="sr-only" for="friend-input">Chercher un membre</label>
+              <input id="friend-input" class="bz-input" maxlength="40" placeholder="Pseudo ou nom d’un membre" autocomplete="off" />
+              <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Chercher</button>
+            </form>
+            <ul class="friend-list" id="friend-results"></ul>
+            <ul class="friend-list" id="friend-list"></ul>
           </section>
 
           <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
@@ -74,8 +102,16 @@ import Layout from '../layouts/Layout.astro';
     barzFeed,
     coverHtml,
     escapeHtml,
+    acceptFriendRequest,
+    friendStatusWith,
     getSession,
+    loginUrl,
     myFollows,
+    myFriendships,
+    releaseTileHtml,
+    removeFriendship,
+    searchMembers,
+    sendFriendRequest,
     shelfOf,
     signOut,
     supabase,
@@ -83,10 +119,12 @@ import Layout from '../layouts/Layout.astro';
     wireBarzActions,
     wireFollowButtons,
     type ArtistLite,
+    type FriendStatus,
     type Profile,
     type ReleaseLite,
   } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
+  import { loadTaste, loadTasteOf, rankForTwo, sharedArtists, type Taste } from '../scripts/reco';
 
   const $ = (id: string) => document.getElementById(id)!;
   const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
@@ -221,6 +259,10 @@ import Layout from '../layouts/Layout.astro';
     const active = $('p-tabs').querySelector<HTMLElement>('[aria-selected="true"]')?.dataset.tab ?? 'spin_list';
     renderTab(active);
 
+    const theirTaste = loadTasteOf(profile.id);
+    renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
+    renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
+
     if (!wired) {
       wired = true;
       $('p-tabs').addEventListener('click', (event) => {
@@ -234,7 +276,159 @@ import Layout from '../layouts/Layout.astro';
       });
       wireBarzActions($('p-collection'), load);
       wireFollowButtons($('p-collection'));
+      wireFollowButtons($('p-picks-artists'));
+      wireFollowButtons($('p-blend-artists'));
+      wireFriendActions();
     }
+  }
+
+  // ============================================================
+  // AMIS
+  // ============================================================
+  let current: { id: string; isMe: boolean } | null = null;
+
+  const FRIEND_BUTTONS: Record<FriendStatus, string> = {
+    none: `<button type="button" class="bz-btn bz-btn--lime" data-friend="add">Ajouter en ami</button>`,
+    sent: `<span class="friend-state">Demande envoyée</span><button type="button" class="bz-btn bz-btn--outline" data-friend="remove">Annuler</button>`,
+    received: `<button type="button" class="bz-btn bz-btn--lime" data-friend="accept">Accepter la demande</button><button type="button" class="bz-btn bz-btn--outline" data-friend="remove">Refuser</button>`,
+    friends: `<span class="friend-state">Amis ✓</span><button type="button" class="bz-btn bz-btn--outline" data-friend="remove" data-confirm="1">Retirer</button>`,
+  };
+
+  function friendRowHtml(f: Awaited<ReturnType<typeof myFriendships>>[number]) {
+    const actions =
+      f.status === 'received'
+        ? `<button type="button" class="bz-btn bz-btn--lime bz-btn--small" data-friend="accept" data-user="${escapeHtml(f.profile.id)}">Accepter</button>
+           <button type="button" class="bz-btn bz-btn--outline bz-btn--small" data-friend="remove" data-user="${escapeHtml(f.profile.id)}">Refuser</button>`
+        : f.status === 'sent'
+          ? `<span class="friend-state">Demande envoyée</span>`
+          : '';
+    return `<li>
+      <a href="${BASE}profil?u=${encodeURIComponent(f.profile.username)}"><b>${escapeHtml(f.profile.display_name)}</b> <span>@${escapeHtml(f.profile.username)}</span></a>
+      ${actions}
+    </li>`;
+  }
+
+  async function renderFriendship(profile: Profile, isMe: boolean, loggedIn: boolean) {
+    current = { id: profile.id, isMe };
+    $('p-friends').hidden = true;
+    if (isMe) {
+      const all = await myFriendships();
+      const order: FriendStatus[] = ['received', 'friends', 'sent'];
+      const sorted = [...all].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+      const pending = all.filter((f) => f.status === 'received').length;
+      $('friends-title').textContent = pending ? `Amis · ${pending} demande${pending > 1 ? 's' : ''}` : 'Amis';
+      $('friend-list').innerHTML = sorted.length
+        ? sorted.map(friendRowHtml).join('')
+        : '<li class="friend-empty">Pas encore d’amis : cherche un membre par son pseudo.</li>';
+      $('p-friends').hidden = false; // seulement si la table friendships existe
+      return;
+    }
+    const status = loggedIn ? await friendStatusWith(profile.id) : 'none';
+    $('p-friend').innerHTML = FRIEND_BUTTONS[status];
+    $('p-friend').hidden = false;
+    await renderBlend(profile, status, loggedIn);
+  }
+
+  function wireFriendActions() {
+    document.addEventListener('click', async (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-friend]');
+      if (!button || !current) return;
+      if (!(await getSession())) return void (location.href = loginUrl());
+      const userId = button.dataset.user ?? current.id;
+      if (button.dataset.confirm && !confirm('Retirer cette personne de tes amis ?')) return;
+      button.disabled = true;
+      try {
+        if (button.dataset.friend === 'add') await sendFriendRequest(userId);
+        if (button.dataset.friend === 'accept') await acceptFriendRequest(userId);
+        if (button.dataset.friend === 'remove') await removeFriendship(userId);
+        await load();
+      } catch (err) {
+        button.disabled = false;
+        alert(errorText(err));
+      }
+    });
+
+    $('friend-search').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const results = $('friend-results');
+      const query = (document.getElementById('friend-input') as HTMLInputElement).value;
+      try {
+        const members = (await searchMembers(query)).filter((m) => m.id !== current?.id);
+        results.innerHTML = members.length
+          ? members.map((m) => `<li><a href="${BASE}profil?u=${encodeURIComponent(m.username)}"><b>${escapeHtml(m.display_name)}</b> <span>@${escapeHtml(m.username)}</span></a><span class="friend-state">Voir le profil →</span></li>`).join('')
+          : '<li class="friend-empty">Aucun membre trouvé.</li>';
+      } catch (err) {
+        results.innerHTML = `<li class="friend-empty">${escapeHtml(errorText(err))}</li>`;
+      }
+    });
+  }
+
+  // ============================================================
+  // COUPS DE CŒUR et POUR VOUS DEUX
+  // ============================================================
+  async function artistsByIds(ids: string[]): Promise<ArtistLite[]> {
+    if (!ids.length || !supabase) return [];
+    const { data } = await supabase.from('artists').select(ARTIST_LITE).in('id', ids);
+    const byId = new Map(((data ?? []) as ArtistLite[]).map((a) => [a.id, a]));
+    return ids.map((id) => byId.get(id)).filter((a): a is ArtistLite => !!a);
+  }
+
+  async function renderPicks(profile: Profile, isMe: boolean, barz: Awaited<ReturnType<typeof barzFeed>>, tastePromise: Promise<Taste | null>, iFollow: Set<string>) {
+    $('picks-title').textContent = isMe ? 'Tes coups de cœur' : 'Ses coups de cœur';
+    const best = barz.filter((b) => b.release && Number(b.score) >= 7).sort((a, b) => Number(b.score) - Number(a.score)).slice(0, 6);
+    $('p-picks-releases').innerHTML = best.map((b) => releaseTileHtml(b.release!, { badge: Number(b.score).toFixed(1) })).join('');
+
+    const taste = await tastePromise;
+    const topIds = taste ? [...taste.artistWeights.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id]) => id) : [];
+    const artists = await artistsByIds(topIds);
+    $('p-picks-artists').innerHTML = artists.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('');
+    $('p-picks-artists-title').hidden = !artists.length;
+    $('p-picks').hidden = !best.length && !artists.length;
+  }
+
+  // Sorties des 30 derniers jours et des 2 prochaines semaines, au format du moteur de reco
+  let recentPromise: Promise<any[]> | null = null;
+  function recentReleases() {
+    const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+    recentPromise ??= supabase!
+      .from('releases')
+      .select('id, title, slug, cover_url, release_type, genres, metadata, artist:artists!artist_id(id, name)')
+      .gte('release_date', day(-30))
+      .lte('release_date', day(14))
+      .order('release_date', { ascending: false })
+      .limit(1500)
+      .then(({ data }) =>
+        ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: r.metadata?.fans ?? null }))
+      );
+    return recentPromise;
+  }
+
+  async function renderBlend(profile: Profile, status: FriendStatus, loggedIn: boolean) {
+    const section = $('p-blend');
+    if (!loggedIn || !supabase) return void (section.hidden = true);
+    section.hidden = false;
+    const note = $('p-blend-note');
+    if (status !== 'friends') {
+      note.textContent = `Devenez amis pour voir les sorties qui vous plairaient à tous les deux et vos artistes en commun.`;
+      $('p-blend-releases').innerHTML = '';
+      $('p-blend-artists').innerHTML = '';
+      $('p-blend-artists-title').hidden = true;
+      return;
+    }
+    note.textContent = 'Les sorties récentes qui collent à vos deux profils de goûts.';
+    const [mine, theirs, releases, myArtists] = await Promise.all([loadTaste(), loadTasteOf(profile.id), recentReleases(), myFollows().catch(() => [] as ArtistLite[])]);
+    if (!mine || !theirs || mine.empty || theirs.empty) {
+      note.textContent = 'Pas encore assez d’activité de l’un de vous deux : suivez des artistes ou notez des sorties.';
+      return;
+    }
+    const picks = rankForTwo(releases, mine, theirs).slice(0, 8);
+    $('p-blend-releases').innerHTML = picks.length
+      ? picks.map((s) => releaseTileHtml(s.item, { reason: s.reason })).join('')
+      : '<p class="bz-empty">Aucune sortie récente ne vous rapproche pour l’instant.</p>';
+    const shared = await artistsByIds(sharedArtists(mine, theirs).slice(0, 8).map((a) => a.id));
+    const iFollow = new Set(myArtists.map((a) => a.id));
+    $('p-blend-artists').innerHTML = shared.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('');
+    $('p-blend-artists-title').hidden = !shared.length;
   }
 
   $('p-logout').addEventListener('click', signOut);
@@ -324,7 +518,10 @@ import Layout from '../layouts/Layout.astro';
   }
 
   .own-actions[hidden],
-  .lastfm[hidden] {
+  .lastfm[hidden],
+  .friends[hidden],
+  .block[hidden],
+  .sub[hidden] {
     display: none;
   }
 
@@ -335,6 +532,67 @@ import Layout from '../layouts/Layout.astro';
 
   .lastfm {
     margin-top: 48px;
+  }
+
+  .own-actions :global(.friend-state),
+  .friends :global(.friend-state) {
+    align-self: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-lime);
+  }
+
+  .block {
+    margin-top: 56px;
+  }
+
+  .sub {
+    margin: 40px 0 20px;
+    font: 600 13px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .blend-note {
+    margin: -8px 0 24px;
+    font-size: 16px;
+    color: var(--color-text-muted);
+  }
+
+  .friends {
+    margin-top: 48px;
+  }
+
+  .friend-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .friend-list :global(li) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 17px;
+  }
+
+  .friend-list :global(a) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .friend-list :global(a span) {
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+
+  .friend-list :global(.friend-empty) {
+    color: var(--color-text-muted);
+    font-size: 15px;
   }
 
   .lastfm p {
