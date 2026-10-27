@@ -13,6 +13,6 @@ export function activeNav(pathname: string): string | null {
   if (path.startsWith('/search') || path.startsWith('/artiste')) return 'explorer';
   if (path.startsWith('/actus')) return 'actus';
   if (path.startsWith('/commu')) return 'commu';
-  if (path.startsWith('/profil')) return 'profil';
+  if (path.startsWith('/profil') || path.startsWith('/bilan')) return 'profil';
   return null;
 }

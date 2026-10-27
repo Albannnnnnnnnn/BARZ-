@@ -1,5 +1,6 @@
 ---
-// PAGE SORTIES (cette semaine) : artistes suivis en tête, puis toutes les sorties triées et filtrables
+// PAGE SORTIES (cette semaine) : nouveautés depuis la dernière visite, défi de la semaine,
+// artistes suivis en tête, puis toutes les sorties triées et filtrables
 import { addDays, format, getISOWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
@@ -48,6 +49,13 @@ const weekData = sorted.map((r) => ({
     <span class="bz-eyebrow">{eyebrow}</span>
     <h1 class="bz-display">Sorties</h1>
     <SortiesTabs active="semaine" weekCount={count} upcomingCount={upcomingCount} />
+
+    <section class="visit" id="visit" hidden aria-labelledby="visit-title">
+      <h2 class="label" id="visit-title">Depuis ta dernière visite</h2>
+      <ul class="visit-items" id="visit-items"></ul>
+    </section>
+
+    <section class="challenge" id="challenge" hidden aria-label="Défi de la semaine"></section>
 
     <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
       <h2 id="artists-title" class="label">Ils ont sorti cette semaine</h2>
@@ -115,8 +123,9 @@ const weekData = sorted.map((r) => ({
 </Layout>
 
 <script>
-  import { BASE, escapeHtml, myFollows } from '../scripts/social';
+  import { BASE, coverHtml, escapeHtml, getSession, myFollows, timeAgo } from '../scripts/social';
   import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
+  import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
 
   type WeekRelease = RecoRelease & { title: string; slug: string };
 
@@ -197,6 +206,68 @@ const weekData = sorted.map((r) => ({
     applySort('reco');
   }
 
+  // Depuis ta dernière visite : seulement ce qui est nouveau pour ce membre
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+  const listNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0] ?? '');
+
+  async function showVisit() {
+    const since = previousVisit();
+    if (!(await getSession())) return;
+    const items: string[] = [];
+    const news = since ? await newsSince(since) : null;
+    if (news?.releases.length) {
+      const links = news.releases
+        .slice(0, 3)
+        .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.artistName)}</span>`)
+        .join(' · ');
+      items.push(`<li><b>${plural(news.releases.length, 'sortie')} de tes artistes</b> ${links}${news.releases.length > 3 ? ' …' : ''}</li>`);
+    }
+    if (news?.friendBarz) {
+      items.push(`<li><a href="${BASE}commu"><b>${plural(news.friendBarz, 'Barz')}</b> de ${escapeHtml(listNames(news.friendNames))} →</a></li>`);
+    }
+    if (news?.requests) {
+      items.push(`<li><a href="${BASE}profil"><b>${plural(news.requests, 'demande')} d’ami</b> en attente →</a></li>`);
+    }
+    // La première semaine du mois, le bilan du mois précédent
+    const now = new Date();
+    if (now.getDate() <= 7) {
+      const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const key = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+      const name = MONTHS[last.getMonth()];
+      items.push(`<li><a href="${BASE}bilan?m=${key}"><b>Ton bilan ${/^[aeiou]/.test(name) ? 'd’' : 'de '}${name}</b> est prêt →</a></li>`);
+    }
+    if (!items.length) return;
+    if (since) document.getElementById('visit-title')!.textContent = `Depuis ta dernière visite · ${timeAgo(since.toISOString())}`;
+    document.getElementById('visit-items')!.innerHTML = items.join('');
+    document.getElementById('visit')!.hidden = false;
+  }
+
+  // Défi de la semaine : un disque hors de la bulle, relevé quand on l'écoute ou qu'on le note
+  async function showChallenge() {
+    const c = await weeklyChallenge();
+    if (!c) return;
+    const href = `${BASE}releases/${encodeURIComponent(c.release.slug)}`;
+    const status = c.done
+      ? `<p class="challenge-done">Défi relevé ✓</p>`
+      : `<p class="challenge-how">Écoute-le, puis marque-le comme écouté ou note-le pour relever le défi.</p>`;
+    document.getElementById('challenge')!.innerHTML = `
+      <a class="challenge-cover" href="${href}">${coverHtml(c.release.title, c.release.cover_url)}</a>
+      <div class="challenge-body">
+        <span class="challenge-eyebrow">Défi de la semaine · Sors de ta bulle</span>
+        <h2><a href="${href}">${escapeHtml(c.release.title)}</a></h2>
+        <p class="challenge-artist">${escapeHtml(c.release.artistName)}${c.reason ? ` · ${escapeHtml(c.reason)}` : ''}</p>
+        ${status}
+        <div class="challenge-actions">
+          <a class="bz-btn bz-btn--lime bz-btn--small" href="${href}">${c.done ? 'Revoir la fiche' : 'Écouter'}</a>
+          ${c.doneCount ? `<span>${plural(c.doneCount, 'défi')} relevé${c.doneCount > 1 ? 's' : ''} au total</span>` : ''}
+        </div>
+      </div>`;
+    document.getElementById('challenge')!.hidden = false;
+  }
+
+  showVisit().catch((err) => console.warn('Nouveautés indisponibles :', err));
+  showChallenge().catch((err) => console.warn('Défi indisponible :', err));
   showFollowed().catch(() => {});
   personalize().catch((err) => console.warn('Personnalisation indisponible :', err));
 </script>
@@ -210,8 +281,112 @@ const weekData = sorted.map((r) => ({
     margin-top: 36px;
   }
 
-  .artists[hidden] {
+  .artists[hidden],
+  .visit[hidden],
+  .challenge[hidden] {
     display: none;
+  }
+
+  .visit {
+    margin-top: 28px;
+    padding: 20px 22px;
+    border: 1px solid #3b4220;
+    border-radius: 18px;
+  }
+
+  .visit .label {
+    margin-bottom: 14px;
+    color: var(--color-lime);
+  }
+
+  .visit-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+  }
+
+  .visit-items :global(b) {
+    color: var(--color-text);
+    margin-right: 6px;
+  }
+
+  .visit-items :global(a) {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-decoration-color: #555;
+    text-underline-offset: 4px;
+  }
+
+  .visit-items :global(a:hover) {
+    text-decoration-color: var(--color-lime);
+  }
+
+  .challenge {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: 26px;
+    align-items: center;
+    margin-top: 28px;
+    padding: 22px;
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse 70% 140% at 100% 0%, #3c4721 0%, transparent 70%),
+      var(--color-bg-elevated);
+  }
+
+  .challenge :global(.bz-cover) {
+    border-radius: 12px;
+  }
+
+  .challenge :global(.challenge-eyebrow) {
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-lime);
+  }
+
+  .challenge :global(h2) {
+    margin: 12px 0 6px;
+    font: 400 clamp(28px, 3vw, 40px) / 1.05 var(--font-serif);
+    color: var(--color-text);
+  }
+
+  .challenge :global(.challenge-artist),
+  .challenge :global(.challenge-how) {
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .challenge :global(.challenge-how),
+  .challenge :global(.challenge-done) {
+    margin-top: 10px;
+  }
+
+  .challenge :global(.challenge-done) {
+    font-weight: 700;
+    color: var(--color-lime);
+  }
+
+  .challenge :global(.challenge-actions) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .challenge {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
   }
 
   .label {

@@ -1,0 +1,457 @@
+---
+// PAGE BILAN DU MOIS : écoutes, Barz, genre du mois, nouveaux artistes, défis relevés, ami le plus proche.
+// ?u=pseudo pour le bilan d'un membre (lien partageable), ?m=AAAA-MM pour un autre mois. Tout est lu par le navigateur.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Bilan du mois" description="Ton mois en musique sur BARZ¡ : écoutes, Barz, genre du mois et nouveaux artistes.">
+  <div class="bz-page">
+    <a class="bz-notice cta" id="bilan-cta" href="/BARZ-/connexion">
+      <b>Connecte-toi</b> pour voir ton bilan du mois →
+    </a>
+    <p class="bz-notice bz-notice--error" id="bilan-error" hidden></p>
+
+    <div id="bilan" hidden>
+      <nav class="months" aria-label="Mois">
+        <a class="bz-link" id="prev-month" href="#">← Mois précédent</a>
+        <a class="bz-link" id="next-month" href="#">Mois suivant →</a>
+      </nav>
+
+      <article class="card" aria-labelledby="card-title">
+        <header>
+          <span class="card-eyebrow">BARZ¡ · <span id="card-month"></span></span>
+          <h1 id="card-title"></h1>
+        </header>
+
+        <p class="card-empty" id="card-empty" hidden></p>
+
+        <div id="card-body">
+          <dl class="numbers" id="numbers"></dl>
+
+          <div class="grid">
+            <section class="genre" id="genre-block">
+              <h2>Genre du mois</h2>
+              <ul id="genres"></ul>
+            </section>
+
+            <section class="record" id="record-block">
+              <h2>Disque du mois</h2>
+              <div id="record"></div>
+            </section>
+          </div>
+
+          <div class="grid">
+            <section id="artists-block">
+              <h2>Nouveaux artistes</h2>
+              <p class="list" id="new-artists"></p>
+            </section>
+
+            <section id="extra-block">
+              <h2 id="challenge-label">Défis relevés</h2>
+              <p class="big" id="challenges"></p>
+              <div id="buddy-block" hidden>
+                <h2>Ami le plus proche en goûts</h2>
+                <p class="list" id="buddy"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <div class="share">
+        <button type="button" class="bz-btn bz-btn--lime" id="share">Partager ce bilan</button>
+        <a class="bz-btn bz-btn--outline" id="back-profile" href="/BARZ-/profil">Voir le profil</a>
+        <span class="share-status" id="share-status" aria-live="polite"></span>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, coverHtml, errorText, escapeHtml, getSession, myFriendships, shelfOf, supabase, barzFeed, type Profile, type ReleaseLite } from '../scripts/social';
+  import { loadTaste, loadTasteOf, tasteSimilarity } from '../scripts/reco';
+  import { challengesOf } from '../scripts/engage';
+  import { GENRE_CHIPS } from '../lib/genres';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const params = new URLSearchParams(location.search);
+  const now = new Date();
+  const [year, month] = (params.get('m') ?? '').match(/^(\d{4})-(\d{2})$/)
+    ? params.get('m')!.split('-').map(Number)
+    : [now.getFullYear(), now.getMonth() + 1];
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 1);
+  const monthName = `${MONTHS[month - 1]} ${year}`;
+  // « d'octobre », « de mars »
+  const ofMonth = `${/^[aeiou]/.test(monthName) ? 'd’' : 'de '}${monthName}`;
+  const keyOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const inMonth = (iso: string) => {
+    const t = Date.parse(iso);
+    return t >= start.getTime() && t < end.getTime();
+  };
+  const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+
+  function chipsOf(r: ReleaseLite): string[] {
+    const labels = GENRE_CHIPS.filter((c) => c.genres.some((g) => r.genres?.includes(g))).map((c) => c.label);
+    return labels.length ? labels : ['Autres'];
+  }
+
+  async function load() {
+    if (!supabase) return;
+    const wanted = params.get('u');
+    const session = await getSession();
+    let profile: Profile | null = null;
+    if (wanted) {
+      const { data } = await supabase.from('profiles').select('*').eq('username', wanted.toLowerCase()).maybeSingle();
+      profile = data as Profile | null;
+      if (!profile) throw new Error(`Aucun membre ne s’appelle @${wanted}.`);
+    } else if (session) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      profile = data as Profile | null;
+    }
+    if (!profile) return; // pas connecté : on garde l'invitation
+
+    const isMe = session?.user.id === profile.id;
+    $('bilan-cta').hidden = true;
+    $('bilan').hidden = false;
+    document.title = `Bilan ${ofMonth} · ${profile.display_name} | BARZ¡`;
+    $('card-month').textContent = `Bilan ${ofMonth}`;
+    $('card-title').textContent = profile.display_name;
+
+    // Navigation entre les mois (pas au-delà du mois en cours)
+    const link = (d: Date) => `${BASE}bilan?${wanted ? `u=${encodeURIComponent(wanted)}&` : ''}m=${keyOf(d)}`;
+    ($('prev-month') as HTMLAnchorElement).href = link(new Date(year, month - 2, 1));
+    const next = new Date(year, month, 1);
+    ($('next-month') as HTMLAnchorElement).href = link(next);
+    $('next-month').hidden = next > now;
+    ($('back-profile') as HTMLAnchorElement).href = `${BASE}profil?u=${encodeURIComponent(profile.username)}`;
+
+    const [listened, spin, barz, challenges] = await Promise.all([
+      shelfOf('listened', profile.id),
+      shelfOf('spin_list', profile.id),
+      barzFeed({ userId: profile.id, limit: 500 }),
+      challengesOf(profile.id),
+    ]);
+    const listenedM = listened.filter((l) => inMonth(l.created_at));
+    const spinM = spin.filter((s) => inMonth(s.created_at));
+    const barzM = barz.filter((b) => b.release && inMonth(b.created_at));
+    const challengesM = challenges.filter((c) => inMonth(`${c.week}T12:00:00`));
+
+    if (!listenedM.length && !barzM.length && !spinM.length) {
+      $('card-empty').textContent = isMe
+        ? `Pas encore d’activité en ${monthName}. Marque des sorties comme écoutées ou écris des Barz : ton bilan se remplira au fil du mois.`
+        : `Pas d’activité en ${monthName}.`;
+      $('card-empty').hidden = false;
+      $('card-body').hidden = true;
+      return;
+    }
+
+    // Chiffres du mois
+    const avg = barzM.length ? barzM.reduce((s, b) => s + Number(b.score), 0) / barzM.length : null;
+    const releasesM = new Map<string, ReleaseLite>();
+    for (const r of [...listenedM.map((l) => l.release), ...barzM.map((b) => b.release!)]) releasesM.set(r.id, r);
+
+    // Nouveaux artistes : écoutés ou notés ce mois-ci, jamais avant
+    const firstSeen = new Map<string, number>();
+    for (const [iso, r] of [...listened.map((l) => [l.created_at, l.release] as const), ...spin.map((s) => [s.created_at, s.release] as const), ...barz.filter((b) => b.release).map((b) => [b.created_at, b.release!] as const)]) {
+      const name = r.artist?.name;
+      if (!name) continue;
+      firstSeen.set(name, Math.min(firstSeen.get(name) ?? Infinity, Date.parse(iso)));
+    }
+    const newArtists = [...new Set([...releasesM.values()].map((r) => r.artist?.name).filter((n): n is string => !!n))].filter((n) => (firstSeen.get(n) ?? 0) >= start.getTime());
+
+    $('numbers').innerHTML = [
+      ['Écoutés', String(listenedM.length)],
+      ['Barz', String(barzM.length)],
+      ['Note moyenne', avg === null ? '–' : avg.toFixed(1)],
+      ['Nouveaux artistes', String(newArtists.length)],
+    ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
+
+    // Genre du mois
+    const counts = new Map<string, number>();
+    for (const r of releasesM.values()) for (const label of chipsOf(r)) counts.set(label, (counts.get(label) ?? 0) + 1);
+    const total = [...counts.values()].reduce((a, b) => a + b, 0);
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+    $('genres').innerHTML = top
+      .map(([label, n], i) => {
+        const pct = Math.round((n / total) * 100);
+        return `<li class="${i === 0 ? 'is-top' : ''}"><span>${escapeHtml(label)}</span><span class="bar"><span style="width:${pct}%"></span></span><span class="pct">${pct} %</span></li>`;
+      })
+      .join('');
+    $('genre-block').hidden = !top.length;
+
+    // Disque du mois : le mieux noté, sinon le dernier écouté
+    const best = [...barzM].sort((a, b) => Number(b.score) - Number(a.score))[0];
+    const record = best?.release ?? listenedM[0]?.release;
+    $('record').innerHTML = record
+      ? `<a class="record-link" href="${BASE}releases/${encodeURIComponent(record.slug)}">
+          ${coverHtml(record.title, record.cover_url)}
+          <span><b>${escapeHtml(record.title)}</b>${escapeHtml(record.artist?.name ?? '')}${best ? `<span class="bz-score">${Number(best.score).toFixed(1)}</span>` : ''}</span>
+        </a>${best ? `<p class="quote">« ${escapeHtml(best.body)} »</p>` : ''}`
+      : '';
+    $('record-block').hidden = !record;
+
+    $('new-artists').textContent = newArtists.length ? newArtists.slice(0, 6).join(' · ') + (newArtists.length > 6 ? ` et ${newArtists.length - 6} autres` : '') : 'Aucun ce mois-ci.';
+
+    const doneM = challengesM.filter((c) => c.done).length;
+    $('challenges').textContent = challengesM.length ? `${doneM} / ${challengesM.length}` : '–';
+
+    // Ami le plus proche : seulement sur son propre bilan (les amitiés sont privées)
+    if (isMe) {
+      const friends = (await myFriendships().catch(() => [])).filter((f) => f.status === 'friends').slice(0, 12);
+      const mine = await loadTaste();
+      if (friends.length && mine && !mine.empty) {
+        const scored = await Promise.all(friends.map(async (f) => ({ f, taste: await loadTasteOf(f.profile.id) })));
+        const best = scored
+          .filter((s) => s.taste && !s.taste.empty)
+          .map((s) => ({ ...s, score: tasteSimilarity(mine, s.taste!) }))
+          .sort((a, b) => b.score - a.score)[0];
+        if (best) {
+          $('buddy').innerHTML = `<a href="${BASE}profil?u=${encodeURIComponent(best.f.profile.username)}">${escapeHtml(best.f.profile.display_name)}</a> · ${Math.round(best.score * 100)} % de goûts en commun`;
+          $('buddy-block').hidden = false;
+        }
+      }
+    }
+  }
+
+  // Partage : le lien public du bilan (pseudo + mois)
+  $('share').addEventListener('click', async () => {
+    const session = await getSession();
+    let username = params.get('u');
+    if (!username && session && supabase) {
+      const { data } = await supabase.from('profiles').select('username').eq('id', session.user.id).maybeSingle();
+      username = (data as { username: string } | null)?.username ?? null;
+    }
+    if (!username) return;
+    const url = `${location.origin}${BASE}bilan?u=${encodeURIComponent(username)}&m=${keyOf(start)}`;
+    try {
+      if (navigator.share) await navigator.share({ title: `Bilan ${ofMonth} sur BARZ¡`, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        $('share-status').textContent = 'Lien copié !';
+      }
+    } catch {
+      // Partage annulé
+    }
+  });
+
+  load().catch((err) => {
+    $('bilan-error').textContent = errorText(err);
+    $('bilan-error').hidden = false;
+    $('bilan-cta').hidden = true;
+  });
+</script>
+
+<style>
+  .cta {
+    display: block;
+    color: var(--color-text) !important;
+  }
+
+  .cta b {
+    color: var(--color-lime);
+  }
+
+  .cta[hidden],
+  .bz-notice[hidden],
+  #bilan[hidden],
+  #card-body[hidden],
+  .card-empty[hidden],
+  .card section[hidden],
+  #buddy-block[hidden],
+  .months a[hidden] {
+    display: none;
+  }
+
+  .months {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 15px;
+  }
+
+  /* La carte crème du bilan */
+  .card {
+    max-width: 880px;
+    padding: clamp(24px, 5vw, 56px);
+    border-radius: 28px;
+    background: #f3ecdc;
+    color: #1b1a17;
+  }
+
+  .card-eyebrow {
+    font: 700 13px/1 var(--font-sans);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6b6556;
+  }
+
+  .card h1 {
+    margin-top: 14px;
+    font: 400 clamp(44px, 7vw, 84px) / 0.95 var(--font-serif);
+    color: #1b1a17;
+    overflow-wrap: anywhere;
+  }
+
+  .card-empty {
+    margin-top: 28px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #4a463d;
+  }
+
+  .numbers {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin: 36px 0 8px;
+    padding: 24px 0;
+    border-top: 1px solid #d8cfbb;
+    border-bottom: 1px solid #d8cfbb;
+  }
+
+  .numbers :global(dt) {
+    font: 600 12px/1.2 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b6556;
+  }
+
+  .numbers :global(dd) {
+    margin-top: 8px;
+    font: 400 clamp(36px, 5vw, 56px) / 1 var(--font-serif);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px;
+    margin-top: 32px;
+  }
+
+  .card h2 {
+    margin-bottom: 14px;
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6b6556;
+  }
+
+  #genres {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #genres :global(li) {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+  }
+
+  #genres :global(li.is-top) {
+    font: 400 26px/1 var(--font-serif);
+  }
+
+  #genres :global(.bar) {
+    height: 10px;
+    border-radius: 5px;
+    background: #e3d9c3;
+    overflow: hidden;
+  }
+
+  #genres :global(.bar span) {
+    display: block;
+    height: 100%;
+    background: #1b1a17;
+  }
+
+  #genres :global(.pct) {
+    font: 600 14px/1 var(--font-sans);
+    text-align: right;
+  }
+
+  #record :global(.record-link) {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    color: #1b1a17;
+  }
+
+  #record :global(.bz-cover) {
+    border-radius: 10px;
+  }
+
+  #record :global(.record-link > span) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 15px;
+    color: #4a463d;
+  }
+
+  #record :global(b) {
+    font: 400 26px/1.05 var(--font-serif);
+    color: #1b1a17;
+  }
+
+  #record :global(.bz-score) {
+    align-self: flex-start;
+    margin-top: 6px;
+    background: #1b1a17;
+  }
+
+  #record :global(.quote) {
+    margin-top: 14px;
+    font: italic 400 20px/1.3 var(--font-serif);
+    color: #2d2a25;
+  }
+
+  .list {
+    font-size: 17px;
+    line-height: 1.5;
+    color: #2d2a25;
+  }
+
+  .list :global(a) {
+    font-weight: 700;
+    color: #1b1a17;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .big {
+    font: 400 48px/1 var(--font-serif);
+  }
+
+  #buddy-block {
+    margin-top: 28px;
+  }
+
+  .share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .share-status {
+    font-size: 15px;
+    color: var(--color-lime);
+  }
+
+  @media (max-width: 700px) {
+    .numbers {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

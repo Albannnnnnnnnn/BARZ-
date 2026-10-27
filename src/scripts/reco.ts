@@ -228,3 +228,41 @@ export function rankForTwo<T extends RecoRelease>(items: T[], a: Taste, b: Taste
     .filter((s): s is Scored<T> => !!s)
     .sort((x, y) => y.score - x.score);
 }
+
+// Sorties des 30 derniers jours et des 2 prochaines semaines, au format du moteur de reco
+export type RecentRelease = RecoRelease & { title: string; slug: string; cover_url: string | null; release_type: string; release_date: string; artist: { id: string; name: string } | null };
+let recentPromise: Promise<RecentRelease[]> | null = null;
+
+export function recentReleases(): Promise<RecentRelease[]> {
+  if (!supabase) return Promise.resolve([]);
+  const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+  recentPromise ??= Promise.resolve(
+    supabase
+      .from('releases')
+      .select('id, title, slug, cover_url, release_type, release_date, genres, metadata, artist:artists!artist_id(id, name)')
+      .gte('release_date', day(-30))
+      .lte('release_date', day(14))
+      .order('release_date', { ascending: false })
+      .limit(1500)
+  ).then(({ data }) =>
+    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: r.metadata?.fans ?? null }))
+  );
+  return recentPromise;
+}
+
+// Proximité de goûts entre deux membres, de 0 à 1 : genres (cosinus) et artistes aimés en commun
+export function tasteSimilarity(a: Taste, b: Taste): number {
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (const [g, w] of a.genreWeights) {
+    dot += w * (b.genreWeights.get(g) ?? 0);
+    na += w * w;
+  }
+  for (const w of b.genreWeights.values()) nb += w * w;
+  const genres = na && nb ? dot / Math.sqrt(na * nb) : 0;
+  const likedA = [...a.artistWeights].filter(([, w]) => w > 0).length;
+  const likedB = [...b.artistWeights].filter(([, w]) => w > 0).length;
+  const artists = Math.min(likedA, likedB) ? Math.min(1, sharedArtists(a, b).length / Math.min(likedA, likedB)) : 0;
+  return genres * 0.6 + artists * 0.4;
+}
