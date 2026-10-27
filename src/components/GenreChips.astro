@@ -1,0 +1,40 @@
+---
+// Puces "Tout / Rap / Électro…" qui filtrent les vignettes [data-chips] d'une grille
+import { GENRE_CHIPS } from '../lib/releases';
+
+interface Props {
+  target: string; // sélecteur CSS de la grille filtrée
+}
+
+const { target } = Astro.props;
+---
+
+<div class="bz-chips" role="group" aria-label="Filtrer par genre" data-chip-filter={target}>
+  <button type="button" class="bz-chip is-active" data-chip="all" aria-pressed="true">Tout</button>
+  {GENRE_CHIPS.map((c) => (
+    <button type="button" class="bz-chip" data-chip={c.id} aria-pressed="false">{c.label}</button>
+  ))}
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-chip-filter]').forEach((group) => {
+    const grid = document.querySelector<HTMLElement>(group.dataset.chipFilter!);
+    const empty = grid?.parentElement?.querySelector<HTMLElement>('.chip-empty');
+    group.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-chip]');
+      if (!button || !grid) return;
+      group.querySelectorAll('[data-chip]').forEach((b) => {
+        b.classList.toggle('is-active', b === button);
+        b.setAttribute('aria-pressed', String(b === button));
+      });
+      const chip = button.dataset.chip!;
+      let visible = 0;
+      grid.querySelectorAll<HTMLElement>('[data-chips]').forEach((tile) => {
+        const show = chip === 'all' || tile.dataset.chips!.split(' ').includes(chip);
+        tile.hidden = !show;
+        if (show) visible++;
+      });
+      if (empty) empty.hidden = visible > 0;
+    });
+  });
+</script>

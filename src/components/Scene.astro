@@ -1,0 +1,62 @@
+---
+// Ambiance "photo de concert" en CSS (projecteurs, foule) pour les contenus sans vraie photo
+interface Props {
+  variant?: number;
+  class?: string;
+}
+
+const { variant = 0, class: className = '' } = Astro.props;
+
+const SCENES = [
+  { light: '#ffb347', glow: '#7a3b12', base: '#120a06' },
+  { light: '#ffd9a0', glow: '#8a5a2a', base: '#140e08' },
+  { light: '#cfe3ff', glow: '#2c3f66', base: '#06080f' },
+  { light: '#ffcf87', glow: '#6b3a1c', base: '#0e0805' },
+  { light: '#f2f2f2', glow: '#3a3a3a', base: '#080808' },
+  { light: '#9fb4c8', glow: '#2a2f3a', base: '#07080a' },
+];
+const s = SCENES[variant % SCENES.length];
+---
+
+<div class:list={['scene', className]} style={`--light:${s.light};--glow:${s.glow};--base:${s.base}`} aria-hidden="true">
+  <span class="beams"></span>
+  <span class="crowd"></span>
+</div>
+
+<style>
+  .scene {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 45% 35% at 50% 38%, var(--light) 0%, transparent 70%),
+      radial-gradient(ellipse 90% 70% at 50% 30%, var(--glow) 0%, transparent 75%),
+      var(--base);
+  }
+
+  .beams {
+    position: absolute;
+    inset: -20% -10% 30%;
+    background: repeating-conic-gradient(from 160deg at 50% 45%, rgba(255, 255, 255, 0.13) 0 2deg, transparent 2deg 9deg);
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 45%, #000 0%, transparent 75%);
+    filter: blur(1.5px);
+  }
+
+  .crowd {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 42%;
+    background:
+      radial-gradient(circle at 6% 30%, #000 0 7%, transparent 8%),
+      radial-gradient(circle at 17% 42%, #000 0 8%, transparent 9%),
+      radial-gradient(circle at 29% 26%, #000 0 6%, transparent 7%),
+      radial-gradient(circle at 41% 40%, #000 0 8%, transparent 9%),
+      radial-gradient(circle at 54% 30%, #000 0 7%, transparent 8%),
+      radial-gradient(circle at 66% 44%, #000 0 8%, transparent 9%),
+      radial-gradient(circle at 78% 28%, #000 0 6%, transparent 7%),
+      radial-gradient(circle at 91% 40%, #000 0 8%, transparent 9%),
+      linear-gradient(to bottom, transparent 40%, #000 75%);
+    opacity: 0.85;
+  }
+</style>

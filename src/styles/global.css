@@ -3,37 +3,42 @@
    ============================================================================ */
 
 :root {
-  /* Fond sombre profond */
-  --color-bg: #09090b;
-  --color-bg-elevated: #141416;
-  --color-bg-surface: #1c1c1e;
-  --color-bg-hover: #27272a;
-  --color-border: #27272a;
-  --color-border-hover: #3f3f46;
-  --color-text: #fafafa;
-  --color-text-muted: #a1a1aa;
-  --color-text-dim: #71717a;
+  /* Fond (maquettes BARZ¡) */
+  --color-bg: #0b0b0b;
+  --color-bg-elevated: #151515;
+  --color-bg-surface: #1b1b1b;
+  --color-bg-hover: #232323;
+  --color-border: #242424;
+  --color-border-hover: #363636;
+  --color-text: #f3efe6;
+  --color-text-muted: #9a978f;
+  --color-text-dim: #6b6964;
 
-  /* Accent lime actif (BARZ - inspiré maquette) */
-  --color-accent-lime: #a3e635;
-  --color-accent-lime-dark: #84cc16;
-  --color-accent-lime-glow: rgba(163, 230, 53, 0.35);
+  /* Palette des maquettes */
+  --color-lime: #dcf75b;
+  --color-ink: #0b0b0b;
+  --color-cream: #efebe3;
+  --color-orange: #ec6a3e;
+  --color-blue: #3a6cf4;
+  --color-violet: #8a7cf5;
+  --color-sand: #e2c27a;
 
-  /* Accent rose vif (BARZ - secondaire) */
-  --color-accent: #e11d48;
-  --color-accent-hover: #f43f5e;
-  --color-accent-dark: #be123c;
-  --color-accent-light: #ffe4e6;
-  --color-accent-muted: #881337;
-  --color-accent-glow: rgba(225, 29, 72, 0.35);
-
-  /* Couleur crème pour cartes récap */
-  --color-surface-cream: #f7f5f0;
+  /* Alias historiques */
+  --color-accent-lime: var(--color-lime);
+  --color-accent-lime-dark: #b9d63a;
+  --color-accent-lime-glow: rgba(220, 247, 91, 0.3);
+  --color-accent: var(--color-lime);
+  --color-accent-hover: #e8ff7a;
+  --color-accent-dark: #b9d63a;
+  --color-accent-light: var(--color-ink);
+  --color-accent-muted: #3a4214;
+  --color-accent-glow: rgba(220, 247, 91, 0.3);
+  --color-surface-cream: var(--color-cream);
 
   /* Typographie */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'Outfit', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   --text-xs: 0.75rem;
@@ -147,7 +152,7 @@ body {
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.1;
   color: var(--color-text);
   letter-spacing: -0.02em;
@@ -211,15 +216,13 @@ a:focus-visible {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
-  color: white;
-  box-shadow: 0 0 20px rgba(225, 29, 72, 0.35);
+  background: var(--color-lime);
+  color: var(--color-ink);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 0 40px rgba(225, 29, 72, 0.5);
+  background: var(--color-accent-hover);
+  color: var(--color-ink);
 }
 
 .btn-secondary {
@@ -454,8 +457,8 @@ select.input { cursor: pointer; }
 
 /* Selection */
 ::selection {
-  background: var(--color-accent-muted);
-  color: var(--color-accent-light);
+  background: var(--color-lime);
+  color: var(--color-ink);
 }
 
 /* Focus */
@@ -574,20 +577,6 @@ select.input { cursor: pointer; }
 /* Serif font utilities */
 .font-serif { font-family: var(--font-serif); }
 
-/* Container téléphone (maquette) */
-.phone {
-  max-width: 390px;
-  margin: 0 auto;
-  background: #000;
-  border-radius: 48px;
-  border: 12px solid #1a1a1a;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-.phone-screen {
-  background: var(--color-bg);
-  min-height: 100vh;
-}
 
 .glass-panel {
   background: rgba(24, 24, 26, 0.4);

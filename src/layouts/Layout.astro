@@ -1,9 +1,10 @@
 ---
-// Layout principal - Design moderne (mobile téléphone + desktop sidebar)
+// Layout principal : barre latérale + barre du haut sur PC, barre du bas sur mobile
 import '../styles/global.css';
-import BottomNav from '../components/BottomNav.astro';
+import '../styles/barz.css';
 import Sidebar from '../components/Sidebar.astro';
 import TopBar from '../components/TopBar.astro';
+import BottomNav from '../components/BottomNav.astro';
 
 interface Props {
   title: string;
@@ -14,13 +15,14 @@ interface Props {
 
 const {
   title,
-  description = 'BARZ - Ton calendrier des sorties musicales.',
-  image = '/og-default.jpg',
+  description = 'BARZ¡ — les sorties du vendredi, l’actu musicale et de quoi sortir de ta bulle.',
+  image = '/og-default.svg',
   type = 'website',
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-const siteName = 'BARZ';
+const siteName = 'BARZ¡';
+const currentPath = Astro.url.pathname;
 ---
 
 <!doctype html>
@@ -29,6 +31,7 @@ const siteName = 'BARZ';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#0b0b0b" />
 
     <title>{title} | {siteName}</title>
     <meta name="description" content={description} />
@@ -40,124 +43,63 @@ const siteName = 'BARZ';
     <meta property="og:image" content={new URL(image, Astro.site)} />
     <meta property="og:site_name" content={siteName} />
     <meta property="og:locale" content="fr_FR" />
-
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL(image, Astro.site)} />
 
     <slot name="json-ld" />
 
     <link rel="icon" type="image/svg+xml" href="/BARZ-/favicon.svg" />
-    <link rel="apple-touch-icon" href="/BARZ-/apple-touch-icon.png" />
     <link rel="manifest" href="/BARZ-/manifest.json" />
 
-    <link rel="preconnect" href="https://coverartarchive.org" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Instrument+Serif:ital@0;1&display=swap"
+    />
     <link rel="preconnect" href="https://i.scdn.co" />
   </head>
-  <body class="app-body">
-    <div class="app-shell">
-      {/* ===== DESKTOP TOP BAR ===== */}
-      <header class="top-bar desktop-only">
-        <TopBar currentPath={Astro.url.pathname} />
-      </header>
-
-      {/* ===== DESKTOP SIDEBAR ===== */}
-      <aside class="sidebar desktop-only">
-        <Sidebar currentPath={Astro.url.pathname} />
-      </aside>
-
-      {/* ===== MAIN CONTENT (mobile = phone container, desktop = full width) ===== */}
-      <main id="main-content" role="main" class="main-content">
-        <slot />
-      </main>
-
-      {/* ===== MOBILE BOTTOM NAV ===== */}
-      <BottomNav currentPath={Astro.url.pathname} class="mobile-only" />
+  <body>
+    <div class="bz-shell">
+      <div class="shell-sidebar">
+        <Sidebar currentPath={currentPath} />
+      </div>
+      <div class="shell-main">
+        <TopBar />
+        <main id="main-content">
+          <slot />
+        </main>
+      </div>
     </div>
-
-    <style>
-      /* ===== Layout shell ===== */
-      .app-shell {
-        display: block;
-        min-height: 100vh;
-      }
-
-      .desktop-only {
-        display: none;
-      }
-      .mobile-only {
-        display: block;
-      }
-
-      /* ===== Mobile: phone container ===== */
-      .main-content {
-        max-width: 390px;
-        margin: 0 auto;
-        background: #000;
-        border-radius: 48px;
-        border: 12px solid #1a1a1a;
-        overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* ===== Desktop: sidebar + top bar + full width ===== */
-      @media (min-width: 1024px) {
-        .app-shell {
-          display: grid;
-          grid-template-rows: 64px 1fr;
-          grid-template-columns: 280px 1fr;
-          height: 100vh;
-          overflow: hidden;
-        }
-
-        .desktop-only {
-          display: block;
-        }
-        .mobile-only {
-          display: none !important;
-        }
-
-        .top-bar {
-          grid-row: 1;
-          grid-column: 1 / -1;
-        }
-
-        .sidebar {
-          grid-row: 2;
-          grid-column: 1;
-          overflow-y: auto;
-        }
-
-        .main-content {
-          grid-row: 2;
-          grid-column: 2;
-          overflow-y: auto;
-          padding: var(--space-6);
-          background: var(--color-bg);
-          max-width: none !important;
-          margin: 0 !important;
-          background: var(--color-bg) !important;
-          border: none !important;
-          border-radius: 0 !important;
-          box-shadow: none !important;
-          min-height: auto !important;
-        }
-      }
-    </style>
-
-    <script is:inline>
-      document.querySelectorAll('.card-interactive').forEach((el) => {
-        el.addEventListener('click', (e) => {
-          if (!el.classList.contains('a')) {
-            const link = el.querySelector('a');
-            if (link) window.location.href = link.href;
-          }
-        });
-      });
-    </script>
+    <div class="shell-bottom">
+      <BottomNav currentPath={currentPath} />
+    </div>
   </body>
 </html>
+
+<style>
+  .bz-shell {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    min-height: 100vh;
+  }
+
+  .shell-main {
+    min-width: 0;
+  }
+
+  .shell-bottom {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .bz-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .shell-sidebar {
+      display: none;
+    }
+    .shell-bottom {
+      display: block;
+    }
+  }
+</style>

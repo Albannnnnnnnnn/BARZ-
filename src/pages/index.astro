@@ -1,255 +1,415 @@
 ---
-// PAGE VENDREDI - Accueil (maquette PC)
-import Layout from '../layouts/Layout.astro';
-import { getSupabaseServerSafe } from '../lib/supabase';
-import { getCurrentWeekStart } from '../lib/utils';
-import { fetchWeeklyReleases } from '../lib/releases';
-import { format } from 'date-fns';
+// PAGE VENDREDI : les sorties de la semaine (données réelles) + défi, concerts, Barz (démo)
+import { addDays, format, getISOWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Layout from '../layouts/Layout.astro';
+import AlbumTile from '../components/AlbumTile.astro';
+import Cover from '../components/Cover.astro';
+import GenreChips from '../components/GenreChips.astro';
+import { getSupabaseServerSafe } from '../lib/supabase';
+import { chipIdsFor, fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
+import { getReleaseTypeLabel } from '../lib/utils';
+import { DEMO_ALBUMS, DEMO_BARZ, DEMO_CHALLENGE, DEMO_CONCERTS } from '../data/demo';
 
-const supabase = getSupabaseServerSafe();
-const currentWeek = format(getCurrentWeekStart(), 'yyyy-MM-dd');
+const today = getToday();
+// Le vendredi de référence : aujourd'hui si c'est vendredi, sinon le dernier vendredi passé
+const friday = addDays(today, -((today.getDay() - 5 + 7) % 7));
+const releases = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(friday, -6), addDays(friday, 6));
 
-const weeklyData = await fetchWeeklyReleases(
-  supabase,
-  getCurrentWeekStart(),
-  new Date(Date.now() + 21 * 24 * 60 * 60 * 1000)
-);
+// Les artistes suivis d'abord, puis les albums avant les EP
+const rank = (r: ReleaseRow) => (r.metadata?.watched ? 0 : 2) + (r.release_type === 'album' ? 0 : 1);
+const sorted = [...releases].sort((a, b) => rank(a) - rank(b));
+const count = sorted.length;
+const fan = sorted.slice(0, 5);
+const watched = sorted.filter((r) => r.metadata?.watched).slice(0, 6);
 
-const fridayReleases = [];
-let totalThisWeek = 0;
-
-weeklyData.forEach((w) => {
-  (w.releases || []).forEach((r) => {
-    const day = new Date(r.release_date);
-    if (day.getDay() === 5) {
-      fridayReleases.push(r);
-    }
-  });
-});
-totalThisWeek = fridayReleases.length;
-
-const currentWeekData = weeklyData.find((w) => w.week_start === currentWeek);
-const recapRelease = currentWeekData?.releases?.[0] || null;
-
-const weekLabel = format(getCurrentWeekStart(), "dd MMMM", { locale: fr });
-const weekNumber = Math.ceil(
-  (getCurrentWeekStart().getDate() +
-    new Date(getCurrentWeekStart().getFullYear(), 0, 1).getDay() -
-    1) /
-    7
-);
-
-const followedArtists = [
-  { name: 'Néons Lents', artist: 'Mira Kale', cover: '/BARZ-/placeholder-release.svg' },
-  { name: 'Hiver 04', artist: 'Sacha Rubis', cover: '/BARZ-/placeholder-release.svg' },
-  { name: 'Sous silence', artist: 'Lou Valentin', cover: '/BARZ-/placeholder-release.svg' },
-];
+const eyebrow = `Vendredi ${format(friday, 'd MMMM', { locale: fr })} · Semaine ${getISOWeek(friday)}`;
+const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
+const quotes = DEMO_BARZ.slice(0, 2);
 ---
 
-<Layout title="Vendredi - BARZ" description="Salut Alban, découvre les sorties de ce vendredi. Ton récap musical et tes artistes suivis.">
-  <div class="container section-sm py-4">
-    {/* Desktop: week label + hero */}
-    <div class="desktop-only">
-      <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-2 block">
-        Vendredi {weekLabel} • Semaine {weekNumber}
-      </span>
-      <h1 class="font-serif text-5xl font-bold mt-0 mb-6 text-[var(--color-text)] leading-tight">
-        Salut Alban, {totalThisWeek} sortie{totalThisWeek > 1 ? 's' : ''} pour toi<span class="text-lime">.</span>
-      </h1>
-    </div>
+<Layout title="Vendredi" description="Les sorties musicales du vendredi, triées pour toi.">
+  <div class="bz-page">
+    <span class="bz-eyebrow">{eyebrow}</span>
+    <h1 class="bz-display">
+      {count > 0 ? (
+        <>Salut Alban, <em>{count} sortie{count > 1 ? 's' : ''}</em> pour toi.</>
+      ) : (
+        <>Salut Alban, <em>calme plat</em> cette semaine.</>
+      )}
+    </h1>
 
-    {/* Mobile: week label + hero */}
-    <div class="mobile-only">
-      <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-4 block">
-        Vendredi {weekLabel} • Semaine {weekNumber}
-      </span>
-      <h1 class="font-serif text-5xl md:text-6xl font-bold mt-2 mb-3 text-[var(--color-text)] leading-tight">
-        Salut Alban, {totalThisWeek} sortie{totalThisWeek > 1 ? 's' : ''} pour toi<span class="text-lime">.</span>
-      </h1>
-      <p class="text-sm text-muted mb-6">
-        Ton récap musical du vendredi. Découvre les nouveaux albums, EPs et singles qui sortent aujourd'hui.
-      </p>
-    </div>
-
-    {/* Toutes les sorties link */}
-    <a
-      href="/BARZ-/releases"
-      class="flex items-center justify-between px-4 py-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)]/50 mb-6 text-sm font-medium text-[var(--color-text)]"
-    >
-      <span>Toutes les sorties</span>
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <line x1="5" y1="12" x2="19" y2="12" />
-        <line x1="12" y1="5" x2="12" y2="19" />
-      </svg>
-    </a>
-
-    {/* Récap du vendredi */}
-    {recapRelease && (
-      <section class="mb-6 rounded-[var(--radius-xl2)] bg-[var(--color-surface-cream)] p-5 md:p-6 overflow-hidden">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-[10px] font-bold uppercase tracking-widest text-lime-dark">Le récap • 3 min</span>
-        </div>
-        <div class="grid md:grid-cols-12 gap-4">
-          <div class="md:col-span-5 relative aspect-[3/4] overflow-hidden rounded-[var(--radius-lg)]">
-            <img
-              src={recapRelease!.cover_url || '/BARZ-/placeholder-release.svg'}
-              alt={`Couverture de ${recapRelease!.title}`}
-              class="w-full h-full object-cover"
-              loading="eager"
-            />
-            <span class="absolute top-3 left-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Récap</span>
-          </div>
-          <div class="md:col-span-7 flex flex-col justify-center">
-            <h2 class="font-serif text-2xl md:text-3xl font-bold mb-2 text-[var(--color-text)] leading-tight">
-              {recapRelease!.title}
-            </h2>
-            <p class="text-sm text-muted mb-4">{recapRelease!.artist?.name}</p>
-            <p class="text-xs text-muted mb-5 max-w-md">
-              {recapRelease!.genres?.slice(0, 2).join(' · ') || 'Nouvelle sortie'} : le disque à ne pas manquer ce vendredi.
-            </p>
-            <a href={`/BARZ-/releases/${recapRelease!.slug}`} class="btn btn-primary btn-sm w-full">
-              Lancer le récap →
-            </a>
-          </div>
-        </div>
-      </section>
-    )}
-
-    {/* Tes artistes suivis */}
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-2xl font-bold text-[var(--color-text)]">Tes artistes</h2>
-      <span class="text-[12px] font-bold text-lime">{followedArtists.length} suivis</span>
-    </div>
-    <div class="grid gap-3">
-      {followedArtists.map((a) => (
-        <a href="/BARZ-/" class="card card-interactive flex items-center gap-3 p-3">
-          <div class="relative w-14 h-14 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)]">
-            <img src={a.cover} alt={a.name} class="w-full h-full object-cover" loading="lazy" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="font-medium truncate text-[var(--color-text)] text-sm">{a.name}</p>
-            <p class="text-xs text-muted truncate">{a.artist}</p>
-          </div>
-          <span class="badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold py-1 px-2">Suivi</span>
-        </a>
-      ))}
-    </div>
-
-    {/* ===== DESKTOP RIGHT SIDEBAR ===== */}
-    <div class="desktop-only grid lg:grid-cols-12 gap-8 mt-8">
-      <div class="lg:col-span-8">
-        {/* Toutes les sorties section for desktop */}
-        <h2 class="font-serif text-3xl font-bold mb-6 text-[var(--color-text)] leading-tight">
-          Toutes les sorties
-        </h2>
-        <div class="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-          <button class="px-4 py-1.5 rounded-full bg-[#a3e635] text-[#09090b] text-xs font-bold">Tout</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Rap</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Électro</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Pop</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Jazz</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Rock</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Soul</button>
-          <button class="px-4 py-1.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Monde</button>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {[
-            { title: 'Kintsugi', artist: 'Tamo & Th...', score: 8.8, cover: '/BARZ-/placeholder-release.svg' },
-            { title: 'Néon Lents', artist: 'Mira Kale - ...', score: 8.4, cover: '/BARZ-/placeholder-release.svg' },
-            { title: 'Basse M...', artist: 'Ostra - EP', score: 7.9, cover: '/BARZ-/placeholder-release.svg' },
-            { title: 'Sous la ...', artist: 'Lou Varenn...', score: 7.2, cover: '/BARZ-/placeholder-release.svg' },
-            { title: 'Terre Brûlée', artist: 'Volta Noire ...', score: 7.6, cover: '/BARZ-/placeholder-release.svg' },
-            { title: 'Hiver 04', artist: 'Sacha Rub...', score: 6.8, cover: '/BARZ-/placeholder-release.svg' },
-          ].map((r) => (
-            <article class="card card-interactive overflow-hidden group" key={r.title}>
-              <div class="relative aspect-[1/1] overflow-hidden">
-                <img src={r.cover} alt={r.title} class="w-full h-full object-cover" loading="lazy" />
-                <span class="absolute bottom-3 left-3 bg-black/60 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded">{r.score}</span>
-              </div>
-              <div class="p-3">
-                <h3 class="font-bold text-sm truncate mb-1 text-[var(--color-text)]">{r.title}</h3>
-                <p class="text-xs text-muted truncate">{r.artist}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+    <section class="recap" aria-labelledby="recap-title">
+      <div class="recap-text">
+        <span class="recap-eyebrow">Le récap du vendredi · 3 min</span>
+        {count > 0 ? (
+          <h2 id="recap-title" class="recap-title">
+            {count === 1 && <>{fan[0].title} à ne pas rater.</>}
+            {count === 2 && <>{fan[0].title}{' '}<em>et</em>{' '}{fan[1].title} à ne pas rater.</>}
+            {count > 2 && <>{fan[0].title}, {fan[1].title}{' '}<em>et {count - 2} autres</em>{' '}à ne pas rater.</>}
+          </h2>
+        ) : (
+          <h2 id="recap-title" class="recap-title">Le récap arrive{' '}<em>vendredi</em>{' '}matin.</h2>
+        )}
+        <p>Les sorties essentielles de la semaine en stories, triées selon tes goûts et ton curseur d’exploration.</p>
+        {count > 0 && <a class="bz-btn bz-btn--ink" href={`/BARZ-/releases/${fan[0].slug}`}>Lancer le récap →</a>}
       </div>
-
-      <div class="lg:col-span-4">
-        <div class="space-y-6">
-          {/* Défi de la semaine */}
-          <div class="rounded-[var(--radius-xl2)] bg-[#f97316] p-6 text-white">
-            <span class="text-[10px] font-bold uppercase tracking-widest opacity-90">Défi de la semaine</span>
-            <h2 class="font-serif text-3xl font-bold mt-2 mb-4 leading-tight">Un album de cumbia psychédélique</h2>
-            <p class="text-sm opacity-90 mb-6">1 248 membres relèvent le défi · se termine dimanche</p>
-            <button class="bg-[#09090b] text-[#a3e635] px-6 py-2 rounded-full text-xs font-bold hover:bg-[#a3e635] hover:text-[#09090b] transition">Relever le défi</button>
+      <div class="fan" aria-hidden="true">
+        {(fan.length ? fan : Object.values(DEMO_ALBUMS).slice(0, 5)).map((r: any, i: number) => (
+          <div class="fan-card" style={`--i:${i};--n:${Math.max(fan.length, 5)}`}>
+            <Cover title={r.title} src={r.cover_url} palette={r.palette} />
           </div>
+        ))}
+      </div>
+    </section>
 
-          {/* Concerts */}
-          <div>
-            <h3 class="font-serif text-2xl font-bold mb-4 text-[var(--color-text)]">Concerts</h3>
-            <div class="space-y-3">
-              {[
-                { date: '12 AVR', artist: 'Mira Kale', venue: 'Zénith, Paris', price: '39 €' },
-                { date: '18 AVR', artist: 'Tamo & The Fold', venue: 'New Morning, Paris', price: '28 €' },
-                { date: '02 MAI', artist: 'Ostra', venue: 'Le Sucre, Lyon', price: '18 €' },
-              ].map((c) => (
-                <div class="flex items-center gap-3 p-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)]" key={c.artist}>
-                  <span class="text-[10px] font-bold text-lime w-12 text-center">{c.date}</span>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-sm text-[var(--color-text)] truncate">{c.artist}</p>
-                    <p class="text-xs text-muted truncate">{c.venue}</p>
-                  </div>
-                  <span class="text-xs font-bold text-[var(--color-text)]">{c.price}</span>
-                </div>
+    <div class="split">
+      <section aria-labelledby="all-title">
+        <div class="bz-section-head">
+          <h2 id="all-title" class="bz-h2">Toutes les sorties</h2>
+          <a class="bz-link" href="/BARZ-/calendar">Mode digest</a>
+        </div>
+
+        {count > 0 ? (
+          <>
+            <GenreChips target="#all-grid" />
+            <div id="all-grid" class="bz-tiles grid">
+              {sorted.slice(0, 24).map((r) => (
+                <AlbumTile
+                  title={r.title}
+                  subtitle={subtitleOf(r)}
+                  cover={r.cover_url}
+                  href={`/BARZ-/releases/${r.slug}`}
+                  chips={chipIdsFor(r.genres)}
+                />
               ))}
             </div>
-          </div>
+            <p class="chip-empty" hidden>Aucune sortie de ce genre cette semaine.</p>
+            {count > 24 && <a class="bz-link more" href="/BARZ-/releases">Voir les {count} sorties →</a>}
+          </>
+        ) : (
+          <p class="bz-empty">
+            <strong>Aucune sortie enregistrée pour cette semaine.</strong><br />
+            Elles apparaissent après le sync du vendredi matin (GitHub Actions → « Sync Weekly Releases »).
+          </p>
+        )}
+      </section>
 
-          {/* Barz du jour */}
-          <div>
-            <h3 class="font-serif text-2xl font-bold mb-4 text-[var(--color-text)]">Barz du jour</h3>
-            <div class="p-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
-              <div class="flex items-start gap-3 mb-3">
-                <div class="w-8 h-8 rounded-full bg-[#a3e635] flex items-center justify-center text-[10px] font-bold text-[#09090b]">I</div>
-                <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-sm text-[var(--color-text)]">Inès</p>
-                  <p class="text-xs text-muted">@ines.wav · il y a 1 h</p>
-                </div>
-              </div>
-              <p class="text-sm text-[var(--color-text)] mb-3">« Je n'écoutais jamais de jazz. Le défi de la semaine m'a convertie. »</p>
-              <div class="flex items-center justify-between">
-                <img src="/BARZ-/placeholder-release.svg" alt="Kintsugi" class="w-16 h-16 rounded-[var(--radius-md)] object-cover" />
-                <div class="text-right">
-                  <span class="font-bold text-sm text-[var(--color-text)]">Kintsugi</span>
-                  <span class="text-xs font-bold bg-[#a3e635] text-[#09090b] px-2 py-0.5 rounded">9.5</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <aside class="side">
+        <section class="challenge">
+          <span class="challenge-eyebrow">Défi de la semaine</span>
+          <h2>{DEMO_CHALLENGE.title}</h2>
+          <p>{DEMO_CHALLENGE.meta}</p>
+          <a class="bz-btn bz-btn--ink bz-btn--small" href="/BARZ-/search">Relever le défi</a>
+        </section>
+
+        <section>
+          <div class="bz-section-head"><h2 class="bz-h2">Concerts</h2></div>
+          <ul class="concerts">
+            {DEMO_CONCERTS.slice(0, 3).map((c) => (
+              <li>
+                <span class="concert-date"><b>{c.day}</b>{c.month}</span>
+                <span class="concert-info"><b>{c.artist}</b>{c.venue}</span>
+                <span class="concert-price">{c.price}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <div class="bz-section-head"><h2 class="bz-h2">Barz du jour</h2></div>
+          {quotes.map((q) => (
+            <a class="quote" href="/BARZ-/commu">
+              <span class="quote-meta">{q.handle} · <b>{q.score}</b></span>
+              <span class="quote-text">{q.text}</span>
+            </a>
+          ))}
+        </section>
+      </aside>
     </div>
+
+    <section class="artists" aria-labelledby="artists-title">
+      <div class="bz-section-head"><h2 id="artists-title" class="bz-h2">Tes artistes ont sorti</h2></div>
+      {watched.length > 0 ? (
+        <div class="bz-tiles">
+          {watched.map((r) => (
+            <AlbumTile title={r.title} subtitle={r.artist?.name ?? ''} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />
+          ))}
+        </div>
+      ) : (
+        <p class="bz-empty">Rien de neuf chez tes artistes suivis cette semaine. La liste se modifie dans <strong>scripts/artist-watchlist.json</strong>.</p>
+      )}
+    </section>
   </div>
 </Layout>
 
 <style>
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .recap {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 40px;
+    margin-top: 64px;
+    padding: 56px;
+    border-radius: 28px;
+    background: var(--color-cream);
+    color: var(--color-ink);
+    overflow: hidden;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+
+  .recap-text {
+    position: relative;
+    z-index: 20;
+  }
+
+  .recap-eyebrow {
+    font: 700 13px/1 var(--font-sans);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .recap-title {
+    margin: 24px 0 26px;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(40px, 4.6vw, 76px);
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+  }
+
+  .recap-title em {
+    font-style: italic;
+  }
+
+  .recap p {
+    max-width: 540px;
+    margin-bottom: 34px;
+    font-size: 17px;
+    line-height: 1.55;
+    color: #3d3a35;
+  }
+
+  .fan {
+    position: relative;
+    height: 300px;
+  }
+
+  .fan-card {
+    position: absolute;
+    top: 50%;
+    left: 62%;
+    width: 210px;
+    box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
+    transform: translate(calc(-50% + (var(--i) - 2) * 92px), -50%) rotate(calc((var(--i) - 2) * 5deg));
+    z-index: calc(10 - var(--i));
+  }
+
+  .fan-card:nth-child(1) {
+    z-index: 12;
+    transform: translate(-50%, -54%) rotate(0deg);
+  }
+
+  .fan-card:nth-child(2) {
+    transform: translate(calc(-50% - 100px), -48%) rotate(-7deg);
+  }
+
+  .fan-card:nth-child(3) {
+    transform: translate(calc(-50% + 100px), -48%) rotate(6deg);
+  }
+
+  .fan-card:nth-child(4) {
+    transform: translate(calc(-50% - 190px), -44%) rotate(-12deg);
+  }
+
+  .fan-card:nth-child(5) {
+    transform: translate(calc(-50% + 190px), -44%) rotate(11deg);
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 440px;
+    gap: 64px;
+    margin-top: 76px;
+  }
+
+  .grid {
+    margin-top: 28px;
+  }
+
+  .chip-empty {
+    margin-top: 24px;
+    color: var(--color-text-muted);
+  }
+
+  .more {
+    display: inline-block;
+    margin-top: 28px;
+  }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  }
+
+  .challenge {
+    padding: 36px 32px;
+    border-radius: 24px;
+    background: var(--color-orange);
+    color: var(--color-ink);
+  }
+
+  .challenge-eyebrow {
+    font: 700 13px/1 var(--font-sans);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .challenge h2 {
+    margin: 20px 0 18px;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 48px;
+    line-height: 0.95;
+    color: var(--color-ink);
+  }
+
+  .challenge p {
+    margin-bottom: 26px;
+    color: #2b1609;
+    font-size: 16px;
+  }
+
+  .concerts {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .concerts li {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 18px 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+  }
+
+  .concert-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    color: var(--color-lime);
+  }
+
+  .concert-date b {
+    margin-bottom: 6px;
+    font: 400 38px/1 var(--font-serif);
+    letter-spacing: 0;
+    color: var(--color-text);
+  }
+
+  .concert-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .concert-info b {
+    font-size: 17px;
+    color: var(--color-text);
+  }
+
+  .concert-price {
+    padding: 7px 12px;
+    border: 1px solid #3a3a3a;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .quote {
+    display: block;
+    margin-bottom: 14px;
+    padding: 22px;
+    border-radius: 16px;
+    background: var(--color-bg-elevated);
+    transition: background var(--transition-fast);
+  }
+
+  .quote:hover {
+    background: var(--color-bg-surface);
+  }
+
+  .quote-meta {
+    display: block;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .quote-meta b {
+    color: var(--color-lime);
+  }
+
+  .quote-text {
+    display: block;
+    margin-top: 10px;
+    font: 400 24px/1.25 var(--font-serif);
+  }
+
+  .artists {
+    margin-top: 80px;
+  }
+
+  @media (max-width: 1280px) {
+    .split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .side {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .recap {
+      grid-template-columns: minmax(0, 1fr);
+      margin-top: 36px;
+      padding: 32px 24px;
+    }
+    .fan {
+      height: 200px;
+      order: -1;
+    }
+    .fan-card {
+      width: 150px;
+    }
+    .fan-card:nth-child(4),
+    .fan-card:nth-child(5) {
+      display: none;
+    }
+    .fan-card:nth-child(2) {
+      transform: translate(calc(-50% - 80px), -48%) rotate(-7deg);
+    }
+    .fan-card:nth-child(3) {
+      transform: translate(calc(-50% + 80px), -48%) rotate(6deg);
+    }
+    .split {
+      margin-top: 48px;
+    }
+    .challenge h2 {
+      font-size: 38px;
+    }
   }
 </style>

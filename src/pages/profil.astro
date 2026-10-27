@@ -1,245 +1,263 @@
 ---
-// PAGE PROFIL - ADN musical (maquette PC)
+// PAGE PROFIL : en-tête, ADN musical, spin list, activité récente (contenu de démonstration)
 import Layout from '../layouts/Layout.astro';
+import AlbumTile from '../components/AlbumTile.astro';
+import { DEMO_ALBUMS, DEMO_USER } from '../data/demo';
 
-const user = {
-  name: 'Alban',
-  handle: '@alban.mmi',
-  followers: 212,
-  bio: 'Étudiant MMI · rap, électro, et de plus en plus de jazz',
-};
-
-const stats = [
-  { label: 'ÉCOUTÉS', value: '147' },
-  { label: 'SPIN LIST', value: '2' },
-  { label: 'BARZ', value: '61' },
-  { label: 'ABONNÉS', value: '212' },
-];
-
-const adn = [
-  { genre: 'Rap', pct: 62, barColor: '#a3e635' },
-  { genre: 'Électro', pct: 21, barColor: 'var(--color-accent)' },
-  { genre: 'Jazz', pct: 11, barColor: 'var(--color-text-dim)' },
-  { genre: 'Autres', pct: 6, barColor: 'var(--color-text-dim)' },
-];
-
-const adnNote = '+8 % de jazz ce mois-ci. Tu sors de ta bulle.';
-
-const tabs = [
-  { id: 'spinlist', label: 'Spin list', active: true },
-  { id: 'ecoutes', label: 'Écoutés', active: false },
-  { id: 'barz', label: 'Barz', active: false },
-];
-
-const spinList = [
-  { title: 'Lagune', subtitle: 'Nour · Soul', cover: '/BARZ-/placeholder-release.svg', score: 8.1 },
-  { title: 'Selva Eléctrica', subtitle: 'Los Cometas · Monde', cover: '/BARZ-/placeholder-release.svg', score: 8.3 },
-];
-
-const recentActivity = [
-  'A noté Néon Lents · 8.5',
-  'A relevé le défi jazz de la semaine 10',
-  'Suit Sacha Rubis',
-  'A ajouté Lagune à sa spin list',
-];
+const user = DEMO_USER;
 ---
 
-<Layout title="Profil Alban - BARZ" description="Découvre l'ADN musical d'Alban : rap, électro et jazz.">
-  <div class="container section-sm py-4">
-    {/* Desktop profile hero */}
-    <div class="desktop-only mb-8">
-      <div class="rounded-[var(--radius-xl2)] bg-gradient-to-r from-[#09090b]/80 via-[#09090b]/40 to-transparent p-8 md:p-12 overflow-hidden relative">
-        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#a3e635]/20 to-transparent pointer-events-none" />
-        <div class="relative z-10">
-          <div class="flex items-start gap-6 mb-6">
-            <div class="flex h-20 w-20 items-center justify-center rounded-full bg-[#a3e635] text-[#09090b] shadow-[0_0_30px_rgba(163,230,53,0.4)] text-3xl font-bold flex-shrink-0">
-              A
-            </div>
-            <div>
-              <h1 class="font-serif text-5xl font-bold mt-0 mb-1 text-[var(--color-text)] leading-tight">{user.name}</h1>
-              <p class="text-sm text-muted">{user.handle} · Étudiant MMI · rap, électro, et de plus en plus de jazz</p>
-            </div>
-            <div class="ml-auto flex gap-4">
-              {stats.map((s) => (
-                <div class="text-right" key={s.label}>
-                  <span class="text-3xl font-bold text-[var(--color-text)] block">{s.value}</span>
-                  <span class="text-xs text-muted uppercase tracking-wider">{s.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+<Layout title={`Profil de ${user.name}`} description={`L’ADN musical de ${user.name} : ${user.bio}.`}>
+  <div class="bz-page">
+    <section class="hero">
+      <span class="avatar">{user.name[0]}</span>
+      <div class="identity">
+        <h1>{user.name}</h1>
+        <p>{user.handle} · {user.bio}</p>
       </div>
-    </div>
-
-    {/* Mobile profile hero */}
-    <div class="mobile-only mb-6">
-      <header class="mb-6 text-center">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)] text-2xl font-bold">
-          {user.name[0]}
-        </div>
-        <h1 class="font-serif text-3xl md:text-4xl font-bold mb-1 text-[var(--color-text)] leading-tight">
-          {user.name}
-        </h1>
-        <p class="text-sm text-muted mb-2">{user.handle} · {user.followers} abonnés</p>
-        <p class="text-base text-muted">{user.bio}</p>
-      </header>
-
-      {/* Stats */}
-      <div class="grid grid-cols-3 gap-4 mb-8">
-        {stats.map((s) => (
-          <div class="card p-4 text-center" key={s.label}>
-            <span class="text-2xl font-bold text-[var(--color-text)] block">{s.value}</span>
-            <span class="text-xs text-muted uppercase tracking-wider">{s.label}</span>
+      <dl class="stats">
+        {user.stats.map((s) => (
+          <div>
+            <dt>{s.label}</dt>
+            <dd>{s.value}</dd>
           </div>
         ))}
-      </div>
-    </div>
-
-    {/* ADN musical */}
-    <section class="mb-8 card p-5 rounded-[var(--radius-xl2)]">
-      <h2 class="font-serif text-xl font-bold mb-5 text-[var(--color-text)] leading-tight">
-        Ton ADN musical
-      </h2>
-      {adn.map((g) => (
-        <div class="flex items-center justify-between mb-3" key={g.genre}>
-          <span class="text-sm font-medium text-[var(--color-text)]">{g.genre}</span>
-          <div class="flex-1 h-2 mx-4 overflow-hidden rounded-full bg-[var(--color-bg-hover)]">
-            <div class={`h-full rounded-full bg-[#a3e635] w-[${g.pct}%]`}></div>
-          </div>
-          <span class="text-sm text-muted w-10 text-right">{g.pct} %</span>
-        </div>
-      ))}
-      <p class="mt-5 text-xs text-muted">{adnNote}</p>
+      </dl>
     </section>
 
-    {/* Desktop: spin list + activity side by side */}
-    <div class="desktop-only grid lg:grid-cols-12 gap-8">
-      <div class="lg:col-span-8">
-        {/* Onglets */}
-        <div class="flex gap-1 mb-6" role="tablist" aria-label="Collections">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={t.active ? 'true' : 'false'}
-              class={`px-5 py-2 rounded-full text-sm font-bold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Spin list */}
-        <section id="spinlist" role="tabpanel" aria-labelledby="spinlist">
-          <div class="grid gap-4">
-            {spinList.map((item) => (
-              <article class="card card-interactive overflow-hidden transition group" key={item.title}>
-                <div class="relative aspect-[1/1] overflow-hidden">
-                  <img
-                    src={item.cover}
-                    alt={item.title}
-                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  <span class="absolute top-3 right-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
-                </div>
-                <div class="p-4">
-                  <h3 class="font-bold text-base truncate mb-1 text-[var(--color-text)]">{item.title}</h3>
-                  <p class="text-sm text-muted truncate">{item.subtitle}</p>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-bold text-[#a3e635]">{item.score}</span>
-                    <span class="text-xs text-dim">/10</span>
-                  </div>
-                </div>
-              </article>
+    <div class="layout">
+      <div class="left">
+        <section class="dna" aria-labelledby="dna-title">
+          <h2 id="dna-title">Ton ADN musical · Mars</h2>
+          <ul>
+            {user.dna.map((d) => (
+              <li>
+                <span>{d.genre}</span>
+                <span class="bar"><span style={`width:${d.pct}%`} /></span>
+                <span class="pct">{d.pct} %</span>
+              </li>
             ))}
-          </div>
+          </ul>
+          <p>{user.dnaNote}</p>
+        </section>
+
+        <section class="activity" aria-labelledby="activity-title">
+          <div class="bz-section-head"><h2 id="activity-title" class="bz-h2">Activité récente</h2></div>
+          <ul>
+            {user.activity.map(([verb, rest]) => (
+              <li><b>{verb}</b> {rest}</li>
+            ))}
+          </ul>
         </section>
       </div>
 
-      <div class="lg:col-span-4">
-        <div class="space-y-6">
-          {/* Spin list cards (desktop right sidebar) */}
-          <div>
-            <h3 class="font-serif text-xl font-bold mb-4 text-[var(--color-text)]">Ta spin list</h3>
-            <div class="space-y-3">
-              {spinList.map((item) => (
-                <article class="card card-interactive p-3 rounded-[var(--radius-lg)] flex gap-3 group" key={item.title}>
-                  <div class="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)]">
-                    <img src={item.cover} alt={item.title} class="w-full h-full object-cover" loading="lazy" />
-                    <span class="absolute top-1 right-1 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">✓</span>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <h3 class="font-bold text-sm truncate text-[var(--color-text)]">{item.title}</h3>
-                    <p class="text-xs text-muted truncate">{item.subtitle}</p>
-                  </div>
-                  <span class="text-xs font-bold text-[#a3e635]">{item.score}</span>
-                </article>
-              ))}
-            </div>
-          </div>
+      <section class="collection" aria-label="Collections">
+        <div class="bz-chips" role="tablist">
+          <span class="bz-chip is-active" role="tab" aria-selected="true">Spin list</span>
+          <span class="bz-chip" role="tab" aria-selected="false">Écoutés</span>
+          <span class="bz-chip" role="tab" aria-selected="false">Barz</span>
         </div>
-      </div>
-    </div>
-
-    {/* Mobile: tabs + spin list */}
-    <div class="mobile-only">
-      {/* Onglets */}
-      <div class="flex gap-1 mb-6" role="tablist" aria-label="Collections">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={t.active ? 'true' : 'false'}
-            class={`px-5 py-2 rounded-full text-sm font-bold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Spin list */}
-      <section id="spinlist" role="tabpanel" aria-labelledby="spinlist">
-        <div class="grid gap-4">
-          {spinList.map((item) => (
-            <article class="card card-interactive overflow-hidden transition group" key={item.title}>
-              <div class="relative aspect-[1/1] overflow-hidden">
-                <img
-                  src={item.cover}
-                  alt={item.title}
-                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <span class="absolute top-3 right-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
-              </div>
-              <div class="p-4">
-                <h3 class="font-bold text-base truncate mb-1 text-[var(--color-text)]">{item.title}</h3>
-                <p class="text-sm text-muted truncate">{item.subtitle}</p>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-[#a3e635]">{item.score}</span>
-                  <span class="text-xs text-dim">/10</span>
-                </div>
-              </div>
-            </article>
-          ))}
+        <div class="spin">
+          {user.spinList.map((item) => {
+            const album = DEMO_ALBUMS[item.album as keyof typeof DEMO_ALBUMS];
+            return <AlbumTile title={album.title} subtitle={`${album.artist} · ${item.type}`} palette={album.palette} badge={item.score} checked />;
+          })}
         </div>
       </section>
     </div>
-
-    {/* Activité récente */}
-    <section class="mt-8">
-      <h2 class="font-serif text-3xl font-bold mb-6 text-[var(--color-text)] leading-tight">Activité récente</h2>
-      <ul class="space-y-3">
-        {recentActivity.map((activity, i) => (
-          <li key={i} class="flex items-start gap-3 p-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] transition">
-            <span class="flex-shrink-0 text-[10px] font-bold text-lime">●</span>
-            <p class="text-sm text-[var(--color-text)]">{activity}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
   </div>
 </Layout>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 44px;
+    padding: 56px;
+    border-radius: 28px;
+    background:
+      radial-gradient(ellipse 60% 120% at 90% 10%, #5d6b2a 0%, transparent 70%),
+      linear-gradient(100deg, #4a2a1e 0%, #2e2a1d 50%, #3c4721 100%);
+  }
+
+  .avatar {
+    width: 196px;
+    height: 196px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--color-lime);
+    color: var(--color-ink);
+    font: 400 110px/1 var(--font-serif);
+  }
+
+  .identity h1 {
+    font: 400 clamp(64px, 6vw, 96px) / 1 var(--font-serif);
+    color: var(--color-text);
+  }
+
+  .identity p {
+    max-width: 380px;
+    margin-top: 14px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #d9d3c6;
+  }
+
+  .stats {
+    display: flex;
+    gap: 44px;
+  }
+
+  .stats div {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stats dd {
+    font: 900 48px/1 var(--font-sans);
+    font-stretch: 115%;
+    color: var(--color-text);
+  }
+
+  .stats dt {
+    font: 600 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #cfc8b8;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 490px) minmax(0, 1fr);
+    gap: 64px;
+    margin-top: 64px;
+  }
+
+  .dna {
+    padding: 36px 32px;
+    border-radius: 22px;
+    background: var(--color-cream);
+    color: var(--color-ink);
+  }
+
+  .dna h2 {
+    font: 700 14px/1 var(--font-sans);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+  }
+
+  .dna ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin: 28px 0;
+  }
+
+  .dna li {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 17px;
+  }
+
+  .bar {
+    height: 12px;
+    border-radius: 999px;
+    background: #dcd7cc;
+    overflow: hidden;
+  }
+
+  .bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-ink);
+  }
+
+  .pct {
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .dna p {
+    font-size: 17px;
+    color: #2d2a25;
+  }
+
+  .activity {
+    margin-top: 48px;
+  }
+
+  .activity ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 18px;
+    color: #cfcbc2;
+  }
+
+  .activity b {
+    color: var(--color-text);
+  }
+
+  .spin {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 190px));
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 1280px) {
+    .hero {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    .stats {
+      grid-column: 1 / -1;
+      justify-content: space-around;
+    }
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      text-align: center;
+      gap: 24px;
+      padding: 32px 20px;
+    }
+    .avatar {
+      width: 110px;
+      height: 110px;
+      font-size: 64px;
+    }
+    .identity p {
+      margin-inline: auto;
+    }
+    .stats {
+      gap: 18px;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .stats dd {
+      font-size: 30px;
+    }
+    .layout {
+      margin-top: 40px;
+    }
+    .spin {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

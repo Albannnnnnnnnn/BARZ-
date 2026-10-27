@@ -127,7 +127,7 @@ async function spotifyFetch(endpoint: string): Promise<any | null> {
 }
 
 type Artist = { id: string; name: string; image: string | null; genres: Set<string> };
-type Found = { album: any; genres: Set<string> };
+type Found = { album: any; genres: Set<string>; watched: boolean };
 
 const JUNK_TITLE = /slowed|sped up|reverb|vocals only|instrumental|karaoke|8d audio|nightcore/i;
 
@@ -183,9 +183,10 @@ async function main() {
     if (genre) known.genres.add(genre);
     artists.set(a.id, known);
   };
-  const rememberAlbum = (album: any, genre?: string) => {
-    const entry = found.get(album.id) ?? { album, genres: new Set<string>() };
+  const rememberAlbum = (album: any, genre?: string, watched = false) => {
+    const entry = found.get(album.id) ?? { album, genres: new Set<string>(), watched: false };
     if (genre) entry.genres.add(genre);
+    entry.watched ||= watched;
     found.set(album.id, entry);
   };
 
@@ -202,7 +203,7 @@ async function main() {
         continue;
       }
       rememberArtist(artist, genre);
-      for (const album of await recentAlbumsOf(artist.id, from, to, ['album', 'single'])) rememberAlbum(album, genre);
+      for (const album of await recentAlbumsOf(artist.id, from, to, ['album', 'single'])) rememberAlbum(album, genre, true);
     }
   }
   console.log(`   ${found.size} sorties trouvées`);
@@ -276,7 +277,7 @@ async function main() {
   }
 
   // Enregistrement des sorties
-  const releaseRows = [...found.values()].map(({ album, genres }) => {
+  const releaseRows = [...found.values()].map(({ album, genres, watched }) => {
     const main = album.artists[0];
     const allGenres = new Set([...genres, ...(artists.get(main.id)?.genres ?? [])]);
     return {
@@ -290,7 +291,8 @@ async function main() {
       genres: [...allGenres],
       track_count: album.total_tracks ?? 0,
       spotify_url: album.external_urls?.spotify ?? null,
-      metadata: { featuring: album.artists.slice(1).map((a: any) => a.name) },
+      // watched : la sortie vient d'un artiste de la watchlist (section "Tes artistes ont sorti")
+      metadata: { featuring: album.artists.slice(1).map((a: any) => a.name), watched },
       updated_at: new Date().toISOString(),
     };
   });

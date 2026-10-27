@@ -1,175 +1,259 @@
 ---
-// PAGE ACTUS - Actualités musicales (maquette PC)
+// PAGE ACTUS : article à la une, brèves, concerts près de toi (contenu de démonstration)
 import Layout from '../layouts/Layout.astro';
+import Scene from '../components/Scene.astro';
+import { DEMO_CONCERTS, DEMO_NEWS } from '../data/demo';
 
-const news = [
-  {
-    id: 1,
-    category: 'SORTIE',
-    title: 'Kendrick Lamar dévoile "GNX", album surprise de 12 titres',
-    excerpt: 'Sans prévenir, le rappeur de Compton balance un projet court, dense, produit par Sounwave et Jack Antonoff.',
-    date: '23 nov. 2024',
-    image: '/BARZ-/placeholder-release.svg',
-    tag: 'À la une',
-  },
-  {
-    id: 2,
-    category: 'TOURNÉE',
-    title: 'Justice annonce une tournée européenne 2025',
-    excerpt: "Le duo d'Ed Banger rempile pour 'Hyperdrama Live'. Paris, Lyon, Nantes au programme.",
-    date: '21 nov. 2024',
-    image: '/BARZ-/placeholder-release.svg',
-    tag: 'Billetterie',
-  },
-  {
-    id: 3,
-    category: 'CLIP',
-    title: 'Tame Impala — "The Boat I Row"',
-    excerpt: 'Nouveau visuel pour le morceau de "The Slow Rush". Réalisé par Robert Beatty.',
-    date: '19 nov. 2024',
-    image: '/BARZ-/placeholder-release.svg',
-    tag: 'Nouveau clip',
-  },
-];
-
-const sideNews = [
-  { category: 'FESTIVAL', title: 'Les Nuits Sonores dévoilent leur programmation complète', time: 'Ttsugi · 4 min' },
-  { category: 'INTERVIEW', title: "Tamo Adeyemi : « Le jazz est une musique de club »", time: 'Jazz Mag · 8 min' },
-  { category: 'INDUSTRIE', title: 'Streaming : ce que change la nouvelle rémunération des artistes', time: 'Les Inrocks · 6 min' },
-];
-
-const concerts = [
-  { date: '12 AVR', artist: 'Mira Kale', venue: 'Zénith, Paris', price: '39 €', image: '/BARZ-/placeholder-release.svg' },
-  { date: '18 AVR', artist: 'Tamo & The Fold', venue: 'New Morning, Paris', price: '28 €', image: '/BARZ-/placeholder-release.svg' },
-  { date: '02 MAI', artist: 'Ostra', venue: 'Le Sucre, Lyon', price: '18 €', image: '/BARZ-/placeholder-release.svg' },
-  { date: '09 MAI', artist: 'Volta Noire', venue: 'La Cigale, Paris', price: '32 €', image: '/BARZ-/placeholder-release.svg' },
-];
+const { feature, side } = DEMO_NEWS;
 ---
 
-<Layout title="Actus - BARZ" description="Toute l'actualité musicale : sorties albums, clips, tournées, festivals.">
-  <div class="container section-sm py-4">
-    {/* Desktop header */}
-    <div class="desktop-only mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25">Actus</span>
-      </div>
-      <h1 class="font-serif text-5xl font-bold mt-0 mb-2 text-[var(--color-text)] leading-tight">
-        Ce qui bouge cette semaine<span class="text-lime">.</span>
-      </h1>
-    </div>
+<Layout title="Actus" description="L’actualité musicale de la semaine : tournées, festivals, interviews, industrie.">
+  <div class="bz-page">
+    <span class="bz-eyebrow">Actus</span>
+    <h1 class="bz-display">Ce qui bouge <em>cette semaine.</em></h1>
 
-    {/* Mobile header */}
-    <div class="mobile-only mb-6">
-      <div class="flex items-center justify-between px-4 pt-2 pb-1 text-[10px] text-muted font-mono">
-        <span>Actus</span>
-        <span>100%</span>
-      </div>
-      <div class="mb-6">
-        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-3 block">Actus</span>
-        <h1 class="font-serif text-4xl font-bold mt-1 mb-2 text-[var(--color-text)] leading-tight">
-          L'actu qui compte<span class="text-lime">.</span>
-        </h1>
-        <p class="text-sm text-muted">Sorties, tournées, clips, festivals — la sélection BARZ, sans le bruit.</p>
-      </div>
-    </div>
+    <div class="news">
+      <article class="feature">
+        <Scene variant={feature.scene} class="feature-bg" />
+        <div class="feature-body">
+          <span class="tag">{feature.tag}</span>
+          <h2>{feature.title}</h2>
+          <p>{feature.meta}</p>
+        </div>
+      </article>
 
-    {/* Desktop: feature article + side news */}
-    <div class="desktop-only grid lg:grid-cols-12 gap-8">
-      <div class="lg:col-span-8">
-        <article class="rounded-[var(--radius-xl2)] overflow-hidden relative">
-          <img src="/BARZ-/placeholder-release.svg" alt="Mira Kale tournée" class="w-full h-[400px] object-cover" loading="eager" />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <div class="absolute bottom-0 left-0 p-6 w-full">
-            <span class="badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Tournée</span>
-            <h2 class="font-serif text-4xl font-bold mt-3 mb-2 text-white leading-tight">
-              Mira Kale annonce une tournée des Zéniths pour l'automne
-            </h2>
-            <p class="text-sm text-white/80">BARZi Rédaction · Il y a 2 h · 3 min</p>
-          </div>
-        </article>
-      </div>
-
-      <div class="lg:col-span-4">
-        <div class="space-y-4">
-          {sideNews.map((n, i) => (
-            <article key={i} class="flex gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-3 group hover:bg-[var(--color-bg-hover)] transition">
-              <div class="flex-shrink-0 w-20 h-20 rounded-[var(--radius-md)] overflow-hidden">
-                <img src="/BARZ-/placeholder-release.svg" alt={n.title} class="w-full h-full object-cover" loading="lazy" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <span class="text-[10px] font-bold text-[var(--color-accent)] uppercase tracking-wider block mb-1">{n.category}</span>
-                <h3 class="font-bold text-sm text-[var(--color-text)] leading-tight">{n.title}</h3>
-                <p class="text-xs text-muted">{n.time}</p>
+      <ul class="side">
+        {side.map((n) => (
+          <li>
+            <article class="brief">
+              <Scene variant={n.scene} class="brief-thumb" />
+              <div>
+                <span class="category">{n.category}</span>
+                <h3>{n.title}</h3>
+                <p>{n.meta}</p>
               </div>
             </article>
-          ))}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
     </div>
 
-    {/* Mobile: news list */}
-    <div class="mobile-only space-y-4">
-      {news.map((n) => (
-        <article key={n.id} class="card p-0 overflow-hidden">
-          <div class="relative aspect-[16/10] overflow-hidden">
-            <img src={n.image} alt={n.title} class="w-full h-full object-cover" loading="lazy" />
-            <div class="absolute top-3 left-3 flex flex-col gap-1">
-              <span class="badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold px-2 py-1">{n.category}</span>
-              {n.tag && <span class="text-[10px] px-2 py-1 rounded bg-[#a3e635]/90 text-[#09090b] font-bold">{n.tag}</span>}
-            </div>
-          </div>
-          <div class="p-4">
-            <div class="flex items-center gap-1 text-[10px] text-dim mb-1">
-              <time>{n.date}</time>
-              <span aria-hidden="true">·</span>
-              <span>3 min de lecture</span>
-            </div>
-            <h2 class="font-bold text-lg mb-2 text-[var(--color-text)] leading-tight">{n.title}</h2>
-            <p class="text-sm text-muted">{n.excerpt}</p>
-          </div>
-        </article>
-      ))}
-    </div>
-
-    {/* Desktop: Concerts près de toi */}
-    <div class="desktop-only mt-10">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="font-serif text-3xl font-bold text-[var(--color-text)] leading-tight">Concerts près de toi</h2>
-        <span class="text-xs font-bold text-lime">Paris</span>
+    <section class="concerts" aria-labelledby="concerts-title">
+      <div class="bz-section-head">
+        <h2 id="concerts-title" class="bz-h2">Concerts près de toi</h2>
+        <span class="bz-link">Paris ▾</span>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {concerts.map((c) => (
-          <article class="card card-interactive overflow-hidden group" key={c.artist}>
-            <div class="relative aspect-[1/1] overflow-hidden">
-              <img src={c.image} alt={c.artist} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+      <div class="concert-grid">
+        {DEMO_CONCERTS.map((c) => (
+          <article class="concert">
+            <Scene variant={c.scene} class="concert-photo" />
+            <div class="concert-info">
+              <span class="date"><b>{c.day}</b>{c.month}</span>
+              <span class="who"><b>{c.artist}</b>{c.venue}</span>
             </div>
-            <div class="p-4">
-              <div class="flex items-center gap-1 text-[10px] font-bold text-lime mb-2">{c.date}</div>
-              <h3 class="font-bold text-sm mb-1 text-[var(--color-text)]">{c.artist}</h3>
-              <p class="text-xs text-muted">{c.venue}</p>
-              <p class="mt-2 text-sm font-bold text-[var(--color-text)]">Billets · {c.price}</p>
-            </div>
+            <span class="tickets">Billets · {c.price}</span>
           </article>
         ))}
       </div>
-    </div>
-
-    {/* Mobile: Dernières minutes */}
-    <div class="mobile-only mt-8">
-      <h3 class="font-bold text-base mb-3 text-[var(--color-text)] uppercase tracking-wider">Dernières minutes</h3>
-      <div class="space-y-0">
-        {sideNews.map((s, i) => (
-          <div key={i} class="flex items-start gap-3 py-3 border-b border-[var(--color-border)] last:border-0 group">
-            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--color-bg-hover)] flex items-center justify-center">
-              <span class="text-[10px] uppercase tracking-widest text-[var(--color-accent)] font-bold">{s.category}</span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="font-medium text-sm text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition">{s.title}</p>
-              <p class="text-[10px] text-dim">{s.time}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    </section>
   </div>
 </Layout>
+
+<style>
+  .news {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    gap: 44px;
+    margin-top: 64px;
+  }
+
+  .feature {
+    position: relative;
+    min-height: 600px;
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .feature :global(.feature-bg) {
+    position: absolute;
+    inset: 0;
+  }
+
+  .feature::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 55%, transparent 80%);
+  }
+
+  .feature-body {
+    position: relative;
+    z-index: 1;
+    padding: 44px;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--color-lime);
+    color: var(--color-ink);
+    font: 700 14px/1 var(--font-sans);
+    text-transform: uppercase;
+  }
+
+  .feature h2 {
+    max-width: 640px;
+    margin: 18px 0 14px;
+    font: 400 clamp(40px, 4vw, 64px) / 0.98 var(--font-serif);
+    color: #fff;
+  }
+
+  .feature p {
+    color: #cfcbc2;
+    font-size: 16px;
+  }
+
+  .side {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .side li + li {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .brief {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 22px;
+    padding: 0 0 28px;
+  }
+
+  .side li + li .brief {
+    padding-top: 28px;
+  }
+
+  .brief :global(.brief-thumb) {
+    aspect-ratio: 1;
+    border-radius: 14px;
+  }
+
+  .category {
+    font: 700 13px/1 var(--font-sans);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-orange);
+  }
+
+  .brief h3 {
+    margin: 12px 0 10px;
+    font: 400 28px/1.1 var(--font-serif);
+  }
+
+  .brief p {
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .concerts {
+    margin-top: 76px;
+  }
+
+  .concert-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .concert {
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .concert :global(.concert-photo) {
+    aspect-ratio: 3 / 2;
+  }
+
+  .concert-info {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    color: var(--color-lime);
+  }
+
+  .date b {
+    margin-bottom: 6px;
+    font: 400 38px/1 var(--font-serif);
+    letter-spacing: 0;
+    color: var(--color-text);
+  }
+
+  .who {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .who b {
+    font-size: 18px;
+    color: var(--color-text);
+  }
+
+  .tickets {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  @media (max-width: 1280px) {
+    .news {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .concert-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 900px) {
+    .news {
+      margin-top: 32px;
+      gap: 32px;
+    }
+    .feature {
+      min-height: 420px;
+    }
+    .feature-body {
+      padding: 24px;
+    }
+    .brief {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 16px;
+    }
+    .brief h3 {
+      font-size: 22px;
+    }
+    .concert-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

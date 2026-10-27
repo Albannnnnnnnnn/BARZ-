@@ -1,34 +1,102 @@
-// Lecture des sorties groupées par semaine, directement depuis la table releases.
+// Lecture des sorties depuis la table releases (groupées par semaine, à venir, filtres de genre).
 // Remplace la vue matérialisée weekly_releases, qui n'était jamais rafraîchie.
-import { format, parseISO, startOfWeek } from 'date-fns';
+import { addDays, format, parseISO, startOfWeek } from 'date-fns';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { WeeklyReleases, ReleaseWithArtist } from './supabase';
+import type { WeeklyReleases } from './supabase';
+import { getSupabaseServerSafe } from './supabase';
+
+export type ReleaseRow = {
+  id: string;
+  title: string;
+  slug: string;
+  release_date: string;
+  release_type: string;
+  cover_url: string | null;
+  genres: string[];
+  track_count: number;
+  spotify_url: string | null;
+  metadata: { watched?: boolean; featuring?: string[] } | null;
+  artist: { name: string; slug: string; image_url: string | null } | null;
+};
+
+// BARZ_TODAY=2026-10-23 permet de construire le site "comme si" on était à une autre date
+export function getToday(): Date {
+  const override = process.env.BARZ_TODAY;
+  return override ? parseISO(override) : new Date();
+}
+
+// Puces de genre des maquettes → genres stockés par le sync
+export const GENRE_CHIPS: { id: string; label: string; genres: string[] }[] = [
+  { id: 'rap', label: 'Rap', genres: ['rap'] },
+  { id: 'electro', label: 'Électro', genres: ['electronic'] },
+  { id: 'pop', label: 'Pop', genres: ['pop'] },
+  { id: 'jazz', label: 'Jazz', genres: ['jazz'] },
+  { id: 'rock', label: 'Rock', genres: ['rock', 'metal'] },
+  { id: 'soul', label: 'Soul', genres: ['soul', 'rnb'] },
+  { id: 'monde', label: 'Monde', genres: ['world', 'latin', 'reggae'] },
+];
+
+export function chipIdsFor(genres: string[] = []): string[] {
+  return GENRE_CHIPS.filter((c) => c.genres.some((g) => genres.includes(g))).map((c) => c.id);
+}
+
+const RELEASE_FIELDS =
+  'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_url, metadata, artist:artists!artist_id(name, slug, image_url)';
+
+export async function fetchReleasesBetween(
+  supabase: SupabaseClient<any> | null,
+  from: Date,
+  to: Date
+): Promise<ReleaseRow[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('releases')
+    .select(RELEASE_FIELDS)
+    .gte('release_date', format(from, 'yyyy-MM-dd'))
+    .lte('release_date', format(to, 'yyyy-MM-dd'))
+    .order('release_date', { ascending: false });
+  if (error) {
+    console.warn('Lecture des sorties impossible :', error.message);
+    return [];
+  }
+  return (data ?? []) as unknown as ReleaseRow[];
+}
 
 export async function fetchWeeklyReleases(
   supabase: SupabaseClient<any> | null,
   from: Date,
   to: Date
 ): Promise<WeeklyReleases[]> {
-  if (!supabase) return [];
-
-  const { data, error } = await supabase
-    .from('releases')
-    .select('id, title, slug, release_date, release_type, cover_url, genres, track_count, artist:artists!artist_id(name, slug, image_url)')
-    .gte('release_date', format(from, 'yyyy-MM-dd'))
-    .lte('release_date', format(to, 'yyyy-MM-dd'))
-    .order('release_date', { ascending: true });
-
-  if (error) {
-    console.warn('Lecture des sorties impossible :', error.message);
-    return [];
-  }
-
-  const weeks = new Map<string, ReleaseWithArtist[]>();
-  for (const release of (data ?? []) as unknown as ReleaseWithArtist[]) {
+  const rows = await fetchReleasesBetween(supabase, from, to);
+  const weeks = new Map<string, ReleaseRow[]>();
+  for (const release of [...rows].reverse()) {
     const weekStart = format(startOfWeek(parseISO(release.release_date), { weekStartsOn: 1 }), 'yyyy-MM-dd');
     if (!weeks.has(weekStart)) weeks.set(weekStart, []);
     weeks.get(weekStart)!.push(release);
   }
+  return [...weeks.entries()].map(([week_start, releases]) => ({ week_start, releases })) as unknown as WeeklyReleases[];
+}
 
-  return [...weeks.entries()].map(([week_start, releases]) => ({ week_start, releases }));
+// Données de la barre latérale, partagées par toutes les pages : une seule requête par build
+type SidebarData = {
+  followed: { name: string; slug: string; image_url: string | null; isNew: boolean }[];
+  upcoming: ReleaseRow[];
+};
+let sidebarPromise: Promise<SidebarData> | null = null;
+
+export function getSidebarData(): Promise<SidebarData> {
+  sidebarPromise ??= (async () => {
+    const today = getToday();
+    const rows = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today, -14), addDays(today, 60));
+    const todayIso = format(today, 'yyyy-MM-dd');
+    const upcoming = rows.filter((r) => r.release_date > todayIso).reverse();
+
+    const followed = new Map<string, SidebarData['followed'][number]>();
+    for (const r of rows) {
+      if (!r.artist || !r.metadata?.watched || followed.has(r.artist.slug)) continue;
+      followed.set(r.artist.slug, { ...r.artist, isNew: r.release_date >= format(addDays(today, -7), 'yyyy-MM-dd') });
+    }
+    return { followed: [...followed.values()].slice(0, 4), upcoming };
+  })();
+  return sidebarPromise;
 }

@@ -1,0 +1,99 @@
+---
+// Vignette album des maquettes : pochette, titre + badge, artiste · type
+import Cover from './Cover.astro';
+
+interface Props {
+  title: string;
+  subtitle: string;
+  cover?: string | null;
+  palette?: number;
+  badge?: string;
+  href?: string;
+  checked?: boolean;
+  chips?: string[];
+}
+
+const { title, subtitle, cover, palette, badge, href, checked = false, chips = [] } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag class="tile" href={href} data-chips={chips.join(' ')}>
+  <div class="tile-cover">
+    <Cover title={title} src={cover} palette={palette} />
+    {checked && (
+      <span class="tile-check" aria-label="Dans ta spin list">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>
+      </span>
+    )}
+  </div>
+  <div class="tile-row">
+    <span class="tile-title">{title}</span>
+    {badge && <span class="bz-score">{badge}</span>}
+  </div>
+  <span class="tile-sub">{subtitle}</span>
+</Tag>
+
+<style>
+  .tile {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .tile-cover {
+    position: relative;
+    transition: transform var(--transition-base);
+  }
+
+  a.tile:hover .tile-cover {
+    transform: translateY(-3px);
+  }
+
+  .tile-check {
+    position: absolute;
+    top: 8%;
+    right: 8%;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+
+  .tile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .tile-title {
+    min-width: 0;
+    font: 700 18px/1.2 var(--font-sans);
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tile-sub {
+    margin-top: 3px;
+    font-size: 15px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 900px) {
+    .tile-title {
+      font-size: 15px;
+    }
+    .tile-sub {
+      font-size: 13px;
+    }
+  }
+</style>

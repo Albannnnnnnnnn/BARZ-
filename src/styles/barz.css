@@ -1,0 +1,173 @@
+/* ============================================================================
+   BARZ¡ — briques visuelles des maquettes (pages Vendredi, Explorer, Actus, Communauté, Profil)
+   ============================================================================ */
+
+.bz-shell a,
+.bz-shell a:hover {
+  color: inherit;
+}
+
+.bz-page {
+  padding: 48px 56px 96px;
+  max-width: 1440px;
+}
+
+.bz-eyebrow {
+  display: block;
+  font: 700 12px/1 var(--font-sans);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-lime);
+}
+
+.bz-display {
+  margin-top: 14px;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(52px, 6.2vw, 96px);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+.bz-display em,
+.bz-h2 em {
+  font-style: italic;
+}
+
+.bz-h2 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(34px, 3.4vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+}
+
+.bz-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bz-link {
+  color: var(--color-lime) !important;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.bz-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bz-chip {
+  border: 1px solid #343434;
+  border-radius: 999px;
+  padding: 7px 15px;
+  background: transparent;
+  color: var(--color-text);
+  font: 500 14px/1.2 var(--font-sans);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.bz-chip:hover {
+  border-color: #555;
+}
+
+.bz-chip.is-active {
+  background: var(--color-lime);
+  border-color: var(--color-lime);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.bz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 26px;
+  font: 700 16px/1 var(--font-sans);
+  cursor: pointer;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.bz-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.bz-btn--ink {
+  background: var(--color-ink);
+  color: #fff !important;
+}
+
+.bz-btn--lime {
+  background: var(--color-lime);
+  color: var(--color-ink) !important;
+}
+
+.bz-btn--small {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.bz-btn--outline {
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: var(--color-text) !important;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.bz-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 28px 20px;
+}
+
+.bz-score {
+  flex-shrink: 0;
+  background: #262a14;
+  color: var(--color-lime);
+  font: 700 13px/1 var(--font-sans);
+  padding: 5px 7px;
+  border-radius: 6px;
+}
+
+.bz-empty {
+  border: 1px dashed #333;
+  border-radius: 20px;
+  padding: 40px 28px;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.bz-empty strong {
+  color: var(--color-text);
+}
+
+@media (max-width: 900px) {
+  .bz-page {
+    padding: 28px 16px 120px;
+  }
+
+  .bz-display {
+    font-size: clamp(42px, 12vw, 64px);
+  }
+
+  .bz-tiles {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px 14px;
+  }
+}

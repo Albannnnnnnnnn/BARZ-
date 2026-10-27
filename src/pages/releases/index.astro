@@ -1,139 +1,56 @@
 ---
-// LISTE TOUTES LES SORTIES (paginée)
+// TOUTES LES SORTIES : le catalogue complet, filtrable par genre
 import Layout from '../../layouts/Layout.astro';
+import AlbumTile from '../../components/AlbumTile.astro';
+import GenreChips from '../../components/GenreChips.astro';
 import { getSupabaseServerSafe } from '../../lib/supabase';
-import ReleaseGrid from '../../components/ReleaseGrid.tsx';
-import GenreFilter from '../../components/GenreFilter.tsx';
+import { chipIdsFor, fetchReleasesBetween } from '../../lib/releases';
+import { getReleaseTypeLabel } from '../../lib/utils';
 
-export async function getStaticPaths() {
-  return [{ params: { page: '1' } }];
-}
-
-const { page } = Astro.params;
-const currentPage = parseInt(page as string) || 1;
-const PAGE_SIZE = 48;
-
-const supabase = getSupabaseServerSafe();
-
-let allGenres: string[] = [];
-let releases: any[] = [];
-let count = 0;
-let totalPages = 0;
-
-if (supabase) {
-  try {
-    const { data: allReleasesForGenres } = await supabase
-      .from('releases')
-      .select('genres')
-      .not('genres', 'is', null);
-
-    allGenres = [...new Set(
-      (allReleasesForGenres || []).flatMap((r: any) => r.genres || [])
-    )].sort();
-
-    const from = (currentPage - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    const { data, count: totalCount, error } = await supabase
-      .from('releases')
-      .select(`
-        *,
-        artist:artists!artist_id(*)
-      `, { count: 'exact' })
-      .order('release_date', { ascending: false })
-      .range(from, to);
-
-    if (!error && data) {
-      releases = data;
-      count = totalCount || 0;
-    }
-  } catch (e) {
-    console.warn('Supabase query failed:', e);
-  }
-} else {
-  console.warn('Supabase not configured, using empty data for build');
-}
-
-totalPages = Math.ceil((count || 0) / PAGE_SIZE);
-
-function getPaginationPages(current: number, total: number): number[] {
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-  if (current <= 3) return [1, 2, 3, 4, 5];
-  if (current >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-  return [current - 2, current - 1, current, current + 1, current + 2];
-}
-
-const paginationPages = getPaginationPages(currentPage, totalPages);
+const releases = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1900-01-01'), new Date('2100-01-01'));
 ---
 
-<Layout title="Toutes les sorties - BARZ" description="Parcours toutes les sorties musicales référencées sur BARZ. Albums, EPs, singles - filtre par genre, tri par date.">
-  <div class="container section">
-    <header class="mb-10 text-center">
-      <h1 class="text-6xl font-bold mb-4" style="letter-spacing: -0.03em;">
-        Toutes les sorties<span class="gradient-text">.</span>
-      </h1>
-      <p class="text-lg max-w-2xl mx-auto" style="color: var(--color-text-muted);">
-        {count || 0} sorties référencées. Filtre par genre, navigue dans les pages.
-      </p>
-    </header>
+<Layout title="Toutes les sorties" description="Toutes les sorties référencées sur BARZ¡, filtrables par genre.">
+  <div class="bz-page">
+    <span class="bz-eyebrow">Charts</span>
+    <h1 class="bz-display">Toutes <em>les sorties.</em></h1>
+    <p class="count">{releases.length} sortie{releases.length > 1 ? 's' : ''} référencée{releases.length > 1 ? 's' : ''}, de la plus récente à la plus ancienne.</p>
 
-    <!-- Filtres -->
-    <div class="card p-8 mb-12">
-      <GenreFilter
-        client:visible
-        selectedGenres={[]}
-        availableGenres={allGenres}
-        onChange={(genres) => {
-          const url = new URL(window.location.href);
-          if (genres.length) url.searchParams.set('genres', genres.join(','));
-          else url.searchParams.delete('genres');
-          url.searchParams.set('page', '1');
-          window.location.href = url.toString();
-        }}
-      />
-    </div>
-
-    <!-- Grille releases -->
-    <ReleaseGrid
-      client:visible
-      releases={releases}
-      emptyMessage="Aucune sortie trouvée"
-    />
-
-    <!-- Pagination -->
-    {totalPages > 1 && (
-      <nav class="mt-12 flex items-center justify-center gap-2" aria-label="Pagination">
-        {currentPage > 1 && (
-          <a href={`/BARZ-/releases?page=${currentPage - 1}`} class="btn btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            Précédente
-          </a>
-        )}
-
-        <div class="flex items-center gap-2">
-          {paginationPages.map((pageNum) => (
-            <a
-              href={`/BARZ-/releases?page=${pageNum}`}
-              class={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'}`}
-              aria-current={currentPage === pageNum ? 'page' : undefined}
-              aria-label={`Page ${pageNum}`}
-            >
-              {pageNum}
-            </a>
+    {releases.length > 0 ? (
+      <section>
+        <GenreChips target="#catalog" />
+        <div id="catalog" class="bz-tiles catalog">
+          {releases.map((r) => (
+            <AlbumTile
+              title={r.title}
+              subtitle={`${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`}
+              cover={r.cover_url}
+              href={`/BARZ-/releases/${r.slug}`}
+              chips={chipIdsFor(r.genres)}
+            />
           ))}
         </div>
-
-        {currentPage < totalPages && (
-          <a href={`/BARZ-/releases?page=${currentPage + 1}`} class="btn btn-secondary">
-            Suivante
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </a>
-        )}
-      </nav>
+        <p class="chip-empty" hidden>Aucune sortie de ce genre pour l’instant.</p>
+      </section>
+    ) : (
+      <p class="bz-empty">Aucune sortie en base. Lance le sync : <strong>npm run sync:releases</strong>.</p>
     )}
   </div>
 </Layout>
+
+<style>
+  .count {
+    margin: 20px 0 40px;
+    font-size: 17px;
+    color: var(--color-text-muted);
+  }
+
+  .catalog {
+    margin-top: 28px;
+  }
+
+  .chip-empty {
+    margin-top: 24px;
+    color: var(--color-text-muted);
+  }
+</style>

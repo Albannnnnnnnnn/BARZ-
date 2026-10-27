@@ -1,269 +1,384 @@
 ---
-// PAGE EXPLORER - Maquette PC
+// PAGE EXPLORER : curseur d'exploration (données réelles), recherche, Rabbit Hole et humeurs (démo)
+import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
+import AlbumTile from '../components/AlbumTile.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
-import ReleaseGrid from '../components/ReleaseGrid.tsx';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
+import { getReleaseTypeLabel } from '../lib/utils';
+import { DEMO_ALBUMS, DEMO_RABBIT_HOLE, MOODS } from '../data/demo';
 
+const today = getToday();
 const supabase = getSupabaseServerSafe();
-const query = Astro.url.searchParams.get('q') || '';
-const genre = Astro.url.searchParams.get('genre') || '';
-const type = Astro.url.searchParams.get('type') || '';
+const recent = await fetchReleasesBetween(supabase, addDays(today, -30), today);
+// Tout le catalogue pour la recherche (le site est statique : on filtre dans le navigateur)
+const catalog = await fetchReleasesBetween(supabase, new Date('1900-01-01'), addDays(today, 90));
 
-let results = [];
-let total = 0;
-
-if (supabase && (query || genre || type)) {
-  try {
-    let dbQuery = supabase
-      .from('releases')
-      .select(`
-        *,
-        artist:artists!artist_id(*)
-      `, { count: 'exact' })
-      .order('release_date', { ascending: false })
-      .limit(50);
-
-    if (query) {
-      dbQuery = dbQuery.or(`title.ilike.%${query}%,artist.name.ilike.%${query}%`);
-    }
-    if (genre) {
-      dbQuery = dbQuery.contains('genres', [genre]);
-    }
-    if (type && type !== 'all') {
-      dbQuery = dbQuery.eq('release_type', type);
-    }
-
-    const { data, count, error } = await dbQuery;
-    if (!error) {
-      results = data || [];
-      total = count || 0;
-    }
-  } catch (e) {
-    console.warn('Supabase query failed:', e);
-  }
-} else if (!supabase) {
-  console.warn('Supabase not configured, using empty data for build');
-}
-
-const explorerTabs = [
-  { id: 'decouverte', label: 'Découverte', active: true },
-  { id: 'charts', label: 'Charts', active: false },
-  { id: 'calendrier', label: 'Calendrier', active: false },
+// Le curseur part des habitudes d'Alban (rap) et s'en éloigne genre par genre
+const ZONES = [
+  { word: 'Casanier', genres: ['rap', 'rnb', 'soul'], why: 'Tu écoutes beaucoup de rap : voici les sorties les plus proches de tes habitudes.' },
+  { word: 'Ouvert', genres: ['soul', 'rnb', 'pop', 'electronic'], why: 'Un pas de côté : des disques soul, pop et électro qui partagent des producteurs avec tes artistes.' },
+  { word: 'Curieux', genres: ['electronic', 'jazz'], why: 'Tu écoutes beaucoup de rap ; ces disques sont samplés ou produits par des proches de tes artistes.' },
+  { word: 'Aventurier', genres: ['jazz', 'world', 'latin', 'rock', 'metal', 'reggae', 'folk', 'classical'], why: 'Loin de ta zone de confort : des scènes que tu n’écoutes jamais.' },
 ];
+const DEFAULT_ZONE = 2;
 
-const discoveries = [
-  { title: 'Selva Eléctrica', subtitle: 'Los Cometas · Monde', cover: '/BARZ-/placeholder-release.svg' },
-  { title: 'Kintsugi', subtitle: 'Tamo & The Fold', cover: '/BARZ-/placeholder-release.svg' },
-  { title: 'Lagune', subtitle: 'Nour · Soul', cover: '/BARZ-/placeholder-release.svg' },
-];
+const pick = (genres: string[]) => {
+  const matching = recent.filter((r) => r.genres?.some((g) => genres.includes(g)));
+  return matching.slice(0, 4);
+};
+const fallback = Object.values(DEMO_ALBUMS).slice(4, 8);
+const zoneTiles = ZONES.map((z) => pick(z.genres));
 
-const rabbitHole = [
-  { type: 'ALBUM', title: 'Kintsugi', subtitle: 'Tamo & The Fold', isNew: true },
-  { type: 'PRODUCTEUR', title: 'Idris Mbayé', subtitle: '', isNew: false },
-  { type: 'A AUSSI PRODUIT', title: '', subtitle: '', isNew: false },
-];
-
-const moodCards = [
-  { label: 'Travail', desc: 'Concentration, instrumental', color: '#3b82f6' },
-  { label: 'Sport', desc: 'BPM élevés, énergie', color: '#f97316' },
-  { label: 'Nuit', desc: 'Ambient, deep house', color: '#8b5cf6' },
-  { label: 'Dimanche', desc: 'Soul, folk, jazz doux', color: '#eab308' },
-];
+const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
+const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.genres ?? []).join(' ')}`.toLowerCase();
 ---
 
-<Layout title="Explorer - BARZ" description="Sors de ta bulle : découvre de nouveaux albums, artistes et genres adaptés à tes goûts.">
-  <div class="container section-sm py-4">
-    {/* Desktop header */}
-    <div class="desktop-only">
-      <div class="flex items-center justify-between mb-8">
-        <div>
-          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-2 block">Explorer</span>
-          <h1 class="font-serif text-5xl font-bold mt-0 mb-3 text-[var(--color-text)] leading-tight">Sors de ta bulle<span class="text-lime">.</span></h1>
-          <p class="text-sm text-muted max-w-lg">
-            Trouve de nouveaux artistes et albums adaptés à tes goûts, avec un curseur entre tes habitudes et l'inconnu total.
-          </p>
-        </div>
-        <div class="flex gap-2">
-          <button class="px-4 py-2 rounded-full bg-[#a3e635] text-[#09090b] text-xs font-bold">Découverte</button>
-          <button class="px-4 py-2 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Charts</button>
-          <button class="px-4 py-2 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-text)] hover:border-[var(--color-border-hover)] transition">Calendrier</button>
-        </div>
+<Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration, Rabbit Hole et humeurs.">
+  <div class="bz-page">
+    <div class="head">
+      <div>
+        <span class="bz-eyebrow">Explorer</span>
+        <h1 class="bz-display">Sors de <em>ta bulle.</em></h1>
       </div>
+      <nav class="tabs" aria-label="Modes d’exploration">
+        <a class="bz-chip is-active" href="/BARZ-/search" aria-current="page">Découverte</a>
+        <a class="bz-chip" href="/BARZ-/releases">Charts</a>
+        <a class="bz-chip" href="/BARZ-/calendar">Calendrier</a>
+      </nav>
     </div>
 
-    {/* Mobile header */}
-    <div class="mobile-only mb-6">
-      <div class="flex items-center justify-between px-4 pt-2 pb-1 text-[10px] text-muted font-mono">
-        <span>Explorer</span>
-        <span>100%</span>
+    <section id="results" class="results" hidden aria-live="polite">
+      <div class="bz-section-head">
+        <h2 class="bz-h2">Résultats pour « <em id="results-query"></em> »</h2>
+        <a class="bz-link" href="/BARZ-/search">Effacer</a>
       </div>
-      <div class="text-center mb-6">
-        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-lime bg-lime/10 border border-lime/25 mb-3 block">Explorer</span>
-        <h1 class="font-serif text-4xl md:text-5xl font-bold mt-1 mb-3 text-[var(--color-text)] leading-tight">
-          Sors de ta bulle<span class="text-lime">.</span>
-        </h1>
-        <p class="text-sm text-muted mb-6 max-w-[280px] mx-auto">
-          Trouve de nouveaux artistes et albums adaptés à tes goûts, avec un curseur entre tes habitudes et l'inconnu total.
-        </p>
+      <div class="bz-tiles" id="results-grid">
+        {catalog.map((r) => (
+          <div class="result" data-search={searchText(r)} hidden>
+            <AlbumTile title={r.title} subtitle={subtitleOf(r)} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />
+          </div>
+        ))}
       </div>
-    </div>
-
-    {/* Barre de recherche */}
-    <form class="card p-5 mb-6 rounded-[var(--radius-xl2)]" method="GET" action="/BARZ-/search">
-      <div class="flex flex-col md:flex-row gap-3 items-end">
-        <div class="flex-1">
-          <label for="search-q" class="sr-only">Rechercher un album, un artiste, un genre...</label>
-          <input
-            type="search"
-            id="search-q"
-            name="q"
-            placeholder="Album, artiste, genre..."
-            class="input text-lg"
-            autocomplete="off"
-          />
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm px-6" aria-label="Chercher">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <span class="hidden sm:inline">Chercher</span>
-        </button>
-      </div>
-    </form>
-
-    {/* Onglets */}
-    <div class="flex gap-1 mb-8" role="tablist" aria-label="Mode d'exploration">
-      {explorerTabs.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={t.active ? 'true' : 'false'}
-          class={`px-5 py-2 rounded-full text-sm font-bold transition ${t.active ? 'bg-[#a3e635] text-[#09090b] shadow-[0_0_20px_rgba(163,230,53,0.35)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-
-    {/* Curseur */}
-    <section class="mb-8 card p-5 rounded-[var(--radius-xl2)]">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-medium text-[var(--color-text-muted)]">Mes habitudes</span>
-        <span class="text-xs font-medium text-[var(--color-text-muted)]">Inconnu total</span>
-      </div>
-      <div class="relative h-2 mb-3">
-        <div class="absolute left-0 top-0 h-full w-[30%] bg-gradient-to-r from-[#a3e635] to-transparent rounded-full opacity-80 shadow-[0_0_15px_rgba(163,230,53,0.4)]" />
-        <div class="relative h-full w-full bg-[var(--color-bg-hover)] rounded-full overflow-hidden" />
-        <div class="absolute top-1/2 left-[30%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#a3e635] shadow-[0_0_10px_rgba(163,230,53,0.5)]" />
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-[10px] text-dim">Curieux</span>
-        <span class="text-[10px] font-bold text-[var(--color-text)]">Curieux</span>
-      </div>
+      <p id="results-empty" class="bz-empty" hidden>Rien trouvé. Essaie un nom d’artiste, un titre ou un genre (rap, jazz, électro…).</p>
     </section>
 
-    {/* Découvertes / Résultats */}
-    {query || genre || type ? (
-      <div>
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-serif text-xl font-bold text-[var(--color-text)] leading-tight">Résultats de la recherche</h2>
-          <p class="text-xs text-muted">{total} résultat{total > 1 ? 's' : ''}</p>
-        </div>
-        <ReleaseGrid client:visible releases={results} emptyMessage="Aucune sortie ne correspond à votre recherche" />
+    <section class="explorer" aria-labelledby="cursor-title">
+      <div class="cursor">
+        <span id="cursor-title" class="cursor-label">Curseur d’exploration</span>
+        <p class="cursor-word" id="cursor-word">{ZONES[DEFAULT_ZONE].word}</p>
+        <input id="cursor" type="range" min="0" max="99" value="60" aria-label="Curseur entre tes habitudes et l’inconnu total" />
+        <div class="cursor-ends"><span>Mes habitudes</span><span>Inconnu total</span></div>
+        <p class="cursor-why"><strong>Pourquoi ces choix ?</strong> <span id="cursor-why">{ZONES[DEFAULT_ZONE].why}</span></p>
       </div>
-    ) : (
-      <div>
-        <div class="mb-6">
-          <h2 class="font-serif text-xl font-bold mb-2 text-[var(--color-text)] leading-tight">Pour vous cette semaine</h2>
-          <p class="text-xs text-muted mb-5 max-w-[280px]">
-            Pourquoi ces disques ? Tu écoutes beaucoup de rap ; ces titres sont samplés par ces artistes ou partagent leurs influences.
-          </p>
-          <div class="grid gap-4">
-            {discoveries.map((d) => (
-              <article class="card card-interactive overflow-hidden transition group" key={d.title}>
-                <div class="relative aspect-[1/1] overflow-hidden">
-                  <img src={d.cover} alt={d.title} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-                  <span class="absolute top-3 right-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
-                </div>
-                <div class="p-4">
-                  <h3 class="font-bold text-base truncate mb-1 text-[var(--color-text)]">{d.title}</h3>
-                  <p class="text-sm text-muted truncate">{d.subtitle}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+      {ZONES.map((zone, i) => (
+        <div class="picks" data-zone={i} hidden={i !== DEFAULT_ZONE} data-why={zone.why} data-word={zone.word}>
+          {zoneTiles[i].length > 0
+            ? zoneTiles[i].map((r) => <AlbumTile title={r.title} subtitle={subtitleOf(r)} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />)
+            : fallback.map((a) => <AlbumTile title={a.title} subtitle={a.artist} palette={a.palette} />)}
         </div>
+      ))}
+    </section>
 
-        {/* Rabbit Hole */}
-        <section class="mt-10">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-serif text-xl font-bold text-[var(--color-text)] leading-tight">Rabbit Hole</h2>
-            <span class="badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
-          </div>
-          <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {rabbitHole.map((r, i) => {
-              const isAlbum = r.type === 'ALBUM';
-              const first = i === 0;
-              return (
-                <article key={r.title || r.type} class={`flex-shrink-0 w-[200px] card overflow-hidden transition group ${first ? 'border-l-2 border-[#a3e635]' : ''}`}>
-                  {isAlbum && (
-                    <div class="relative aspect-[1/1] overflow-hidden">
-                      <img src={discoveries[1].cover} alt={r.title} class="w-full h-full object-cover" loading="lazy" />
-                      <span class="absolute top-3 right-3 badge bg-[#a3e635] text-[#09090b] text-[10px] font-bold">Nouveau</span>
-                    </div>
-                  )}
-                  <div class="p-4">
-                    <p class="text-[0.7rem] uppercase tracking-widest text-[var(--color-text-muted)] font-semibold mb-1">{r.type}</p>
-                    <h3 class="font-bold text-lg mb-1 text-[var(--color-text)]">{r.title}</h3>
-                    {r.subtitle && <p class="text-sm text-muted truncate">{r.subtitle}</p>}
-                    {!r.subtitle && <p class="text-sm text-muted">Suivre ce producteur</p>}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Par humeur - Desktop */}
-        <div class="desktop-only mt-10">
-          <h2 class="font-serif text-3xl font-bold mb-6 text-[var(--color-text)] leading-tight">Par humeur</h2>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {moodCards.map((m) => (
-              <article class="card card-interactive p-6 rounded-[var(--radius-lg)]" key={m.label}>
-                <h3 class="font-serif text-2xl font-bold mb-2 text-[var(--color-text)]" style={{ color: m.color }}>{m.label}</h3>
-                <p class="text-xs text-muted">{m.desc}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        {/* Par humeur - Mobile */}
-        <div class="mobile-only mt-10">
-          <h2 class="font-serif text-xl font-bold mb-4 text-[var(--color-text)] leading-tight">Par humeur</h2>
-          <div class="grid grid-cols-2 gap-3">
-            {moodCards.map((m) => (
-              <article class="card card-interactive p-4 rounded-[var(--radius-lg)]" key={m.label}>
-                <h3 class="font-serif text-lg font-bold mb-1 text-[var(--color-text)]" style={{ color: m.color }}>{m.label}</h3>
-                <p class="text-[10px] text-muted">{m.desc}</p>
-              </article>
-            ))}
-          </div>
-        </div>
+    <section class="block" aria-labelledby="rabbit-title">
+      <div class="bz-section-head">
+        <h2 id="rabbit-title" class="bz-h2">Rabbit Hole</h2>
+        <span class="bz-link">Nouveau trou →</span>
       </div>
-    )}
+      <ol class="rabbit">
+        {DEMO_RABBIT_HOLE.map((step, i) => (
+          <li class:list={{ 'is-start': i === 0 }}>
+            <span class="rabbit-dot" />
+            <span class="rabbit-kind">{step.kind}</span>
+            <span class:list={['rabbit-title', { 'is-link': step.link }]}>{step.title}</span>
+            <span class="rabbit-sub">{step.sub}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="block" aria-labelledby="moods-title">
+      <div class="bz-section-head"><h2 id="moods-title" class="bz-h2">Par humeur</h2></div>
+      <div class="moods">
+        {MOODS.map((m) => (
+          <div class="mood" style={`background:${m.color};color:${m.ink}`}>
+            <h3>{m.title}</h3>
+            <p>{m.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   </div>
 </Layout>
 
-<style>
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+<script>
+  // Curseur d'exploration : 4 zones, chacune avec ses disques
+  const slider = document.getElementById('cursor') as HTMLInputElement | null;
+  const word = document.getElementById('cursor-word');
+  const why = document.getElementById('cursor-why');
+  const zones = document.querySelectorAll<HTMLElement>('.picks');
+  const paint = () => {
+    if (!slider) return;
+    const value = Number(slider.value);
+    slider.style.setProperty('--fill', `${value}%`);
+    const zone = Math.min(zones.length - 1, Math.floor((value / 100) * zones.length));
+    zones.forEach((z) => (z.hidden = Number(z.dataset.zone) !== zone));
+    const active = zones[zone];
+    if (word && active) word.textContent = active.dataset.word ?? '';
+    if (why && active) why.textContent = active.dataset.why ?? '';
+  };
+  slider?.addEventListener('input', paint);
+  paint();
+
+  // Recherche dans le catalogue (paramètre ?q= envoyé par la barre du haut)
+  const query = new URLSearchParams(location.search).get('q')?.trim();
+  if (query) {
+    const results = document.getElementById('results')!;
+    const terms = query.toLowerCase().split(/\s+/);
+    let found = 0;
+    results.querySelectorAll<HTMLElement>('.result').forEach((el) => {
+      const match = terms.every((t) => el.dataset.search!.includes(t));
+      el.hidden = !match;
+      if (match) found++;
+    });
+    document.getElementById('results-query')!.textContent = query;
+    document.getElementById('results-empty')!.hidden = found > 0;
+    results.hidden = false;
+    const input = document.getElementById('topbar-q') as HTMLInputElement | null;
+    if (input) input.value = query;
   }
-  .scrollbar-hide::-webkit-scrollbar {
+</script>
+
+<style>
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+
+  .results {
+    margin-top: 56px;
+  }
+
+  .explorer {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1fr);
+    gap: 48px;
+    margin-top: 64px;
+    padding: 48px;
+    border: 1px solid var(--color-border);
+    border-radius: 28px;
+  }
+
+  .cursor-label {
+    font: 600 15px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #cfcbc2;
+  }
+
+  .cursor-word {
+    margin: 18px 0 26px;
+    font: italic 400 clamp(56px, 5.6vw, 88px) / 1 var(--font-serif);
+    color: var(--color-lime);
+  }
+
+  input[type='range'] {
+    --fill: 60%;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    appearance: none;
+    background: linear-gradient(to right, var(--color-lime) var(--fill), #333 var(--fill));
+    cursor: pointer;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-lime);
+    border: 3px solid var(--color-bg);
+    box-shadow: 0 0 0 1px var(--color-lime);
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-lime);
+    border: 3px solid var(--color-bg);
+  }
+
+  .cursor-ends {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+    font: 600 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .cursor-why {
+    margin-top: 34px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #cfcbc2;
+  }
+
+  .cursor-why strong {
+    color: var(--color-text);
+  }
+
+  .picks {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    align-content: start;
+  }
+
+  .picks[hidden] {
     display: none;
+  }
+
+  .block {
+    margin-top: 72px;
+  }
+
+  .rabbit {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 24px;
+    position: relative;
+  }
+
+  .rabbit::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 0;
+    border-top: 1px dotted var(--color-lime);
+    opacity: 0.7;
+  }
+
+  .rabbit li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rabbit-dot {
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    border: 2px solid var(--color-lime);
+    background: var(--color-bg);
+    margin-bottom: 30px;
+  }
+
+  .is-start .rabbit-dot {
+    background: var(--color-lime);
+  }
+
+  .rabbit-kind {
+    font: 600 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .rabbit-title {
+    margin: 12px 0 6px;
+    font: 400 40px/1 var(--font-serif);
+  }
+
+  .rabbit-title.is-link {
+    text-decoration: underline;
+    text-decoration-color: var(--color-lime);
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
+  }
+
+  .rabbit-sub {
+    font-size: 16px;
+    color: var(--color-text-muted);
+  }
+
+  .moods {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .mood {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 210px;
+    padding: 26px;
+    border-radius: 18px;
+  }
+
+  .mood h3 {
+    font: 400 46px/1 var(--font-serif);
+    color: inherit;
+  }
+
+  .mood p {
+    font-weight: 600;
+    font-size: 15px;
+    color: inherit;
+  }
+
+  @media (max-width: 1280px) {
+    .explorer {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .rabbit {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      row-gap: 40px;
+    }
+    .rabbit::before {
+      display: none;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .explorer {
+      padding: 28px 20px;
+      margin-top: 36px;
+    }
+    .picks {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .rabbit {
+      grid-template-columns: 1fr 1fr;
+    }
+    .rabbit-title {
+      font-size: 30px;
+    }
+    .moods {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .mood {
+      min-height: 150px;
+      padding: 18px;
+    }
+    .mood h3 {
+      font-size: 34px;
+    }
   }
 </style>
