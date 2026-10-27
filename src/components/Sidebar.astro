@@ -45,7 +45,7 @@ const upcomingTitles = upcoming.slice(0, 2).map((r) => r.title).join(' · ');
     )}
   </section>
 
-  <section class="next">
+  <a class="next" href="/BARZ-/a-venir" aria-label="Calendrier des sorties à venir">
     <span class="next-label">Prochain vendredi</span>
     {upcoming.length > 0 ? (
       <>
@@ -58,7 +58,7 @@ const upcomingTitles = upcoming.slice(0, 2).map((r) => r.title).join(' · ');
         <span class="next-titles">Les annonces arrivent au fil de la semaine</span>
       </>
     )}
-  </section>
+  </a>
 </aside>
 
 <script>
@@ -216,12 +216,17 @@ const upcomingTitles = upcoming.slice(0, 2).map((r) => r.title).join(' · ');
 
   .next {
     margin-top: auto;
+    transition: background var(--transition-fast);
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 22px 20px;
     border-radius: 16px;
     background: var(--color-bg-elevated);
+  }
+
+  .next:hover {
+    background: var(--color-bg-surface);
   }
 
   .next-label {

@@ -10,7 +10,7 @@ export const NAV_ITEMS = [
 export function activeNav(pathname: string): string | null {
   const path = pathname.replace(/^\/BARZ-/, '').replace(/\/$/, '') || '/';
   if (path === '/' || path.startsWith('/releases') || path.startsWith('/calendar')) return 'vendredi';
-  if (path.startsWith('/search')) return 'explorer';
+  if (path.startsWith('/search') || path.startsWith('/artiste') || path.startsWith('/a-venir')) return 'explorer';
   if (path.startsWith('/actus')) return 'actus';
   if (path.startsWith('/commu')) return 'commu';
   if (path.startsWith('/profil')) return 'profil';

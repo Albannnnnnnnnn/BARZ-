@@ -30,7 +30,11 @@ import {
 } from './lib/common';
 
 const DAYS_BACK = Number(process.env.SYNC_DAYS_BACK ?? 14);
-const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 21);
+// 4 mois devant : les albums en pré-sortie et les annonces alimentent le calendrier "À venir"
+const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 120);
+// Annonces MusicBrainz : seulement pour les artistes du catalogue au moins aussi suivis (filtre le bruit)
+const UPCOMING_MIN_FANS = Number(process.env.SYNC_UPCOMING_MIN_FANS ?? 50_000);
+const MB_USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0 (https://albannnnnnnnnn.github.io/BARZ-/)';
 const DEEZER_CHART_SIZE = Number(process.env.SYNC_DEEZER_CHART_SIZE ?? 40);
 // L'API iTunes tolère ~20 requêtes/min : on plafonne par sync (le reste passe au sync suivant)
 const APPLE_LOOKUPS_PER_RUN = Number(process.env.SYNC_APPLE_LOOKUPS ?? 60);
@@ -303,10 +307,80 @@ async function collectSpotify(watched: [string, string[]][], from: string, to: s
 }
 
 // ============================================================
+// MUSICBRAINZ : sorties annoncées (calendrier "À venir")
+// ============================================================
+// Sa recherche par date est bruitée (on l'avait écartée pour les sorties de la semaine) :
+// on ne garde que les dates exactes à venir, d'artistes du catalogue avec assez de fans.
+async function mbFetch(url: string): Promise<any | null> {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const res = await fetch(url, { headers: { 'User-Agent': MB_USER_AGENT, Accept: 'application/json' }, signal: AbortSignal.timeout(20_000) }).catch(() => null);
+    await sleep(1100); // 1 requête par seconde maximum
+    if (res?.ok) return res.json();
+    if (res && res.status !== 503 && res.status !== 429) return null;
+    await sleep(2000 * attempt);
+  }
+  return null;
+}
+
+async function collectMusicBrainzUpcoming(): Promise<Release[]> {
+  const tomorrow = isoDate(new Date(Date.now() + 86_400_000));
+  const until = isoDate(new Date(Date.now() + DAYS_AHEAD * 86_400_000));
+
+  // Catalogue : nom normalisé → artiste (on ne garde que les artistes assez suivis)
+  const catalog = new Map<string, { name: string; image_url: string | null; popularity: number; genres: string[] }>();
+  for (let offset = 0; ; offset += 1000) {
+    const page = must(
+      await supabase.from('artists').select('name, image_url, popularity, genres').gte('popularity', UPCOMING_MIN_FANS).range(offset, offset + 999),
+      'Lecture catalogue'
+    ) as any[];
+    for (const a of page) catalog.set(normalizeName(a.name), a);
+    if (page.length < 1000) break;
+  }
+
+  const query = encodeURIComponent(`firstreleasedate:[${tomorrow} TO ${until}] AND (primarytype:album OR primarytype:ep)`);
+  const out: Release[] = [];
+  // La recherche MusicBrainz plafonne à 500 résultats
+  for (let offset = 0; offset < 500; offset += 100) {
+    const json = await mbFetch(`https://musicbrainz.org/ws/2/release-group?fmt=json&limit=100&offset=${offset}&query=${query}`);
+    if (!json) break;
+    for (const rg of json['release-groups'] || []) {
+      const date: string = rg['first-release-date'] || '';
+      const artistName: string | undefined = rg['artist-credit']?.[0]?.name;
+      if (date.length !== 10 || date < tomorrow || !artistName) continue;
+      const artist = catalog.get(normalizeName(artistName));
+      if (!artist) continue;
+      const type = rg['primary-type'] === 'EP' ? 'ep' : 'album';
+      if ((rg['secondary-types'] || []).some((t: string) => ['Live', 'Compilation', 'Interview', 'Audiobook', 'Spokenword'].includes(t))) continue;
+      // Pochette déjà déposée sur Cover Art Archive ? (rare pour une annonce, mais ça arrive)
+      const coverUrl = `https://coverartarchive.org/release-group/${rg.id}/front-500`;
+      const cover = await fetch(coverUrl, { method: 'HEAD', signal: AbortSignal.timeout(10_000) }).then((r) => (r.ok ? coverUrl : null)).catch(() => null);
+      out.push({
+        title: rg.title,
+        artistName: artist.name,
+        date,
+        type,
+        cover,
+        tracks: 0,
+        genres: new Set(artist.genres ?? []),
+        watched: false,
+        featuring: [],
+        upc: null,
+        artistImage: artist.image_url,
+        artistFans: artist.popularity,
+        artistDeezerId: null,
+      });
+    }
+    if (offset + 100 >= (json.count ?? 0)) break;
+  }
+  console.log(`📅 MusicBrainz : ${out.length} sorties annoncées (artistes du catalogue à plus de ${UPCOMING_MIN_FANS.toLocaleString('fr-FR')} fans)`);
+  return out;
+}
+
+// ============================================================
 // FUSION
 // ============================================================
-// Deezer d'abord (genres, fans, grande pochette), puis Spotify complète ou ajoute
-function merge(deezer: Release[], spotify: Release[]): Release[] {
+// Deezer d'abord (genres, fans, grande pochette), puis Spotify, puis les annonces MusicBrainz
+function merge(deezer: Release[], spotify: Release[], announced: Release[] = []): Release[] {
   const byUpc = new Map<string, Release>();
   const byName = new Map<string, Release>();
   const all: Release[] = [];
@@ -332,6 +406,7 @@ function merge(deezer: Release[], spotify: Release[]): Release[] {
 
   deezer.forEach(add);
   spotify.forEach(add);
+  announced.forEach(add);
   return all;
 }
 
@@ -372,7 +447,14 @@ async function main() {
     }
   }
 
-  const releases = merge(deezer, spotify);
+  let announced: Release[] = [];
+  try {
+    announced = await collectMusicBrainzUpcoming();
+  } catch (err) {
+    console.warn(`⚠️ Annonces MusicBrainz indisponibles : ${err instanceof Error ? err.message : err}`);
+  }
+
+  const releases = merge(deezer, spotify, announced);
   if (releases.length === 0) throw new Error('Aucune sortie trouvée (Deezer et Spotify) : rien à enregistrer.');
 
   if (RESET) {
@@ -420,7 +502,7 @@ async function main() {
       fans: r.deezer?.fans ?? null,
       label: r.deezer?.label ?? null,
       upc: r.upc as string | null,
-      sources: [r.deezer && 'deezer', r.spotify && 'spotify'].filter(Boolean),
+      sources: [r.deezer && 'deezer', r.spotify && 'spotify', !r.deezer && !r.spotify && 'musicbrainz'].filter(Boolean),
     },
     updated_at: new Date().toISOString(),
   }));

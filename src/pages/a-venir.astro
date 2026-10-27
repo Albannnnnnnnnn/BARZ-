@@ -1,0 +1,305 @@
+---
+// CALENDRIER DES SORTIES À VENIR (4 mois) : vue par mois + liste par date.
+// Sources : pré-sorties Deezer / Spotify et annonces MusicBrainz (voir scripts/sync-releases.ts).
+import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import Layout from '../layouts/Layout.astro';
+import AlbumTile from '../components/AlbumTile.astro';
+import Cover from '../components/Cover.astro';
+import { getSupabaseServerSafe } from '../lib/supabase';
+import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
+import { getReleaseTypeLabel } from '../lib/utils';
+
+const today = getToday();
+const releases = [...(await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today, 1), addDays(today, 120)))].reverse();
+
+const byDate = new Map<string, ReleaseRow[]>();
+for (const r of releases) {
+  if (!byDate.has(r.release_date)) byDate.set(r.release_date, []);
+  byDate.get(r.release_date)!.push(r);
+}
+
+// Au moins 3 mois affichés, plus si des sorties sont annoncées au-delà
+const lastDate = releases.at(-1) ? parseISO(releases.at(-1)!.release_date) : today;
+const months: Date[] = [];
+for (let m = startOfMonth(today); m <= lastDate || months.length < 3; m = addMonths(m, 1)) months.push(m);
+
+const todayIso = format(today, 'yyyy-MM-dd');
+const announcedOnly = (r: ReleaseRow) => !r.deezer_url && !r.spotify_url;
+const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+---
+
+<Layout title="À venir" description="Le calendrier des sorties musicales annoncées pour les prochains mois.">
+  <div class="bz-page">
+    <div class="head">
+      <div>
+        <span class="bz-eyebrow">Calendrier</span>
+        <h1 class="bz-display">Ce qui <em>arrive.</em></h1>
+        <p class="lead">
+          {releases.length > 0
+            ? `${releases.length} sortie${releases.length > 1 ? 's' : ''} annoncée${releases.length > 1 ? 's' : ''} pour les 4 prochains mois.`
+            : 'Aucune sortie annoncée pour l’instant.'}
+          <span class="lead-note">Les annonces arrivent au fil des pré-sorties : le calendrier se remplit deux fois par jour.</span>
+        </p>
+      </div>
+      <nav class="tabs" aria-label="Modes d’exploration">
+        <a class="bz-chip" href="/BARZ-/search">Découverte</a>
+        <a class="bz-chip" href="/BARZ-/artistes">Artistes</a>
+        <a class="bz-chip" href="/BARZ-/releases">Charts</a>
+        <a class="bz-chip is-active" href="/BARZ-/a-venir" aria-current="page">Calendrier</a>
+      </nav>
+    </div>
+
+    <div class="months">
+      {months.map((month) => {
+        const days = eachDayOfInterval({ start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }) });
+        return (
+          <section class="month" aria-label={format(month, 'MMMM yyyy', { locale: fr })}>
+            <h2 class="month-title">{format(month, 'MMMM', { locale: fr })} <em>{format(month, 'yyyy')}</em></h2>
+            <div class="grid" role="grid">
+              {WEEKDAYS.map((d) => <span class="weekday" role="columnheader">{d}</span>)}
+              {days.map((day) => {
+                const iso = format(day, 'yyyy-MM-dd');
+                const list = byDate.get(iso) ?? [];
+                const outside = !isSameMonth(day, month);
+                const Tag = list.length && !outside ? 'a' : 'div';
+                return (
+                  <Tag
+                    class:list={['day', { outside, past: iso <= todayIso, friday: day.getDay() === 5, 'has-releases': list.length > 0 && !outside }]}
+                    href={Tag === 'a' ? `#jour-${iso}` : undefined}
+                    data-date={iso}
+                    data-artists={list.map((r) => r.artist?.id).filter(Boolean).join(' ')}
+                    role="gridcell"
+                  >
+                    <span class="day-num">{format(day, 'd')}</span>
+                    {list.length > 0 && !outside && (
+                      <span class="day-covers">
+                        {list.slice(0, 3).map((r) => <Cover title={r.title} src={r.cover_url} showTitle={false} class="mini" />)}
+                        {list.length > 3 && <span class="more">+{list.length - 3}</span>}
+                      </span>
+                    )}
+                  </Tag>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+
+    {releases.length > 0 && (
+      <section class="list" aria-labelledby="list-title">
+        <div class="bz-section-head"><h2 id="list-title" class="bz-h2">Date <em>par date</em></h2></div>
+        {[...byDate.entries()].map(([date, list]) => (
+          <section class="date-block" id={`jour-${date}`}>
+            <h3 class="date-title">{format(parseISO(date), 'EEEE d MMMM', { locale: fr })}</h3>
+            <div class="bz-tiles">
+              {list.map((r) => (
+                <div class="item" data-artist-id={r.artist?.id} data-artist-name={r.artist?.name}>
+                  <AlbumTile
+                    title={r.title}
+                    subtitle={`${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`}
+                    cover={r.cover_url}
+                    href={`/BARZ-/releases/${r.slug}`}
+                    badge={announcedOnly(r) ? 'Annoncé' : undefined}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </section>
+    )}
+  </div>
+</Layout>
+
+<script>
+  import { escapeHtml, myFollows } from '../scripts/social';
+
+  // Connecté : les sorties de ses artistes suivis sont mises en avant
+  myFollows()
+    .then((follows) => {
+      const ids = new Set(follows.map((a) => a.id));
+      if (!ids.size) return;
+      document.querySelectorAll<HTMLElement>('.item[data-artist-id]').forEach((item) => {
+        if (!ids.has(item.dataset.artistId!)) return;
+        item.classList.add('is-followed');
+        item.querySelector('.tile')?.insertAdjacentHTML('beforeend', `<span class="bz-reason">Tu suis ${escapeHtml(item.dataset.artistName ?? '')}</span>`);
+      });
+      document.querySelectorAll<HTMLElement>('.day[data-artists]').forEach((day) => {
+        if (day.dataset.artists!.split(' ').some((id) => ids.has(id))) day.classList.add('has-followed');
+      });
+    })
+    .catch(() => {});
+</script>
+
+<style>
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+
+  .lead {
+    margin-top: 18px;
+    font-size: 17px;
+    color: var(--color-text-muted);
+  }
+
+  .lead-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--color-text-dim);
+  }
+
+  .months {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 40px;
+    margin-top: 56px;
+  }
+
+  .month-title {
+    margin-bottom: 18px;
+    font: 400 40px/1 var(--font-serif);
+    text-transform: capitalize;
+  }
+
+  .month-title em {
+    color: var(--color-text-dim);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .weekday {
+    padding-bottom: 6px;
+    text-align: center;
+    font: 600 11px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .day {
+    position: relative;
+    min-height: 74px;
+    padding: 6px;
+    border-radius: 10px;
+    background: var(--color-bg-elevated);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .day.outside {
+    background: transparent;
+  }
+
+  .day.outside .day-num {
+    color: #333;
+  }
+
+  .day.past {
+    opacity: 0.35;
+  }
+
+  .day.friday:not(.outside) {
+    box-shadow: inset 0 0 0 1px #2c3112;
+  }
+
+  .day-num {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  .day.has-releases {
+    background: #1d2010;
+    transition: transform var(--transition-fast);
+  }
+
+  .day.has-releases:hover {
+    transform: translateY(-2px);
+  }
+
+  .day.has-releases .day-num {
+    color: var(--color-lime);
+  }
+
+  .day.has-followed {
+    box-shadow: inset 0 0 0 2px var(--color-lime);
+  }
+
+  .day-covers {
+    display: flex;
+    align-items: center;
+  }
+
+  .day-covers :global(.mini) {
+    width: 30px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px #1d2010;
+  }
+
+  .day-covers :global(.mini + .mini) {
+    margin-left: -10px;
+  }
+
+  .more {
+    margin-left: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-lime);
+  }
+
+  .list {
+    margin-top: 80px;
+  }
+
+  .date-block {
+    margin-bottom: 48px;
+    scroll-margin-top: 110px;
+  }
+
+  .date-title {
+    margin-bottom: 20px;
+    font: 400 30px/1 var(--font-serif);
+    text-transform: capitalize;
+    color: var(--color-text);
+  }
+
+  .item.is-followed :global(.tile-title) {
+    color: var(--color-lime);
+  }
+
+  @media (max-width: 900px) {
+    .months {
+      grid-template-columns: minmax(0, 1fr);
+      margin-top: 36px;
+    }
+    .day {
+      min-height: 52px;
+      padding: 4px;
+    }
+    .day-covers :global(.mini) {
+      width: 22px;
+    }
+    .day-covers :global(.mini:nth-child(n + 3)) {
+      display: none;
+    }
+  }
+</style>

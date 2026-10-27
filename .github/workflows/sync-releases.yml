@@ -22,6 +22,8 @@ jobs:
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
       SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+      # Contact demandé par MusicBrainz (annonces de sorties à venir)
+      MUSICBRAINZ_USER_AGENT: BARZ/1.0 (${{ secrets.MUSICBRAINZ_EMAIL || 'https://albannnnnnnnnn.github.io/BARZ-/' }})
       # Import Last.fm des membres (sync:artists) ; reste côté serveur
       LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
 
