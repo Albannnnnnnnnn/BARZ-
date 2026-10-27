@@ -31,6 +31,18 @@ const fallback = Object.values(DEMO_ALBUMS).slice(4, 8);
 const zoneTiles = ZONES.map((z) => pick(z.genres));
 
 const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
+// Sorties récentes pour le curseur personnalisé (src/scripts/reco.ts)
+const exploreData = recent.map((r) => ({
+  id: r.id,
+  artistId: r.artist?.id ?? null,
+  artistName: r.artist?.name ?? '',
+  genres: r.genres ?? [],
+  fans: r.metadata?.fans ?? null,
+  title: r.title,
+  slug: r.slug,
+  cover_url: r.cover_url,
+  release_type: r.release_type,
+}));
 const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.genres ?? []).join(' ')}`.toLowerCase();
 ---
 
@@ -43,6 +55,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
       </div>
       <nav class="tabs" aria-label="Modes d’exploration">
         <a class="bz-chip is-active" href="/BARZ-/search" aria-current="page">Découverte</a>
+        <a class="bz-chip" href="/BARZ-/artistes">Artistes</a>
         <a class="bz-chip" href="/BARZ-/releases">Charts</a>
         <a class="bz-chip" href="/BARZ-/calendar">Calendrier</a>
       </nav>
@@ -78,14 +91,16 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
             : fallback.map((a) => <AlbumTile title={a.title} subtitle={a.artist} palette={a.palette} />)}
         </div>
       ))}
+      <div class="picks" id="picks-live" hidden></div>
+      <script type="application/json" id="explore-data" set:html={JSON.stringify(exploreData)} />
     </section>
 
     <section class="block" aria-labelledby="rabbit-title">
       <div class="bz-section-head">
         <h2 id="rabbit-title" class="bz-h2">Rabbit Hole</h2>
-        <span class="bz-link">Nouveau trou →</span>
+        <button type="button" class="bz-link rabbit-new" id="rabbit-new">Nouveau trou →</button>
       </div>
-      <ol class="rabbit">
+      <ol class="rabbit" id="rabbit">
         {DEMO_RABBIT_HOLE.map((step, i) => (
           <li class:list={{ 'is-start': i === 0 }}>
             <span class="rabbit-dot" />
@@ -112,23 +127,106 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
 </Layout>
 
 <script>
+  import { ARTIST_LITE, BASE, escapeHtml, formatFans, releaseTileHtml, supabase, type ArtistLite } from '../scripts/social';
+  import { loadTaste, rank, type RecoRelease, type Taste } from '../scripts/reco';
+  import { GENRE_CHIPS } from '../lib/genres';
+
   // Curseur d'exploration : 4 zones, chacune avec ses disques
   const slider = document.getElementById('cursor') as HTMLInputElement | null;
   const word = document.getElementById('cursor-word');
   const why = document.getElementById('cursor-why');
   const zones = document.querySelectorAll<HTMLElement>('.picks');
+  const livePicks = document.getElementById('picks-live')!;
+  const exploreData: (RecoRelease & { title: string; slug: string; cover_url: string | null; release_type: string })[] = JSON.parse(
+    document.getElementById('explore-data')?.textContent || '[]'
+  );
+  // Connecté : les disques viennent du moteur de reco, selon la position du curseur
+  let taste: Taste | null = null;
+
   const paint = () => {
     if (!slider) return;
     const value = Number(slider.value);
     slider.style.setProperty('--fill', `${value}%`);
     const zone = Math.min(zones.length - 1, Math.floor((value / 100) * zones.length));
-    zones.forEach((z) => (z.hidden = Number(z.dataset.zone) !== zone));
-    const active = zones[zone];
+    const active = document.querySelector<HTMLElement>(`.picks[data-zone="${zone}"]`);
     if (word && active) word.textContent = active.dataset.word ?? '';
+
+    if (taste) {
+      zones.forEach((z) => (z.hidden = true));
+      const explore = value / 99;
+      // Plus on explore, plus on écarte ce qu'on connaît déjà
+      const ranked = rank(exploreData, taste, explore).filter((s) => explore < 0.5 || !(s.item.artistId && taste!.followed.has(s.item.artistId)));
+      const picks = ranked.slice(0, 4);
+      livePicks.innerHTML = picks.map((s) => releaseTileHtml({ ...s.item, artist: { name: s.item.artistName } }, { reason: s.reason })).join('');
+      livePicks.hidden = false;
+      const reason = picks.find((s) => s.reason)?.reason;
+      if (why) why.textContent = reason ? `${reason}. Bouge le curseur pour t’éloigner ou te rapprocher de tes habitudes.` : active?.dataset.why ?? '';
+      return;
+    }
+    zones.forEach((z) => (z.hidden = Number(z.dataset.zone) !== zone));
     if (why && active) why.textContent = active.dataset.why ?? '';
   };
   slider?.addEventListener('input', paint);
   paint();
+  loadTaste().then((t) => {
+    if (t && !t.empty && exploreData.length) {
+      taste = t;
+      paint();
+    }
+  });
+
+  // Rabbit Hole : de proche en proche dans les artistes similaires, en s'éloignant à chaque saut
+  const STEPS = ['Point de départ', 'Proche de', 'Un cran plus loin', 'Encore plus loin', 'Destination'];
+  const hole = document.getElementById('rabbit')!;
+
+  async function relatedOf(id: string): Promise<ArtistLite[]> {
+    const { data, error } = await supabase!
+      .from('artist_relations')
+      .select(`rank, related:artists!artist_relations_related_id_fkey(${ARTIST_LITE})`)
+      .eq('artist_id', id)
+      .order('rank');
+    if (error) throw error;
+    return ((data ?? []) as any[]).map((r) => r.related).filter(Boolean);
+  }
+
+  async function digHole() {
+    if (!supabase) return;
+    // Départ : un artiste que le membre aime, sinon un artiste populaire du catalogue
+    const t = await loadTaste();
+    const liked = t ? [...t.artistWeights.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id]) => id) : [];
+    const startQuery = liked.length
+      ? supabase.from('artists').select(ARTIST_LITE).in('id', liked)
+      : supabase.from('artists').select(ARTIST_LITE).not('deezer_id', 'is', null).order('popularity', { ascending: false }).limit(80);
+    const { data: starts, error } = await startQuery;
+    if (error || !starts?.length) return;
+    const pickRandom = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+    const chain: ArtistLite[] = [pickRandom(starts as ArtistLite[])];
+    const visited = new Set([chain[0].id]);
+    for (let hop = 1; hop < STEPS.length; hop++) {
+      const candidates = (await relatedOf(chain[hop - 1].id)).filter((a) => !visited.has(a.id));
+      if (!candidates.length) break;
+      // Premiers sauts : voisins proches ; ensuite on prend des voisins plus lointains
+      const index = Math.min(candidates.length - 1, (hop - 1) * 3 + Math.floor(Math.random() * 4));
+      const next = candidates[index];
+      chain.push(next);
+      visited.add(next.id);
+    }
+    if (chain.length < 3) return; // pas assez de liens : on garde l'exemple
+    hole.innerHTML = chain
+      .map((a, i) => {
+        const genre = GENRE_CHIPS.find((c) => c.genres.some((g) => a.genres?.includes(g)))?.label;
+        return `<li class="${i === 0 ? 'is-start' : ''}">
+          <span class="rabbit-dot"></span>
+          <span class="rabbit-kind">${STEPS[i]}</span>
+          <a class="rabbit-title is-link" href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${escapeHtml(a.name)}</a>
+          <span class="rabbit-sub">${escapeHtml([genre, formatFans(a.popularity)].filter(Boolean).join(' · '))}</span>
+        </li>`;
+      })
+      .join('');
+  }
+
+  document.getElementById('rabbit-new')!.addEventListener('click', () => digHole().catch(() => {}));
+  digHole().catch(() => {});
 
   // Recherche dans le catalogue (paramètre ?q= envoyé par la barre du haut)
   const query = new URLSearchParams(location.search).get('q')?.trim();
@@ -302,6 +400,58 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.g
   .rabbit-title {
     margin: 12px 0 6px;
     font: 400 40px/1 var(--font-serif);
+  }
+
+  .rabbit-new {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+
+  .rabbit :global(li) {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .rabbit :global(.rabbit-dot) {
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    border: 2px solid var(--color-lime);
+    background: var(--color-bg);
+    margin-bottom: 30px;
+  }
+
+  .rabbit :global(.is-start .rabbit-dot) {
+    background: var(--color-lime);
+  }
+
+  .rabbit :global(.rabbit-kind) {
+    font: 600 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .rabbit :global(.rabbit-title) {
+    margin: 12px 0 6px;
+    font: 400 40px/1 var(--font-serif);
+    overflow-wrap: anywhere;
+  }
+
+  .rabbit :global(.rabbit-sub) {
+    font-size: 16px;
+    color: var(--color-text-muted);
+  }
+
+  .rabbit :global(.rabbit-title.is-link) {
+    text-decoration: underline;
+    text-decoration-color: var(--color-lime);
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
   }
 
   .rabbit-title.is-link {

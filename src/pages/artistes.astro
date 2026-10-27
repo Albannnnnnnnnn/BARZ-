@@ -1,0 +1,170 @@
+---
+// CATALOGUE D'ARTISTES : parcourir par genre, chercher, suivre (lu par le navigateur dans Supabase)
+import Layout from '../layouts/Layout.astro';
+import { GENRE_CHIPS } from '../lib/genres';
+---
+
+<Layout title="Artistes" description="Le catalogue d’artistes de BARZ¡ : parcours par genre, cherche, suis tes artistes.">
+  <div class="bz-page">
+    <div class="head">
+      <div>
+        <span class="bz-eyebrow">Explorer</span>
+        <h1 class="bz-display">Tous <em>les artistes.</em></h1>
+        <p class="count" id="catalog-count">&nbsp;</p>
+      </div>
+      <nav class="tabs" aria-label="Modes d’exploration">
+        <a class="bz-chip" href="/BARZ-/search">Découverte</a>
+        <a class="bz-chip is-active" href="/BARZ-/artistes" aria-current="page">Artistes</a>
+        <a class="bz-chip" href="/BARZ-/releases">Charts</a>
+        <a class="bz-chip" href="/BARZ-/calendar">Calendrier</a>
+      </nav>
+    </div>
+
+    <div class="controls">
+      <label class="sr-only" for="artist-q">Chercher un artiste</label>
+      <input id="artist-q" class="bz-input search" type="search" placeholder="Chercher un artiste…" autocomplete="off" />
+      <div class="bz-chips" id="artist-genres" role="group" aria-label="Filtrer par genre">
+        <button type="button" class="bz-chip is-active" data-genre="" aria-pressed="true">Tous</button>
+        {GENRE_CHIPS.map((c) => (
+          <button type="button" class="bz-chip" data-genre={c.id} aria-pressed="false">{c.label}</button>
+        ))}
+        <button type="button" class="bz-chip" data-genre="followed" aria-pressed="false">Mes artistes</button>
+      </div>
+    </div>
+
+    <div class="bz-artists" id="artist-grid" aria-live="polite"></div>
+    <p class="bz-empty" id="artist-empty" hidden></p>
+    <button type="button" class="bz-btn bz-btn--outline more" id="artist-more" hidden>Voir plus d’artistes</button>
+  </div>
+</Layout>
+
+<script>
+  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, myFollows, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { GENRE_CHIPS } from '../lib/genres';
+
+  const PAGE = 48;
+  const grid = document.getElementById('artist-grid')!;
+  const empty = document.getElementById('artist-empty')!;
+  const more = document.getElementById('artist-more') as HTMLButtonElement;
+  const input = document.getElementById('artist-q') as HTMLInputElement;
+  let genre = new URLSearchParams(location.search).get('genre') ?? '';
+  let query = '';
+  let offset = 0;
+  let followed = new Set<string>();
+  let followedList: ArtistLite[] = [];
+
+  async function fetchPage(): Promise<ArtistLite[]> {
+    if (genre === 'followed') return followedList.slice(offset, offset + PAGE);
+    if (!supabase) return [];
+    let q = supabase.from('artists').select(ARTIST_LITE).order('popularity', { ascending: false }).range(offset, offset + PAGE - 1);
+    if (query) q = q.ilike('name', `%${query.replace(/[%_]/g, '')}%`);
+    const chip = GENRE_CHIPS.find((c) => c.id === genre);
+    if (chip) q = q.overlaps('genres', chip.genres);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as ArtistLite[];
+  }
+
+  async function load(reset: boolean) {
+    if (reset) {
+      offset = 0;
+      grid.innerHTML = '';
+    }
+    try {
+      const page = await fetchPage();
+      grid.insertAdjacentHTML('beforeend', page.map((a) => artistCardHtml(a, followed.has(a.id))).join(''));
+      offset += page.length;
+      more.hidden = page.length < PAGE;
+      empty.hidden = grid.children.length > 0;
+      empty.textContent = genre === 'followed' ? 'Tu ne suis encore aucun artiste : clique sur « Suivre » sous ceux que tu aimes.' : 'Aucun artiste trouvé.';
+    } catch (err) {
+      empty.textContent = errorText(err);
+      empty.hidden = false;
+    }
+  }
+
+  async function init() {
+    if (supabase) {
+      const { count } = await supabase.from('artists').select('*', { count: 'exact', head: true });
+      if (count) document.getElementById('catalog-count')!.textContent = `${count.toLocaleString('fr-FR')} artistes dans le catalogue.`;
+    }
+    followedList = await myFollows().catch(() => []);
+    followed = new Set(followedList.map((a) => a.id));
+    document.querySelectorAll<HTMLButtonElement>('[data-genre]').forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.genre === genre);
+      b.setAttribute('aria-pressed', String(b.dataset.genre === genre));
+    });
+    load(true);
+  }
+
+  document.getElementById('artist-genres')!.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-genre]');
+    if (!button) return;
+    genre = button.dataset.genre ?? '';
+    document.querySelectorAll<HTMLButtonElement>('[data-genre]').forEach((b) => {
+      b.classList.toggle('is-active', b === button);
+      b.setAttribute('aria-pressed', String(b === button));
+    });
+    history.replaceState(null, '', genre ? `?genre=${genre}` : location.pathname);
+    load(true);
+  });
+
+  let timer: number | undefined;
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      query = input.value.trim();
+      load(true);
+    }, 250);
+  });
+
+  more.addEventListener('click', () => load(false));
+  wireFollowButtons(grid, (id, on) => (on ? followed.add(id) : followed.delete(id)));
+  init();
+</script>
+
+<style>
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+
+  .count {
+    margin-top: 18px;
+    font-size: 17px;
+    color: var(--color-text-muted);
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin: 44px 0 40px;
+  }
+
+  .search {
+    max-width: 520px;
+  }
+
+  .more {
+    display: block;
+    margin: 44px auto 0;
+    padding: 14px 26px;
+    font-size: 15px;
+  }
+
+  .more[hidden],
+  .bz-empty[hidden] {
+    display: none;
+  }
+</style>

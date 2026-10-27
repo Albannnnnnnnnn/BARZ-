@@ -12,64 +12,29 @@
 //
 // MusicBrainz a été abandonné : sa recherche par date ne sait pas distinguer "2026" de "2026-10-23"
 // et plafonne à 500 résultats, ce qui remplissait la base de sorties sans rapport avec la semaine.
-import 'dotenv/config';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
+import {
+  supabase,
+  sleep,
+  must,
+  normalizeName,
+  stableSlug,
+  chunk,
+  readWatchlist,
+  mapGenre,
+  deezerFetch,
+  deezerStats,
+  deezerResolveArtist,
+  deezerAppGenres,
+  saveArtists,
+} from './lib/common';
 
 const DAYS_BACK = Number(process.env.SYNC_DAYS_BACK ?? 14);
 const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 21);
 const DEEZER_CHART_SIZE = Number(process.env.SYNC_DEEZER_CHART_SIZE ?? 40);
 const RESET = process.argv.includes('--reset');
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    console.error(`❌ Variable d'environnement manquante : ${name}`);
-    process.exit(1);
-  }
-  return value;
-}
-
-const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_KEY'), {
-  auth: { persistSession: false },
-});
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
-
-// supabase-js renvoie les erreurs au lieu de les lever : on les lève pour ne plus rien perdre en silence
-function must<T>(res: { data: T; error: { message: string } | null }, context: string): T {
-  if (res.error) throw new Error(`${context} : ${res.error.message}`);
-  return res.data;
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
-
-// Comparaison tolérante (accents, casse, ponctuation) ; garde les titres non latins tels quels
-function normalizeName(text: string): string {
-  return slugify(text).replace(/-/g, '') || text.toLowerCase().replace(/\s+/g, '');
-}
-
-// Slug stable quelle que soit la source : même sortie → même ligne en base
-function stableSlug(text: string, suffix = ''): string {
-  const base = slugify(text) || createHash('sha1').update(text).digest('hex').slice(0, 10);
-  return suffix ? `${base}-${suffix}` : base;
-}
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
 
 const JUNK_TITLE = /slowed|sped up|reverb|vocals only|instrumental|karaoke|8d audio|nightcore/i;
 
@@ -89,6 +54,7 @@ type Release = {
   upc: string | null;
   artistImage: string | null;
   artistFans: number | null;
+  artistDeezerId: number | null;
   spotify?: { id: string; url: string | null; artistId: string };
   deezer?: { id: number; url: string | null; fans: number | null; label: string | null };
 };
@@ -98,73 +64,13 @@ function nameKey(artist: string, title: string): string {
 }
 
 // ============================================================
-// GENRES (noms Deezer → genres de l'app)
+// DEEZER
 // ============================================================
-const GENRE_RULES: [string, RegExp][] = [
-  ['rap', /rap|hip.?hop/],
-  ['rnb', /r&b/],
-  ['soul', /soul|funk|blues/],
-  ['electronic', /electro|dance/],
-  ['jazz', /jazz/],
-  ['metal', /metal/],
-  ['rock', /rock|alternative/],
-  ['pop', /pop|chanson fran/],
-  ['folk', /folk|country/],
-  ['classical', /classique/],
-  ['reggae', /reggae/],
-  ['latin', /latino|br[ée]silienne/],
-  ['world', /africaine|arabe|asiatique|indienne/],
-];
-
-function mapGenre(name: string): string | null {
-  const lower = name.toLowerCase();
-  return GENRE_RULES.find(([, re]) => re.test(lower))?.[0] ?? null;
-}
-
-// ============================================================
-// DEEZER (pas de clé ; limite d'environ 50 requêtes / 5 s)
-// ============================================================
-const DEEZER_MIN_INTERVAL_MS = 130;
-let lastDeezerCall = 0;
-let deezerCalls = 0;
-
-async function deezerFetch(endpoint: string): Promise<any | null> {
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    const wait = lastDeezerCall + DEEZER_MIN_INTERVAL_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    lastDeezerCall = Date.now();
-    deezerCalls++;
-    const res = await fetch(`https://api.deezer.com${endpoint}`);
-    if (res.status >= 500) {
-      await sleep(1000 * attempt);
-      continue;
-    }
-    const json = await res.json().catch(() => null);
-    // Deezer répond 200 même en cas d'erreur : le détail est dans json.error
-    if (json?.error) {
-      if (json.error.code === 4) {
-        await sleep(5000); // quota dépassé
-        continue;
-      }
-      return null; // ressource introuvable, etc.
-    }
-    return json;
-  }
-  throw new Error(`Deezer : abandon après plusieurs essais sur ${endpoint}`);
-}
-
 function deezerType(album: any): string | null {
   if (album.record_type === 'album') return 'album';
   if (album.record_type === 'ep') return 'ep';
   if (album.record_type === 'compile') return 'compilation';
   return null;
-}
-
-async function deezerResolveArtist(name: string): Promise<any | null> {
-  const json = await deezerFetch(`/search/artist?limit=25&q=${encodeURIComponent(name)}`);
-  // La recherche Deezer renvoie beaucoup d'homonymes : on garde le nom exact le plus suivi
-  const exact = (json?.data || []).filter((a: any) => normalizeName(a.name) === normalizeName(name));
-  return exact.sort((a: any, b: any) => b.nb_fan - a.nb_fan)[0] ?? null;
 }
 
 async function deezerAlbumDetail(id: number, watched: boolean, from: string, to: string): Promise<Release | null> {
@@ -189,11 +95,12 @@ async function deezerAlbumDetail(id: number, watched: boolean, from: string, to:
     upc: a.upc ?? null,
     artistImage: a.artist.picture_xl ?? null,
     artistFans: null,
+    artistDeezerId: a.artist.id ?? null,
     deezer: { id: a.id, url: a.link ?? null, fans: a.fans ?? null, label: a.label ?? null },
   };
 }
 
-async function collectDeezer(watched: [string, string[]][], from: string, to: string): Promise<Release[]> {
+async function collectDeezer(watched: [string, string[]][], followedIds: number[], from: string, to: string): Promise<Release[]> {
   const out: Release[] = [];
   const seen = new Set<number>();
   const artistFans = new Map<string, number>();
@@ -223,9 +130,20 @@ async function collectDeezer(watched: [string, string[]][], from: string, to: st
   console.log(`   ${out.length} sorties`);
   if (notFound.length) console.log(`   ⚠️ Introuvables sur Deezer : ${notFound.join(', ')}`);
 
+  // Artistes suivis par les membres : leurs sorties entrent dans BARZ¡ et sont marquées "suivies"
+  if (followedIds.length) console.log(`👥 Deezer : ${followedIds.length} artistes suivis par les membres...`);
+  for (const id of followedIds) {
+    const albums = await deezerFetch(`/artist/${id}/albums?limit=30`);
+    for (const album of albums?.data || []) {
+      if (seen.has(album.id) || !album.release_date || album.release_date < from || album.release_date > to) continue;
+      seen.add(album.id);
+      const release = await deezerAlbumDetail(album.id, true, from, to);
+      if (release) out.push(release);
+    }
+  }
+
   console.log('📈 Deezer : classements par genre...');
-  const genres = (await deezerFetch('/genre'))?.data || [];
-  const charts = [{ id: 0, name: 'Tous' }, ...genres.filter((g: any) => mapGenre(g.name))];
+  const charts = [{ id: 0, name: 'Tous' }, ...(await deezerAppGenres())];
   for (const g of charts) {
     const chart = await deezerFetch(`/chart/${g.id}/albums?limit=${DEEZER_CHART_SIZE}`);
     for (const album of chart?.data || []) {
@@ -237,7 +155,7 @@ async function collectDeezer(watched: [string, string[]][], from: string, to: st
   }
 
   for (const r of out) r.artistFans = artistFans.get(normalizeName(r.artistName)) ?? null;
-  console.log(`   ${out.length} sorties au total (${deezerCalls} appels Deezer)`);
+  console.log(`   ${out.length} sorties au total (${deezerStats.calls} appels Deezer)`);
   return out;
 }
 
@@ -374,6 +292,7 @@ async function collectSpotify(watched: [string, string[]][], from: string, to: s
       upc: detail?.external_ids?.upc ?? null,
       artistImage: artistImages.get(main.id) ?? null,
       artistFans: null,
+      artistDeezerId: null,
       spotify: { id: album.id, url: album.external_urls?.spotify ?? null, artistId: main.id },
     });
   }
@@ -423,13 +342,17 @@ async function main() {
   const to = isoDate(new Date(today.getTime() + DAYS_AHEAD * 86_400_000));
   console.log(`🚀 Sync des sorties du ${from} au ${to}`);
 
-  const watchlist = JSON.parse(readFileSync(new URL('./artist-watchlist.json', import.meta.url), 'utf8'));
-  const watched = Object.entries(watchlist).filter(([key]) => !key.startsWith('_')) as [string, string[]][];
+  const watched = readWatchlist();
+  // Artistes suivis par au moins un membre (table follows de supabase/discovery.sql, absente avant)
+  const followsRes = await supabase.from('follows').select('artist:artists(deezer_id)');
+  const followedIds = followsRes.error
+    ? []
+    : [...new Set((followsRes.data as any[]).map((f) => f.artist?.deezer_id).filter((id): id is number => !!id))];
 
   // Chaque source peut échouer sans emporter l'autre
   let deezer: Release[] = [];
   try {
-    deezer = await collectDeezer(watched, from, to);
+    deezer = await collectDeezer(watched, followedIds, from, to);
   } catch (err) {
     console.warn(`⚠️ Deezer indisponible : ${err instanceof Error ? err.message : err}`);
   }
@@ -452,7 +375,7 @@ async function main() {
 
   if (RESET) {
     // Supprimer les sorties effacerait aussi les Barz, spin lists et écoutés qui y sont liés
-    for (const table of ['barz', 'spin_list', 'listened']) {
+    for (const table of ['barz', 'spin_list', 'listened', 'follows', 'lastfm_artists']) {
       const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
       if (!error && (count ?? 0) > 0) {
         throw new Error(`--reset refusé : la table ${table} contient ${count} ligne(s) d'utilisateurs, qui seraient supprimées. Lance le sync sans --reset.`);
@@ -463,23 +386,17 @@ async function main() {
     must(await supabase.from('artists').delete().not('id', 'is', null), 'Suppression artists');
   }
 
-  // Artistes : une ligne par nom (slug), quelle que soit la source
-  const artistRows = new Map<string, any>();
-  for (const r of releases) {
-    const slug = stableSlug(r.artistName);
-    const row = artistRows.get(slug) ?? { slug, name: r.artistName, genres: [] as string[], image_url: null, spotify_id: null, popularity: 0 };
-    row.image_url ??= r.artistImage;
-    row.spotify_id ??= r.spotify?.artistId ?? null;
-    row.popularity = Math.max(row.popularity, r.artistFans ?? 0);
-    row.genres = [...new Set([...row.genres, ...r.genres])];
-    row.updated_at = new Date().toISOString();
-    artistRows.set(slug, row);
-  }
-  const artistIds = new Map<string, string>();
-  for (const part of chunk([...artistRows.values()], 100)) {
-    const saved = must(await supabase.from('artists').upsert(part, { onConflict: 'slug' }).select('id, slug'), 'Enregistrement artists');
-    for (const a of saved ?? []) artistIds.set(a.slug, a.id);
-  }
+  // Artistes : une ligne par nom (slug), fusionnée avec ce que le catalogue connaît déjà
+  const artistIds = await saveArtists(
+    releases.map((r) => ({
+      name: r.artistName,
+      deezer_id: r.artistDeezerId,
+      spotify_id: r.spotify?.artistId ?? null,
+      image_url: r.artistImage,
+      popularity: r.artistFans,
+      genres: [...r.genres],
+    }))
+  );
 
   // Sorties : slug stable (artiste + titre + année) pour que Deezer et Spotify mettent à jour la même ligne
   const releaseRows = releases.map((r) => ({

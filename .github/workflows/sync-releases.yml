@@ -22,6 +22,8 @@ jobs:
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
       SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+      # Import Last.fm des membres (sync:artists) ; reste côté serveur
+      LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
 
     steps:
       - name: Checkout repository
@@ -35,6 +37,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Catalogue d'artistes et artistes similaires (base des recommandations)
+      - name: Sync artist catalog
+        run: npm run sync:artists
 
       - name: Run sync script
         run: npm run sync:releases

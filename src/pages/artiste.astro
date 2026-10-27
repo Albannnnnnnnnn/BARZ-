@@ -1,0 +1,168 @@
+---
+// FICHE ARTISTE (?a=slug) : photo, genres, suivre, sorties, artistes similaires.
+// Une seule page pour tout le catalogue : les données sont lues par le navigateur.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Artiste" description="Fiche artiste : sorties, artistes similaires, suivre.">
+  <div class="bz-page">
+    <a class="back" href="/BARZ-/artistes">← Tous les artistes</a>
+    <p class="bz-empty" id="artist-error" hidden></p>
+
+    <section class="hero" id="artist-hero" hidden>
+      <div class="photo" id="a-photo"></div>
+      <div class="info">
+        <span class="bz-eyebrow" id="a-genres"></span>
+        <h1 class="bz-display" id="a-name"></h1>
+        <p class="meta" id="a-meta"></p>
+        <div class="actions" id="a-actions"></div>
+      </div>
+    </section>
+
+    <section class="block" id="a-releases-block" hidden>
+      <div class="bz-section-head"><h2 class="bz-h2">Ses <em>sorties</em></h2></div>
+      <div class="bz-tiles" id="a-releases"></div>
+    </section>
+
+    <section class="block" id="a-related-block" hidden>
+      <div class="bz-section-head"><h2 class="bz-h2">Dans le même <em>univers</em></h2></div>
+      <div class="bz-artists" id="a-related"></div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, escapeHtml, formatFans, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { GENRE_CHIPS } from '../lib/genres';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const fail = (text: string) => {
+    $('artist-error').textContent = text;
+    $('artist-error').hidden = false;
+  };
+
+  async function load() {
+    const slug = new URLSearchParams(location.search).get('a');
+    if (!slug || !supabase) return fail('Artiste introuvable.');
+    const { data: artist, error } = await supabase.from('artists').select(`${ARTIST_LITE}, deezer_id`).eq('slug', slug).maybeSingle();
+    if (error) throw error;
+    if (!artist) return fail('Cet artiste n’est pas (encore) dans le catalogue.');
+    const a = artist as ArtistLite & { deezer_id: number | null };
+
+    const [releases, related, followers, follows] = await Promise.all([
+      supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(24),
+      supabase.from('artist_relations').select(`rank, related:artists!artist_relations_related_id_fkey(${ARTIST_LITE})`).eq('artist_id', a.id).order('rank').limit(12),
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('artist_id', a.id),
+      myFollows().catch(() => [] as ArtistLite[]),
+    ]);
+    const followed = new Set(follows.map((f) => f.id));
+    const isFollowing = followed.has(a.id);
+
+    document.title = `${a.name} | BARZ¡`;
+    $('a-photo').innerHTML = a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" />` : `<span class="bz-artist-initial">${escapeHtml(a.name[0])}</span>`;
+    $('a-name').textContent = a.name;
+    $('a-genres').textContent = GENRE_CHIPS.filter((c) => c.genres.some((g) => a.genres?.includes(g))).map((c) => c.label).join(' · ') || 'Artiste';
+    const nbFollowers = followers.count ?? 0;
+    $('a-meta').textContent = [formatFans(a.popularity) && `${formatFans(a.popularity)} sur Deezer`, nbFollowers ? `${nbFollowers} membre${nbFollowers > 1 ? 's' : ''} le suive${nbFollowers > 1 ? 'nt' : ''} sur BARZ¡` : '']
+      .filter(Boolean)
+      .join(' · ');
+    $('a-actions').innerHTML = `<button type="button" class="bz-follow big${isFollowing ? ' is-on' : ''}" data-follow="${escapeHtml(a.id)}" aria-pressed="${isFollowing}">${isFollowing ? 'Suivi' : 'Suivre'}</button>
+      ${a.deezer_id ? `<a class="bz-btn bz-btn--outline" href="https://www.deezer.com/artist/${a.deezer_id}" target="_blank" rel="noopener">Écouter sur Deezer ↗</a>` : ''}`;
+    $('artist-hero').hidden = false;
+
+    const rel = (releases.data ?? []) as any[];
+    if (rel.length) {
+      $('a-releases').innerHTML = rel.map((r) => releaseTileHtml({ ...r, artist: { name: a.name } }, { badge: r.release_date?.slice(0, 4) })).join('');
+      $('a-releases-block').hidden = false;
+    }
+    const similar = ((related.data ?? []) as any[]).map((r) => r.related).filter(Boolean) as ArtistLite[];
+    if (similar.length) {
+      $('a-related').innerHTML = similar.map((s) => artistCardHtml(s, followed.has(s.id))).join('');
+      $('a-related-block').hidden = false;
+    }
+  }
+
+  wireFollowButtons(document.querySelector('.bz-page') as HTMLElement);
+  load().catch((err) => fail(errorText(err)));
+</script>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 36px;
+    font-weight: 600;
+    color: var(--color-text-muted) !important;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    align-items: center;
+    gap: 56px;
+  }
+
+  .hero[hidden],
+  .block[hidden],
+  .bz-empty[hidden] {
+    display: none;
+  }
+
+  .photo {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: var(--color-bg-hover);
+  }
+
+  .photo :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .meta {
+    margin-top: 18px;
+    font-size: 17px;
+    color: var(--color-text-muted);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .actions :global(.big) {
+    margin: 0;
+    padding: 14px 28px;
+    font-size: 16px;
+  }
+
+  .actions :global(.bz-btn--outline) {
+    padding: 14px 22px;
+    font-size: 15px;
+  }
+
+  .block {
+    margin-top: 80px;
+  }
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      text-align: center;
+      gap: 24px;
+    }
+    .photo {
+      width: 200px;
+    }
+    .actions {
+      justify-content: center;
+    }
+  }
+</style>

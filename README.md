@@ -99,6 +99,21 @@ avec la clé **anon** ; les règles RLS empêchent de modifier les données des 
 ⚠️ `npm run sync:releases -- --reset` refuse de s'exécuter dès que des utilisateurs ont écrit des Barz ou rempli leur spin list
 (supprimer les sorties supprimerait aussi leurs données).
 
+## 🧭 Catalogue d'artistes et recommandations
+
+1. Supabase → **SQL Editor** → coller `supabase/discovery.sql` → **Run** (après `social.sql`)
+2. `npm run sync:artists` : construit le catalogue depuis Deezer (classements par genre + watchlist + artistes
+   suivis par les membres + leurs **artistes similaires**). Lancé automatiquement avant chaque sync des sorties.
+3. À l'inscription, la page **Bienvenue** fait choisir des genres puis des artistes à suivre.
+
+Le moteur (`src/scripts/reco.ts`) calcule les goûts de chaque membre à partir des artistes suivis, des genres
+choisis, des écoutés, de la spin list, des notes des Barz et de l'import Last.fm, puis classe les sorties avec le
+curseur d'exploration (habitudes ↔ inconnu total). Chaque recommandation affiche sa raison.
+
+**Last.fm** : le membre enregistre son pseudo sur son profil ; ses artistes les plus écoutés sont importés côté
+serveur pendant `sync:artists` (secret GitHub `LASTFM_API_KEY`, clé à créer sur [last.fm/api](https://www.last.fm/api)).
+La clé ne part jamais dans le navigateur.
+
 ## 🎤 Concerts et actus
 
 - **Actus** : flux RSS de médias musicaux (`src/lib/news.ts`), lus à chaque build ; le site est reconstruit chaque matin.

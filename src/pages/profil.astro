@@ -20,7 +20,10 @@ const user = DEMO_USER;
       <div class="identity">
         <h1 id="p-name">{user.name}</h1>
         <p id="p-bio">{user.handle} · {user.bio}</p>
-        <button type="button" class="bz-btn bz-btn--outline logout" id="p-logout" hidden>Se déconnecter</button>
+        <div class="own-actions" id="p-own" hidden>
+          <a class="bz-btn bz-btn--outline" href="/BARZ-/bienvenue?next=/BARZ-/profil">Modifier mes goûts</a>
+          <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
+        </div>
       </div>
       <dl class="stats" id="p-stats">
         {user.stats.map((s) => (
@@ -56,6 +59,17 @@ const user = DEMO_USER;
             ))}
           </ul>
         </section>
+
+        <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
+          <div class="bz-section-head"><h2 id="lastfm-title" class="bz-h2">Last.fm</h2></div>
+          <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait à chaque synchronisation (vendredi et mardi matin).</p>
+          <form id="lastfm-form" class="lastfm-form">
+            <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
+            <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
+            <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
+          </form>
+          <p class="bz-notice" id="lastfm-status" hidden></p>
+        </section>
       </div>
 
       <section class="collection" aria-label="Collections">
@@ -63,6 +77,7 @@ const user = DEMO_USER;
           <button type="button" class="bz-chip is-active" role="tab" aria-selected="true" data-tab="spin_list">Spin list</button>
           <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="listened">Écoutés</button>
           <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="barz">Barz</button>
+          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="artists">Artistes</button>
         </div>
         <div class="spin" id="p-collection">
           {user.spinList.map((item) => {
@@ -76,7 +91,27 @@ const user = DEMO_USER;
 </Layout>
 
 <script>
-  import { BASE, authErrorMessage, barzCardHtml, barzFeed, coverHtml, escapeHtml, getSession, shelfOf, signOut, supabase, wireBarzActions, type Barz, type Profile, type ReleaseLite } from '../scripts/social';
+  import {
+    ARTIST_LITE,
+    BASE,
+    artistCardHtml,
+    authErrorMessage, errorText,
+    barzCardHtml,
+    barzFeed,
+    coverHtml,
+    escapeHtml,
+    getSession,
+    myFollows,
+    shelfOf,
+    signOut,
+    supabase,
+    updateMyProfile,
+    wireBarzActions,
+    wireFollowButtons,
+    type ArtistLite,
+    type Profile,
+    type ReleaseLite,
+  } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -137,16 +172,37 @@ const user = DEMO_USER;
     $('profile-cta').hidden = true;
     document.title = `${profile.display_name} | BARZ¡`;
 
-    const [spin, listened, barz] = await Promise.all([shelfOf('spin_list', profile.id), shelfOf('listened', profile.id), barzFeed({ userId: profile.id, limit: 100 })]);
+    const [spin, listened, barz, follows, mine] = await Promise.all([
+      shelfOf('spin_list', profile.id),
+      shelfOf('listened', profile.id),
+      barzFeed({ userId: profile.id, limit: 100 }),
+      supabase.from('follows').select(`artist:artists(${ARTIST_LITE})`).eq('user_id', profile.id).order('created_at', { ascending: false }),
+      myFollows().catch(() => [] as ArtistLite[]),
+    ]);
+    const artists = ((follows.data ?? []) as any[]).map((f) => f.artist).filter(Boolean) as ArtistLite[];
+    const iFollow = new Set(mine.map((a) => a.id));
+
+    if (isMe) {
+      $('p-lastfm').hidden = false;
+      (document.getElementById('lastfm-input') as HTMLInputElement).value = profile.lastfm_username ?? '';
+      if (profile.lastfm_username) {
+        const { count } = await supabase.from('lastfm_artists').select('*', { count: 'exact', head: true }).eq('user_id', profile.id);
+        $('lastfm-status').textContent = count
+          ? `${count} artistes importés depuis Last.fm (@${profile.lastfm_username}).`
+          : `Pseudo enregistré : l’import se fera à la prochaine synchronisation.`;
+        $('lastfm-status').hidden = false;
+      }
+    }
 
     $('p-avatar').textContent = profile.display_name.slice(0, 1).toUpperCase();
     $('p-name').textContent = profile.display_name;
     $('p-bio').textContent = [`@${profile.username}`, profile.bio].filter(Boolean).join(' · ');
-    $('p-logout').hidden = !isMe;
+    $('p-own').hidden = !isMe;
     $('p-stats').innerHTML = [
       ['Écoutés', listened.length],
       ['Spin list', spin.length],
       ['Barz', barz.length],
+      ['Artistes', artists.length],
     ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
 
     $('dna-title').textContent = isMe ? 'Ton ADN musical' : `L’ADN musical de ${profile.display_name}`;
@@ -170,6 +226,14 @@ const user = DEMO_USER;
     renderTab = (tab: string) => {
       const collection = $('p-collection');
       collection.classList.toggle('is-barz', tab === 'barz');
+      if (tab === 'artists') {
+        collection.classList.add('is-artists');
+        collection.innerHTML = artists.length
+          ? artists.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('')
+          : `<p class="bz-empty">Aucun artiste suivi. <a href="${BASE}artistes" style="color:var(--color-lime)">Parcourir le catalogue →</a></p>`;
+        return;
+      }
+      collection.classList.remove('is-artists');
       if (tab === 'barz') {
         collection.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, session?.user.id ?? null)).join('') : '<p class="bz-empty">Aucun Barz pour l’instant.</p>';
         return;
@@ -194,12 +258,28 @@ const user = DEMO_USER;
         renderTab(tab.dataset.tab!);
       });
       wireBarzActions($('p-collection'), load);
+      wireFollowButtons($('p-collection'));
     }
   }
 
   $('p-logout').addEventListener('click', signOut);
+
+  $('lastfm-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const value = (document.getElementById('lastfm-input') as HTMLInputElement).value.trim();
+    const status = $('lastfm-status');
+    try {
+      await updateMyProfile({ lastfm_username: value || null });
+      status.textContent = value ? `C’est noté : tes écoutes Last.fm (@${value}) seront importées à la prochaine synchronisation.` : 'Compte Last.fm retiré.';
+      status.className = 'bz-notice bz-notice--ok';
+    } catch (err) {
+      status.textContent = errorText(err);
+      status.className = 'bz-notice bz-notice--error';
+    }
+    status.hidden = false;
+  });
   load().catch((err) => {
-    $('profile-error').textContent = authErrorMessage(err instanceof Error ? err.message : String(err));
+    $('profile-error').textContent = errorText(err);
     $('profile-error').hidden = false;
   });
 </script>
@@ -216,8 +296,7 @@ const user = DEMO_USER;
   }
 
   .cta[hidden],
-  .bz-notice[hidden],
-  .logout[hidden] {
+  .bz-notice[hidden] {
     display: none;
   }
 
@@ -262,8 +341,41 @@ const user = DEMO_USER;
     color: #d9d3c6;
   }
 
-  .logout {
+  .own-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 20px;
+  }
+
+  .own-actions[hidden],
+  .lastfm[hidden] {
+    display: none;
+  }
+
+  .own-actions .bz-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .lastfm {
+    margin-top: 48px;
+  }
+
+  .lastfm p {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .lastfm-form {
+    display: flex;
+    gap: 10px;
+    margin: 18px 0 14px;
+  }
+
+  .spin.is-artists {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
   .stats {

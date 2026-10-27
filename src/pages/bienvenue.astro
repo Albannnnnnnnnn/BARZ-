@@ -1,0 +1,199 @@
+---
+// BIENVENUE (après l'inscription) : choisir ses genres, puis ses artistes. Nourrit les recommandations.
+import Layout from '../layouts/Layout.astro';
+import { GENRE_CHIPS } from '../lib/genres';
+---
+
+<Layout title="Bienvenue" description="Choisis tes genres et tes artistes pour que BARZ¡ te ressemble.">
+  <div class="bz-page">
+    <section id="step-genres">
+      <span class="bz-eyebrow">Étape 1 sur 2</span>
+      <h1 class="bz-display">Qu’est-ce que <em>tu écoutes ?</em></h1>
+      <p class="lead">Choisis au moins un genre. Tu pourras changer d’avis plus tard.</p>
+      <div class="genres" id="genre-picks">
+        {GENRE_CHIPS.map((c) => (
+          <button type="button" class="genre" data-genre={c.id} aria-pressed="false">{c.label}</button>
+        ))}
+      </div>
+      <button type="button" class="bz-btn bz-btn--lime" id="to-artists" disabled>Continuer →</button>
+    </section>
+
+    <section id="step-artists" hidden>
+      <span class="bz-eyebrow">Étape 2 sur 2</span>
+      <h1 class="bz-display">Tes <em>artistes.</em></h1>
+      <p class="lead">Suis ceux que tu aimes : leurs sorties remonteront en premier, et on te proposera des artistes proches. <b id="follow-count"></b></p>
+      <label class="sr-only" for="onboard-q">Chercher un artiste</label>
+      <input id="onboard-q" class="bz-input search" type="search" placeholder="Chercher un artiste précis…" autocomplete="off" />
+      <div class="bz-artists" id="onboard-grid"></div>
+      <div class="finish">
+        <button type="button" class="bz-btn bz-btn--outline" id="back-genres">← Genres</button>
+        <button type="button" class="bz-btn bz-btn--lime" id="finish">C’est parti →</button>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, errorText, getMyProfile, myFollows, requireSession, supabase, updateMyProfile, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { GENRE_CHIPS } from '../lib/genres';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const next = new URLSearchParams(location.search).get('next') || BASE;
+  const chosen = new Set<string>();
+  let followed = new Set<string>();
+
+  const paintCount = () => ($('follow-count').textContent = followed.size ? `${followed.size} suivi${followed.size > 1 ? 's' : ''}.` : '');
+
+  async function init() {
+    if (!(await requireSession())) return;
+    const profile = await getMyProfile();
+    for (const g of profile?.favorite_genres ?? []) {
+      const chip = GENRE_CHIPS.find((c) => c.genres.includes(g));
+      if (chip) chosen.add(chip.id);
+    }
+    followed = new Set((await myFollows().catch(() => [])).map((a) => a.id));
+    document.querySelectorAll<HTMLButtonElement>('[data-genre]').forEach((b) => b.setAttribute('aria-pressed', String(chosen.has(b.dataset.genre!))));
+    ($('to-artists') as HTMLButtonElement).disabled = chosen.size === 0;
+    paintCount();
+  }
+
+  $('genre-picks').addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-genre]');
+    if (!button) return;
+    const id = button.dataset.genre!;
+    chosen.has(id) ? chosen.delete(id) : chosen.add(id);
+    button.setAttribute('aria-pressed', String(chosen.has(id)));
+    ($('to-artists') as HTMLButtonElement).disabled = chosen.size === 0;
+  });
+
+  // Les artistes les plus suivis de chaque genre choisi, mélangés
+  async function showArtists(query = '') {
+    if (!supabase) return;
+    const grid = $('onboard-grid');
+    let list: ArtistLite[] = [];
+    if (query) {
+      const { data } = await supabase.from('artists').select(ARTIST_LITE).ilike('name', `%${query.replace(/[%_]/g, '')}%`).order('popularity', { ascending: false }).limit(24);
+      list = (data ?? []) as ArtistLite[];
+    } else {
+      const perGenre = Math.max(6, Math.ceil(30 / chosen.size));
+      const lists = await Promise.all(
+        [...chosen].map(async (id) => {
+          const chip = GENRE_CHIPS.find((c) => c.id === id)!;
+          const { data } = await supabase!.from('artists').select(ARTIST_LITE).overlaps('genres', chip.genres).order('popularity', { ascending: false }).limit(perGenre);
+          return (data ?? []) as ArtistLite[];
+        })
+      );
+      const seen = new Set<string>();
+      for (let i = 0; i < perGenre; i++) {
+        for (const l of lists) {
+          const a = l[i];
+          if (a && !seen.has(a.id)) {
+            seen.add(a.id);
+            list.push(a);
+          }
+        }
+      }
+    }
+    grid.innerHTML = list.length ? list.map((a) => artistCardHtml(a, followed.has(a.id))).join('') : '<p class="bz-empty">Aucun artiste trouvé.</p>';
+  }
+
+  $('to-artists').addEventListener('click', () => {
+    $('step-genres').hidden = true;
+    $('step-artists').hidden = false;
+    window.scrollTo(0, 0);
+    showArtists();
+  });
+  $('back-genres').addEventListener('click', () => {
+    $('step-artists').hidden = true;
+    $('step-genres').hidden = false;
+  });
+
+  let timer: number | undefined;
+  $('onboard-q').addEventListener('input', (event) => {
+    clearTimeout(timer);
+    timer = window.setTimeout(() => showArtists((event.target as HTMLInputElement).value.trim()), 250);
+  });
+
+  wireFollowButtons($('onboard-grid'), (id, on) => {
+    on ? followed.add(id) : followed.delete(id);
+    paintCount();
+  });
+
+  $('finish').addEventListener('click', async () => {
+    const genres = [...chosen].flatMap((id) => GENRE_CHIPS.find((c) => c.id === id)?.genres ?? []);
+    try {
+      await updateMyProfile({ favorite_genres: genres, onboarded: true });
+      location.href = next;
+    } catch (err) {
+      alert(errorText(err));
+    }
+  });
+
+  init();
+</script>
+
+<style>
+  .lead {
+    max-width: 640px;
+    margin: 20px 0 36px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .lead b {
+    color: var(--color-lime);
+  }
+
+  .genres {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    max-width: 900px;
+    margin-bottom: 40px;
+  }
+
+  .genre {
+    padding: 34px 20px;
+    border: 1px solid #333;
+    border-radius: 18px;
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    font: 400 34px/1 var(--font-serif);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .genre[aria-pressed='true'] {
+    background: var(--color-lime);
+    border-color: var(--color-lime);
+    color: var(--color-ink);
+  }
+
+  .search {
+    max-width: 480px;
+    margin-bottom: 36px;
+  }
+
+  .finish {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 48px;
+  }
+
+  .finish .bz-btn--outline {
+    padding: 14px 22px;
+    font-size: 15px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+</style>

@@ -33,13 +33,21 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-  import { BASE, supabase, authErrorMessage, getSession } from '../scripts/social';
+  import { BASE, supabase, authErrorMessage, errorText, getSession } from '../scripts/social';
+
+  const next = new URLSearchParams(location.search).get('next') || `${BASE}profil`;
+
+  // Tant que le membre n'a pas choisi ses goûts, on l'envoie d'abord sur Bienvenue
+  async function goNext() {
+    const session = (await supabase?.auth.getSession())?.data.session;
+    const { data } = session ? await supabase!.from('profiles').select('onboarded').eq('id', session.user.id).maybeSingle() : { data: null };
+    location.replace(data && data.onboarded === false ? `${BASE}bienvenue?next=${encodeURIComponent(next)}` : next);
+  }
 
   const form = document.getElementById('auth-form') as HTMLFormElement;
   const message = document.getElementById('auth-message')!;
   const submit = document.getElementById('auth-submit') as HTMLButtonElement;
   const title = document.getElementById('auth-title')!;
-  const next = new URLSearchParams(location.search).get('next') || `${BASE}profil`;
   let mode: 'login' | 'signup' = 'login';
 
   const show = (text: string, kind: 'error' | 'ok' | 'info' = 'info') => {
@@ -50,7 +58,7 @@ import Layout from '../layouts/Layout.astro';
 
   // Déjà connecté : on file directement à la suite
   getSession().then((session) => {
-    if (session) location.replace(next);
+    if (session) goNext();
   });
 
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((tab) =>
@@ -85,7 +93,7 @@ import Layout from '../layouts/Layout.astro';
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        location.replace(next);
+        await goNext();
       } else {
         const { data: result, error } = await supabase.auth.signUp({
           email,
@@ -93,11 +101,11 @@ import Layout from '../layouts/Layout.astro';
           options: { data: { username, display_name: username }, emailRedirectTo: `${location.origin}${BASE}connexion` },
         });
         if (error) throw error;
-        if (result.session) location.replace(next);
+        if (result.session) await goNext();
         else show('Compte créé ! Clique sur le lien reçu par e-mail pour l’activer, puis connecte-toi.', 'ok');
       }
     } catch (err) {
-      show(authErrorMessage(err instanceof Error ? err.message : String(err)), 'error');
+      show(errorText(err), 'error');
     } finally {
       submit.disabled = false;
     }

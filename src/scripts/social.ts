@@ -10,7 +10,16 @@ const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string;
 
 export const supabase = url && anonKey ? createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
 
-export type Profile = { id: string; username: string; display_name: string; bio: string | null; created_at: string };
+export type Profile = {
+  id: string;
+  username: string;
+  display_name: string;
+  bio: string | null;
+  created_at: string;
+  favorite_genres?: string[];
+  onboarded?: boolean;
+  lastfm_username?: string | null;
+};
 export type ReleaseLite = {
   id: string;
   title: string;
@@ -114,6 +123,12 @@ export async function signOut() {
   location.href = BASE;
 }
 
+// Texte lisible pour n'importe quelle erreur (les erreurs Supabase ne sont pas des Error)
+export function errorText(err: unknown): string {
+  const message = (err as { message?: unknown })?.message;
+  return authErrorMessage(typeof message === 'string' ? message : String(err));
+}
+
 // Traduction des erreurs d'authentification les plus courantes
 export function authErrorMessage(message: string): string {
   if (/invalid login credentials/i.test(message)) return 'E-mail ou mot de passe incorrect.';
@@ -122,7 +137,7 @@ export function authErrorMessage(message: string): string {
   if (/password.*(6|characters|short)/i.test(message)) return 'Le mot de passe doit faire au moins 6 caractères.';
   if (/rate limit/i.test(message)) return 'Trop de tentatives, réessaie dans quelques minutes.';
   if (/signups? (are|is) (disabled|not allowed)/i.test(message)) return 'Les inscriptions sont fermées pour le moment.';
-  if (/relation .* does not exist|schema cache/i.test(message)) return 'Les tables sociales n’existent pas encore dans Supabase (voir supabase/social.sql).';
+  if (/relation .* does not exist|schema cache|column .* does not exist/i.test(message)) return 'Il manque des tables dans Supabase : exécute supabase/social.sql puis supabase/discovery.sql.';
   return message;
 }
 
@@ -231,7 +246,93 @@ export function wireBarzActions(container: HTMLElement, onChange: () => void) {
         onChange();
       }
     } catch (err) {
-      alert(authErrorMessage(err instanceof Error ? err.message : String(err)));
+      alert(errorText(err));
     }
   });
+}
+
+// ============================================================
+// ARTISTES SUIVIS, GOÛTS DÉCLARÉS (supabase/discovery.sql)
+// ============================================================
+export type ArtistLite = { id: string; name: string; slug: string; image_url: string | null; popularity: number | null; genres: string[] | null };
+export const ARTIST_LITE = 'id, name, slug, image_url, popularity, genres';
+
+export async function myFollows(): Promise<ArtistLite[]> {
+  const session = await getSession();
+  if (!session || !supabase) return [];
+  const rows = must(await supabase.from('follows').select(`created_at, artist:artists(${ARTIST_LITE})`).eq('user_id', session.user.id).order('created_at', { ascending: false }));
+  return ((rows ?? []) as any[]).map((r) => r.artist).filter(Boolean);
+}
+
+export async function setFollow(artistId: string, on: boolean) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  if (on) must(await supabase.from('follows').upsert({ user_id: session.user.id, artist_id: artistId }));
+  else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
+}
+
+export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null }) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  must(await supabase.from('profiles').update(fields).eq('id', session.user.id));
+  profilePromise = null;
+}
+
+export function formatFans(n: number | null | undefined): string {
+  if (!n) return '';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.0', '')} M de fans`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)} k fans`;
+  return `${n} fans`;
+}
+
+export function slugify(text: string): string {
+  return text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+}
+
+// Vignette ronde d'artiste avec bouton Suivre (catalogue, accueil, fiche artiste)
+export function artistCardHtml(a: ArtistLite, following: boolean, extra = ''): string {
+  const photo = a.image_url
+    ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" />`
+    : `<span class="bz-artist-initial">${escapeHtml(a.name.slice(0, 1).toUpperCase())}</span>`;
+  return `<div class="bz-artist" data-artist-id="${escapeHtml(a.id)}">
+    <a class="bz-artist-photo" href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${photo}</a>
+    <a class="bz-artist-name" href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${escapeHtml(a.name)}</a>
+    <span class="bz-artist-meta">${escapeHtml(extra || formatFans(a.popularity))}</span>
+    <button type="button" class="bz-follow${following ? ' is-on' : ''}" data-follow="${escapeHtml(a.id)}" aria-pressed="${following}">${following ? 'Suivi' : 'Suivre'}</button>
+  </div>`;
+}
+
+// Gestion des boutons Suivre d'une zone de la page
+export function wireFollowButtons(container: HTMLElement, onChange?: (artistId: string, on: boolean) => void) {
+  container.addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-follow]');
+    if (!button) return;
+    if (!(await getSession())) return void (location.href = loginUrl());
+    const on = button.getAttribute('aria-pressed') !== 'true';
+    const paint = (state: boolean) => {
+      button.classList.toggle('is-on', state);
+      button.setAttribute('aria-pressed', String(state));
+      button.textContent = state ? 'Suivi' : 'Suivre';
+    };
+    paint(on);
+    try {
+      await setFollow(button.dataset.follow!, on);
+      onChange?.(button.dataset.follow!, on);
+    } catch (err) {
+      paint(!on);
+      alert(errorText(err));
+    }
+  });
+}
+
+const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
+
+// Vignette album (même rendu que AlbumTile.astro), avec une raison de reco facultative
+export function releaseTileHtml(r: { title: string; slug: string; cover_url: string | null; release_type: string; artist?: { name: string } | null }, options: { badge?: string; reason?: string } = {}): string {
+  return `<a class="bz-ctile" href="${BASE}releases/${encodeURIComponent(r.slug)}">
+    ${coverHtml(r.title, r.cover_url)}
+    <span class="bz-ctile-row"><b>${escapeHtml(r.title)}</b>${options.badge ? `<span class="bz-score">${escapeHtml(options.badge)}</span>` : ''}</span>
+    <span class="bz-ctile-sub">${escapeHtml(r.artist?.name ?? '')}${TYPE_LABELS[r.release_type] ? ` · ${TYPE_LABELS[r.release_type]}` : ''}</span>
+    ${options.reason ? `<span class="bz-reason">${escapeHtml(options.reason)}</span>` : ''}
+  </a>`;
 }

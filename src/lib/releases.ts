@@ -17,7 +17,7 @@ export type ReleaseRow = {
   spotify_url: string | null;
   deezer_url: string | null;
   metadata: { watched?: boolean; featuring?: string[]; fans?: number | null; label?: string | null } | null;
-  artist: { name: string; slug: string; image_url: string | null } | null;
+  artist: { id: string; name: string; slug: string; image_url: string | null } | null;
 };
 
 // BARZ_TODAY=2026-10-23 permet de construire le site "comme si" on était à une autre date
@@ -29,7 +29,7 @@ export function getToday(): Date {
 export { GENRE_CHIPS, chipIdsFor } from './genres';
 
 const RELEASE_FIELDS =
-  'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_url, deezer_url, metadata, artist:artists!artist_id(name, slug, image_url)';
+  'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_url, deezer_url, metadata, artist:artists!artist_id(id, name, slug, image_url)';
 
 export async function fetchReleasesBetween(
   supabase: SupabaseClient<any> | null,

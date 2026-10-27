@@ -27,6 +27,18 @@ const watched = sorted.filter((r) => r.metadata?.watched).slice(0, 6);
 const eyebrow = `Vendredi ${format(friday, 'd MMMM', { locale: fr })} · Semaine ${getISOWeek(friday)}`;
 const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
 const quotes = DEMO_BARZ.slice(0, 2);
+// Données des sorties de la semaine pour le reclassement personnalisé (src/scripts/reco.ts)
+const weekData = sorted.map((r) => ({
+  id: r.id,
+  artistId: r.artist?.id ?? null,
+  artistName: r.artist?.name ?? '',
+  genres: r.genres ?? [],
+  fans: r.metadata?.fans ?? null,
+  title: r.title,
+  slug: r.slug,
+  cover_url: r.cover_url,
+  release_type: r.release_type,
+}));
 const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
 ---
 
@@ -35,9 +47,9 @@ const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
     <span class="bz-eyebrow">{eyebrow}</span>
     <h1 class="bz-display">
       {count > 0 ? (
-        <>Salut Alban, <em>{count} sortie{count > 1 ? 's' : ''}</em> pour toi.</>
+        <>Salut<span id="hello-name"></span>, <em id="hello-count">{count} sortie{count > 1 ? 's' : ''}</em> pour toi.</>
       ) : (
-        <>Salut Alban, <em>calme plat</em> cette semaine.</>
+        <>Salut<span id="hello-name"></span>, <em>calme plat</em> cette semaine.</>
       )}
     </h1>
 
@@ -75,19 +87,21 @@ const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
         {count > 0 ? (
           <>
             <GenreChips target="#all-grid" />
-            <div id="all-grid" class="bz-tiles grid">
-              {sorted.slice(0, 24).map((r) => (
+            <div id="all-grid" class="bz-tiles grid is-capped">
+              {sorted.map((r) => (
                 <AlbumTile
                   title={r.title}
                   subtitle={subtitleOf(r)}
                   cover={r.cover_url}
                   href={`/BARZ-/releases/${r.slug}`}
                   chips={chipIdsFor(r.genres)}
+                  releaseId={r.id}
                 />
               ))}
             </div>
             <p class="chip-empty" hidden>Aucune sortie de ce genre cette semaine.</p>
-            {count > 24 && <a class="bz-link more" href="/BARZ-/releases">Voir les {count} sorties →</a>}
+            {count > 24 && <button type="button" class="bz-link more" id="show-all">Voir les {count} sorties →</button>}
+            <script type="application/json" id="week-data" set:html={JSON.stringify(weekData)} />
           </>
         ) : (
           <p class="bz-empty">
@@ -133,22 +147,90 @@ const { concerts } = await getConcertsOrDemo(DEMO_CONCERTS);
       </aside>
     </div>
 
-    <section class="artists" aria-labelledby="artists-title">
+    <section class="artists" aria-labelledby="artists-title" id="artists-section">
       <div class="bz-section-head"><h2 id="artists-title" class="bz-h2">Tes artistes ont sorti</h2></div>
       {watched.length > 0 ? (
-        <div class="bz-tiles">
+        <div class="bz-tiles" id="artists-grid">
           {watched.map((r) => (
             <AlbumTile title={r.title} subtitle={r.artist?.name ?? ''} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />
           ))}
         </div>
       ) : (
-        <p class="bz-empty">Rien de neuf chez tes artistes suivis cette semaine. La liste se modifie dans <strong>scripts/artist-watchlist.json</strong>.</p>
+        <p class="bz-empty" id="artists-grid">Rien de neuf chez les artistes de la sélection BARZ¡ cette semaine.</p>
       )}
     </section>
   </div>
 </Layout>
 
+<script>
+  import { getMyProfile, releaseTileHtml, escapeHtml, BASE } from '../scripts/social';
+  import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
+
+  type WeekRelease = RecoRelease & { title: string; slug: string; cover_url: string | null; release_type: string };
+
+  document.getElementById('show-all')?.addEventListener('click', (event) => {
+    document.getElementById('all-grid')?.classList.remove('is-capped');
+    (event.currentTarget as HTMLElement).remove();
+  });
+
+  async function personalize() {
+    const profile = await getMyProfile();
+    if (!profile) return;
+    document.getElementById('hello-name')!.textContent = ` ${profile.display_name}`;
+
+    const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
+    const section = document.getElementById('artists-section')!;
+    const title = document.getElementById('artists-title')!;
+    const slot = document.getElementById('artists-grid');
+    const taste = await loadTaste();
+
+    if (!taste || taste.empty) {
+      title.textContent = 'Pour toi';
+      const hint = `<a class="bz-empty" href="${BASE}bienvenue" style="display:block">Dis-nous ce que tu aimes (genres, artistes) pour que cette page te ressemble →</a>`;
+      slot ? (slot.outerHTML = hint) : section.insertAdjacentHTML('beforeend', hint);
+      return;
+    }
+
+    // Reclasse "Toutes les sorties" selon les goûts, avec la raison sous chaque sortie
+    const ranked = rank(week, taste, 0.15);
+    const grid = document.getElementById('all-grid');
+    if (grid) {
+      for (const s of ranked) {
+        const tile = grid.querySelector<HTMLElement>(`[data-release-id="${CSS.escape(s.item.id)}"]`);
+        if (!tile) continue;
+        if (s.reason && !tile.querySelector('.bz-reason')) tile.insertAdjacentHTML('beforeend', `<span class="bz-reason">${escapeHtml(s.reason)}</span>`);
+        grid.appendChild(tile);
+      }
+    }
+    const forMe = ranked.filter((s) => s.familiar).length;
+    const count = document.getElementById('hello-count');
+    if (count && forMe > 0) count.textContent = `${forMe} sortie${forMe > 1 ? 's' : ''}`;
+
+    // "Tes artistes ont sorti" : ses artistes suivis, sinon le meilleur de ses recos
+    const mine = ranked.filter((s) => s.item.artistId && taste.followed.has(s.item.artistId));
+    const picks = (mine.length ? mine : ranked.filter((s) => s.familiar)).slice(0, 6);
+    title.textContent = mine.length ? 'Tes artistes ont sorti' : 'Choisi pour toi';
+    const html = picks.length
+      ? `<div class="bz-tiles" id="artists-grid">${picks.map((s) => releaseTileHtml({ ...s.item, artist: { name: s.item.artistName } }, { reason: s.reason })).join('')}</div>`
+      : `<p class="bz-empty" id="artists-grid">Rien de neuf chez tes artistes cette semaine. <a href="${BASE}artistes" style="color:var(--color-lime)">Suivre plus d’artistes →</a></p>`;
+    slot ? (slot.outerHTML = html) : section.insertAdjacentHTML('beforeend', html);
+  }
+
+  personalize().catch((err) => console.warn('Personnalisation indisponible :', err));
+</script>
+
 <style>
+  .grid.is-capped > :global(:nth-child(n + 25 of :not([hidden]))) {
+    display: none;
+  }
+
+  button.more {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+
   .recap {
     position: relative;
     display: grid;

@@ -355,3 +355,124 @@
     font-size: 15px;
   }
 }
+
+/* ============================================================================
+   Catalogue d'artistes et recommandations (src/scripts/reco.ts)
+   ============================================================================ */
+
+.bz-artists {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 32px 20px;
+}
+
+.bz-artist {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.bz-artist-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-bg-hover);
+  display: grid;
+  place-items: center;
+  transition: transform var(--transition-base);
+}
+
+.bz-artist-photo:hover {
+  transform: scale(1.03);
+}
+
+.bz-artist-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bz-artist-initial {
+  font: 400 56px/1 var(--font-serif);
+  color: var(--color-text-muted);
+}
+
+.bz-artist-name {
+  max-width: 100%;
+  margin-top: 14px;
+  font: 700 17px/1.2 var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bz-artist-meta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  min-height: 1.2em;
+}
+
+.bz-follow {
+  margin-top: 12px;
+  padding: 7px 16px;
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  font: 600 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.bz-follow.is-on {
+  background: var(--color-lime);
+  border-color: var(--color-lime);
+  color: var(--color-ink);
+}
+
+/* Vignette album affichée par le navigateur (même rendu que AlbumTile.astro) */
+.bz-ctile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bz-ctile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  font: 700 17px/1.2 var(--font-sans);
+}
+
+.bz-ctile-row b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bz-ctile-sub {
+  margin-top: 3px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Pourquoi cette reco" sous une vignette */
+.bz-reason {
+  margin-top: 6px;
+  font: 600 13px/1.3 var(--font-sans);
+  color: var(--color-lime);
+}
+
+@media (max-width: 900px) {
+  .bz-artists {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 14px;
+  }
+}
