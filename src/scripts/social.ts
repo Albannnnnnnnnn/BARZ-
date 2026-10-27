@@ -32,7 +32,7 @@ export type Barz = {
 };
 
 const RELEASE_LITE = 'id, title, slug, cover_url, genres, release_type, artist:artists!artist_id(name)';
-const BARZ_FIELDS = `id, score, body, created_at, user_id, profile:profiles(username, display_name), release:releases(${RELEASE_LITE}), likes:barz_likes(user_id)`;
+const BARZ_FIELDS = `id, score, body, created_at, user_id, profile:profiles!barz_user_id_fkey(username, display_name), release:releases(${RELEASE_LITE}), likes:barz_likes(user_id)`;
 
 function must<T>(res: { data: T; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
