@@ -177,7 +177,7 @@ export function formatDuration(ms: number): string {
   const totalMinutes = Math.floor(ms / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (hours > 0) return `${h}h${minutes.toString().padStart(2, '0')}`;
+  if (hours > 0) return `${hours}h${minutes.toString().padStart(2, '0')}`;
   return `${minutes}min`;
 }
 

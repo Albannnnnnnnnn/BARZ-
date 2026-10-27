@@ -1,5 +1,4 @@
 import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
 
 export default defineConfig({
   site: 'https://albannnnnnnnnn.github.io/BARZ-/',
@@ -7,7 +6,6 @@ export default defineConfig({
   output: 'static',
   adapter: undefined,
   compressHTML: true,
-  integrations: [react()],
   build: {
     inlineStylesheets: 'auto',
   },
