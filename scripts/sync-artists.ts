@@ -49,7 +49,8 @@ async function lastfmTopArtists(username: string): Promise<{ name: string; playc
   return (json?.topartists?.artist ?? []).map((a: any) => ({ name: a.name, playcount: Number(a.playcount) || 0 }));
 }
 
-type Node = ArtistInput & { deezer_id: number; genres: string[]; related: number[] };
+// direct : genres certains (classement du genre, watchlist) ; votes : genres des graines qui citent l'artiste
+type Node = ArtistInput & { deezer_id: number; genres: string[]; direct: Set<string>; votes: Map<string, number>; related: number[] };
 
 async function main() {
   const started = Date.now();
@@ -58,20 +59,33 @@ async function main() {
 
   const nodes = new Map<number, Node>();
   const seeds = new Set<number>();
-  const addNode = (a: any, genres: string[] = []): Node => {
+  const addNode = (a: any, direct: string[] = [], voted: string[] = []): Node => {
     const node = nodes.get(a.id) ?? {
       name: a.name,
       deezer_id: a.id,
       image_url: a.picture_xl ?? a.picture_big ?? null,
       popularity: a.nb_fan ?? null,
       genres: [],
+      direct: new Set<string>(),
+      votes: new Map<string, number>(),
       related: [],
     };
     node.image_url ??= a.picture_xl ?? a.picture_big ?? null;
     if (a.nb_fan) node.popularity = Math.max(node.popularity ?? 0, a.nb_fan);
-    for (const g of genres) if (!node.genres.includes(g)) node.genres.push(g);
+    for (const g of direct) node.direct.add(g);
+    for (const g of voted) node.votes.set(g, (node.votes.get(g) ?? 0) + 1);
     nodes.set(a.id, node);
     return node;
+  };
+
+  // Genres finaux : ceux qui sont certains ; sinon le genre le plus voté par les graines qui citent l'artiste
+  // (hériter de TOUS les genres les propageait de proche en proche : Ed Sheeran finissait en jazz)
+  const finalGenres = (node: Node): string[] => {
+    if (node.direct.size) return [...node.direct];
+    const ranked = [...node.votes.entries()].sort((a, b) => b[1] - a[1]);
+    if (!ranked.length) return [];
+    const [top, topVotes] = ranked[0];
+    return [top, ...ranked.slice(1).filter(([, v]) => v >= Math.max(2, topVotes * 0.6)).map(([g]) => g)].slice(0, 2);
   };
 
   // 1a. Classements d'albums par genre : les seuls listes Deezer vraiment filtrées par genre
@@ -102,7 +116,7 @@ async function main() {
   for (const f of follows) {
     const a = f.artist;
     if (!a?.deezer_id) continue;
-    addNode({ id: a.deezer_id, name: a.name, picture_xl: a.image_url, nb_fan: a.popularity }, a.genres ?? []);
+    addNode({ id: a.deezer_id, name: a.name, picture_xl: a.image_url, nb_fan: a.popularity }, [], a.genres ?? []);
     seeds.add(a.deezer_id);
   }
   // 1d. Import Last.fm des membres
@@ -141,9 +155,10 @@ async function main() {
   for (const id of seeds) {
     const seed = nodes.get(id)!;
     const related = await deezerFetch(`/artist/${id}/related?limit=${RELATED_PER_ARTIST}`);
+    // Le voisin reçoit un vote pour les genres certains de la graine (Deezer ne donne pas le genre d'un artiste)
+    const seedGenres = seed.direct.size ? [...seed.direct] : finalGenres(seed);
     for (const r of related?.data || []) {
-      // Le voisin hérite des genres de la graine (Deezer ne donne pas le genre d'un artiste)
-      addNode(r, seed.genres);
+      addNode(r, [], seedGenres);
       seed.related.push(r.id);
     }
     if (++done % 200 === 0) console.log(`   ${done}/${seeds.size} (${nodes.size} artistes)`);
@@ -151,7 +166,8 @@ async function main() {
 
   // Enregistrement des artistes
   console.log(`💾 Enregistrement de ${nodes.size} artistes...`);
-  const ids = await saveArtists([...nodes.values()]);
+  for (const node of nodes.values()) node.genres = finalGenres(node);
+  const ids = await saveArtists([...nodes.values()], { replaceGenres: true });
   const idOf = (deezerId: number) => ids.get(stableSlug(nodes.get(deezerId)!.name));
 
   // Enregistrement des liens (on remplace ceux des graines, les autres restent)

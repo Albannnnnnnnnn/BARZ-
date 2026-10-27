@@ -114,10 +114,19 @@ async function buildTaste(): Promise<Taste | null> {
   // Voisins des artistes aimés
   const liked = [...taste.artistWeights.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, RELATED_FROM_TOP);
   if (liked.length) {
-    const { data } = await supabase.from('artist_relations').select('artist_id, related_id, rank').in('artist_id', liked.map(([id]) => id));
+    const likedIds = liked.map(([id]) => id);
+    // Dans les deux sens : les artistes cités par ceux qu'on aime, et ceux qui les citent
+    const [out, inc] = await Promise.all([
+      supabase.from('artist_relations').select('artist_id, related_id, rank').in('artist_id', likedIds),
+      supabase.from('artist_relations').select('artist_id, related_id, rank').in('related_id', likedIds),
+    ]);
+    const edges = [
+      ...((out.data ?? []) as any[]),
+      ...((inc.data ?? []) as any[]).map((r) => ({ artist_id: r.related_id, related_id: r.artist_id, rank: r.rank })),
+    ];
     const weightOf = new Map(liked);
     const bestContribution = new Map<string, number>();
-    for (const r of (data ?? []) as any[]) {
+    for (const r of edges) {
       // Plus l'artiste est aimé et plus le voisin est proche (rang faible), plus ça compte
       const w = (weightOf.get(r.artist_id) ?? 0) * 0.6 * (1 - r.rank / 25);
       taste.relatedWeights.set(r.related_id, (taste.relatedWeights.get(r.related_id) ?? 0) + w);

@@ -146,7 +146,8 @@ export type ArtistInput = {
 
 // Fusionne avec les lignes existantes (un sync ne doit pas effacer la photo ou les fans trouvés par un autre)
 // et renvoie l'id de chaque artiste, par slug.
-export async function saveArtists(inputs: ArtistInput[]): Promise<Map<string, string>> {
+// replaceGenres : le catalogue fait autorité sur les genres (le sync des sorties, lui, les cumule)
+export async function saveArtists(inputs: ArtistInput[], options: { replaceGenres?: boolean } = {}): Promise<Map<string, string>> {
   const bySlug = new Map<string, ArtistInput & { slug: string }>();
   for (const a of inputs) {
     const slug = stableSlug(a.name);
@@ -183,7 +184,9 @@ export async function saveArtists(inputs: ArtistInput[]): Promise<Map<string, st
         spotify_id: a.spotify_id ?? e?.spotify_id ?? null,
         image_url: a.image_url ?? e?.image_url ?? null,
         popularity: Math.max(a.popularity ?? 0, e?.popularity ?? 0),
-        genres: [...new Set([...(e?.genres ?? []).filter((g: string) => g !== 'unknown'), ...(a.genres ?? [])])],
+        genres: options.replaceGenres && a.genres?.length
+          ? a.genres
+          : [...new Set([...(e?.genres ?? []).filter((g: string) => g !== 'unknown'), ...(a.genres ?? [])])],
         updated_at: new Date().toISOString(),
       };
     });
