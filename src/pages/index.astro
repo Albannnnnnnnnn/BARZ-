@@ -9,7 +9,7 @@ import SortiesTabs from '../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { GENRE_CHIPS, chipIdsFor, fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { getReleaseTypeLabel, releaseSubtitle } from '../lib/utils';
-import { audience } from '../lib/audience';
+import { audience, releaseScore } from '../lib/audience';
 
 const today = getToday();
 // Le vendredi de référence : aujourd'hui si c'est vendredi, sinon le dernier vendredi passé
@@ -18,10 +18,9 @@ const supabase = getSupabaseServerSafe();
 const releases = await fetchReleasesBetween(supabase, addDays(friday, -6), addDays(friday, 6));
 const upcomingCount = (await fetchReleasesBetween(supabase, addDays(today, 1), addDays(today, 120))).length;
 
-// Ordre par défaut (« Populaires ») : les artistes de la sélection d'abord, puis les plus écoutés
-// (auditeurs Last.fm, toutes plateformes ; fans Deezer en attendant), puis les albums les plus suivis
-const fans = (r: ReleaseRow) => r.metadata?.fans ?? 0;
-const sorted = [...releases].sort((a, b) => Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || audience(b.artist) - audience(a.artist) || fans(b) - fans(a));
+// Ordre par défaut (« Populaires ») : les artistes de la sélection d'abord, puis le score de chaque sortie
+// (auditeurs Last.fm de l'artiste × fans de l'album, rééditions et compilations en retrait : src/lib/audience.ts)
+const sorted = [...releases].sort((a, b) => Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || releaseScore(b) - releaseScore(a));
 const count = sorted.length;
 
 // Rangée d'artistes affichée sans compte : ceux de la sélection BARZ¡ qui ont sorti quelque chose

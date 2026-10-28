@@ -8,7 +8,7 @@
 // SYNC_LISTENERS_PER_RUN (Last.fm demande de rester sous 5 requêtes par seconde).
 import { chunk, sleep, supabase, must } from './lib/common';
 
-const PER_RUN = Number(process.env.SYNC_LISTENERS_PER_RUN ?? 1200);
+const PER_RUN = Number(process.env.SYNC_LISTENERS_PER_RUN ?? 1000);
 const REFRESH_DAYS = Number(process.env.SYNC_LISTENERS_REFRESH_DAYS ?? 30);
 
 async function listenersOf(name: string, key: string): Promise<number | null> {

@@ -26,3 +26,14 @@ export function formatAudience(artist: WithAudience): string {
   if (!fans) return '';
   return fans >= 1_000_000 ? `${compact(fans)} de fans` : `${compact(fans)} fans`;
 }
+
+// Rééditions et versions spéciales : moins prioritaires qu'une vraie nouveauté dans « Populaires »
+const REISSUE = /remaster|anniversary|anniversaire|deluxe|reissue|réédition|edition|édition|\blive\b|demo|\(\d{4}\)|from (the )?netflix|soundtrack|bande originale/i;
+
+// Score « Populaires » d'une sortie : popularité de l'artiste × intérêt pour cette sortie (fans de l'album sur Deezer),
+// en échelle logarithmique, moins une pénalité pour les rééditions et les compilations (6 invités ou plus)
+export function releaseScore(r: { title: string; metadata?: { fans?: number | null; featuring?: string[] } | null; artist?: WithAudience }): number {
+  const reissue = REISSUE.test(r.title) ? 1.5 : 0;
+  const compilation = (r.metadata?.featuring?.length ?? 0) >= 6 ? 2 : 0;
+  return Math.log10(audience(r.artist) + 1) + Math.log10((r.metadata?.fans ?? 0) + 1) - reissue - compilation;
+}
