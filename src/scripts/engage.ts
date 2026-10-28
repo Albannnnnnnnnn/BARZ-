@@ -4,6 +4,7 @@
 // Le bilan du mois (src/pages/bilan.astro) réutilise challengesOf().
 import { getSession, myFollows, myFriendships, supabase } from './social';
 import { loadTaste, rank, recentReleases, scoreRelease, type RecentRelease, type Taste } from './reco';
+import { followedInFeat, normName } from '../lib/feat';
 
 // Date locale au format AAAA-MM-JJ (toISOString passerait en UTC)
 export function localDay(d: Date): string {
@@ -33,7 +34,8 @@ export function previousVisit(): Date | null {
 }
 
 export type VisitNews = {
-  releases: { title: string; slug: string; artistName: string }[];
+  // featWith : l'artiste suivi est invité (feat.) sur la sortie de quelqu'un d'autre
+  releases: { title: string; slug: string; artistName: string; featWith?: string }[];
   friendBarz: number;
   friendNames: string[];
   requests: number;
@@ -44,10 +46,11 @@ export async function newsSince(since: Date): Promise<VisitNews | null> {
   if (!session || !supabase) return null;
   const [follows, friendships] = await Promise.all([myFollows().catch(() => []), myFriendships().catch(() => [])]);
   const followIds = follows.map((a) => a.id).slice(0, 300);
+  const followedNames = new Map(follows.map((a) => [normName(a.name), a.name]));
   const friends = friendships.filter((f) => f.status === 'friends');
   const names = new Map(friends.map((f) => [f.profile.id, f.profile.display_name]));
 
-  const [releases, barz] = await Promise.all([
+  const [releases, feats, barz] = await Promise.all([
     followIds.length
       ? supabase
           .from('releases')
@@ -58,13 +61,30 @@ export async function newsSince(since: Date): Promise<VisitNews | null> {
           .order('release_date', { ascending: false })
           .limit(20)
       : Promise.resolve({ data: [] }),
+    // Sorties d'autres artistes depuis la dernière visite, avec des invités : on y cherche les artistes suivis
+    followIds.length
+      ? supabase
+          .from('releases')
+          .select('title, slug, artist_id, metadata, artist:artists!artist_id(name)')
+          .not('metadata->featuring', 'is', null)
+          .gt('release_date', localDay(since))
+          .lte('release_date', localDay(new Date()))
+          .order('release_date', { ascending: false })
+          .limit(500)
+      : Promise.resolve({ data: [] }),
     friends.length
       ? supabase.from('barz').select('user_id').in('user_id', [...names.keys()]).gt('created_at', since.toISOString())
       : Promise.resolve({ data: [] }),
   ]);
   const authors = [...new Set(((barz.data ?? []) as { user_id: string }[]).map((b) => b.user_id))];
   return {
-    releases: ((releases.data ?? []) as any[]).map((r) => ({ title: r.title, slug: r.slug, artistName: r.artist?.name ?? '' })),
+    releases: [
+      ...((releases.data ?? []) as any[]).map((r) => ({ title: r.title, slug: r.slug, artistName: r.artist?.name ?? '' })),
+      ...((feats.data ?? []) as any[])
+        .filter((r) => !followIds.includes(r.artist_id))
+        .map((r) => ({ title: r.title, slug: r.slug, artistName: r.artist?.name ?? '', featWith: followedInFeat(r.metadata?.featuring, followedNames) ?? undefined }))
+        .filter((r) => r.featWith),
+    ],
     friendBarz: (barz.data ?? []).length,
     friendNames: authors.map((id) => names.get(id)!).filter(Boolean),
     requests: friendships.filter((f) => f.status === 'received').length,

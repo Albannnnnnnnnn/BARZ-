@@ -39,6 +39,7 @@ const weekData = sorted.map((r) => ({
   artistName: r.artist?.name ?? '',
   genres: r.genres ?? [],
   fans: r.metadata?.fans ?? null,
+  featuring: r.metadata?.featuring ?? [],
   title: r.title,
   slug: r.slug,
 }));
@@ -126,6 +127,7 @@ const weekData = sorted.map((r) => ({
   import { BASE, coverHtml, escapeHtml, getSession, myFollows, timeAgo } from '../scripts/social';
   import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
   import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
+  import { normName } from '../lib/feat';
 
   type WeekRelease = RecoRelease & { title: string; slug: string };
 
@@ -177,15 +179,26 @@ const weekData = sorted.map((r) => ({
     const follows = await myFollows();
     if (!follows.length) return;
     const released = new Map(week.filter((r) => r.artistId).map((r) => [r.artistId!, r.slug]));
-    const list = [...follows].sort((a, b) => Number(released.has(b.id)) - Number(released.has(a.id))).slice(0, 14);
+    // Invités : un artiste suivi en feat sur la sortie de quelqu'un d'autre s'allume aussi
+    const byName = new Map(follows.map((a) => [normName(a.name), a.id]));
+    const featured = new Map<string, string>();
+    for (const r of week) {
+      for (const name of r.featuring ?? []) {
+        const id = byName.get(normName(name));
+        if (id && !released.has(id) && !featured.has(id)) featured.set(id, r.slug);
+      }
+    }
+    const isNew = (id: string) => released.has(id) || featured.has(id);
+    const list = [...follows].sort((a, b) => Number(isNew(b.id)) - Number(isNew(a.id))).slice(0, 14);
     const avatar = (a: (typeof follows)[number]) =>
       a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" />` : `<span class="story-fallback">${escapeHtml(a.name[0])}</span>`;
     document.getElementById('stories')!.innerHTML =
       list
         .map((a) => {
-          const slug = released.get(a.id);
+          const slug = released.get(a.id) ?? featured.get(a.id);
+          const tag = released.has(a.id) ? 'Nouveau' : featured.has(a.id) ? 'En feat' : '';
           const href = slug ? `${BASE}releases/${encodeURIComponent(slug)}` : `${BASE}artiste?a=${encodeURIComponent(a.slug)}`;
-          return `<li><a class="story${slug ? ' is-new' : ''}" href="${href}">${avatar(a)}<span class="story-name">${escapeHtml(a.name)}</span>${slug ? '<span class="story-tag">Nouveau</span>' : ''}</a></li>`;
+          return `<li><a class="story${slug ? ' is-new' : ''}" href="${href}">${avatar(a)}<span class="story-name">${escapeHtml(a.name)}</span>${tag ? `<span class="story-tag">${tag}</span>` : ''}</a></li>`;
         })
         .join('') + `<li><a class="story" href="${BASE}artistes?genre=followed"><span class="story-fallback">+</span><span class="story-name">Tous</span></a></li>`;
     document.getElementById('artists-title')!.textContent = 'Tes artistes';
@@ -219,7 +232,7 @@ const weekData = sorted.map((r) => ({
     if (news?.releases.length) {
       const links = news.releases
         .slice(0, 3)
-        .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.artistName)}</span>`)
+        .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.featWith ? `${r.artistName} feat. ${r.featWith}` : r.artistName)}</span>`)
         .join(' · ');
       items.push(`<li><b>${plural(news.releases.length, 'sortie')} de tes artistes</b> ${links}${news.releases.length > 3 ? ' …' : ''}</li>`);
     }

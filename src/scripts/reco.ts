@@ -10,6 +10,7 @@
 // 4. Pour deux amis : les sorties qui plaisent aux deux, et leurs artistes en commun.
 import { GENRE_CHIPS } from '../lib/genres';
 import { getMyProfile, getSession, supabase } from './social';
+import { followedInFeat, normName } from '../lib/feat';
 
 export type RecoRelease = {
   id: string;
@@ -17,11 +18,13 @@ export type RecoRelease = {
   artistName: string;
   genres: string[];
   fans: number | null;
+  featuring?: string[];
 };
 
 export type Taste = {
   empty: boolean;
   followed: Set<string>;
+  followedNames: Map<string, string>; // nom comparable → nom affiché, pour repérer les feats
   artistWeights: Map<string, number>;
   relatedWeights: Map<string, number>;
   relatedVia: Map<string, string>; // artiste recommandé → nom de l'artiste aimé qui y mène
@@ -82,6 +85,7 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   const taste: Taste = {
     empty: true,
     followed: new Set(),
+    followedNames: new Map(),
     artistWeights: new Map(),
     relatedWeights: new Map(),
     relatedVia: new Map(),
@@ -102,6 +106,7 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   for (const g of profile?.favorite_genres ?? []) genreRaw.set(g, (genreRaw.get(g) ?? 0) + 2);
   for (const f of (follows.data ?? []) as any[]) {
     taste.followed.add(f.artist?.id);
+    if (f.artist?.name) taste.followedNames.set(normName(f.artist.name), f.artist.name);
     addArtist(f.artist, 3);
     addGenres(f.artist?.genres, 1);
   }
@@ -165,13 +170,15 @@ export type Scored<T> = { item: T; score: number; reason: string; familiar: bool
 // explore : 0 = mes habitudes … 1 = inconnu total
 export function scoreRelease<T extends RecoRelease>(r: T, taste: Taste, explore = 0.15): Scored<T> {
   const followed = !!r.artistId && taste.followed.has(r.artistId);
+  // Un artiste suivi invité sur la sortie de quelqu'un d'autre
+  const featFollowed = followed ? null : followedInFeat(r.featuring, taste.followedNames);
   const direct = Math.max(0, r.artistId ? taste.artistWeights.get(r.artistId) ?? 0 : 0);
   const related = r.artistId ? taste.relatedWeights.get(r.artistId) ?? 0 : 0;
   const genre = Math.min(1, r.genres.reduce((s, g) => s + (taste.genreWeights.get(g) ?? 0), 0) * 1.5);
   const pop = Math.min(1, Math.log10((r.fans ?? 0) + 1) / 7);
 
-  const familiarity = (followed ? 4 : 0) + Math.min(3, direct) + Math.min(2, related) + genre * 2;
-  const novelty = (1 - genre) * 2 + (1 - pop) * 1 + (related > 0 ? 0.4 : 0) - (followed || direct > 0 ? 3 : 0);
+  const familiarity = (followed ? 4 : 0) + (featFollowed ? 3 : 0) + Math.min(3, direct) + Math.min(2, related) + genre * 2;
+  const novelty = (1 - genre) * 2 + (1 - pop) * 1 + (related > 0 ? 0.4 : 0) - (followed || featFollowed || direct > 0 ? 3 : 0);
   const seenPenalty = taste.listened.has(r.id) ? 1.5 : 0;
   const score = (1 - explore) * (familiarity + pop * 0.6) + explore * novelty - seenPenalty;
 
@@ -180,6 +187,7 @@ export function scoreRelease<T extends RecoRelease>(r: T, taste: Taste, explore 
     const label = r.genres.map(chipOf).find(Boolean);
     reason = label ? `Hors de ta bulle : ${label.toLowerCase()}` : 'Hors de ta bulle';
   } else if (followed) reason = `Tu suis ${r.artistName}`;
+  else if (featFollowed) reason = `Avec ${featFollowed}, que tu suis`;
   else if (direct > 0) reason = `Tu as aimé ${r.artistName}`;
   else if (related > 0 && taste.relatedVia.get(r.artistId!)) reason = `Proche de ${taste.relatedVia.get(r.artistId!)}`;
   else if (genre > 0.2) {
@@ -188,7 +196,7 @@ export function scoreRelease<T extends RecoRelease>(r: T, taste: Taste, explore 
     reason = label ? `Parce que tu aimes le ${label.toLowerCase()}` : '';
   }
 
-  return { item: r, score, reason, familiar: followed || direct > 0 || related > 0 || genre > 0.2 };
+  return { item: r, score, reason, familiar: followed || !!featFollowed || direct > 0 || related > 0 || genre > 0.2 };
 }
 
 export function rank<T extends RecoRelease>(items: T[], taste: Taste, explore = 0.15): Scored<T>[] {
@@ -245,7 +253,7 @@ export function recentReleases(): Promise<RecentRelease[]> {
       .order('release_date', { ascending: false })
       .limit(1500)
   ).then(({ data }) =>
-    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: r.metadata?.fans ?? null }))
+    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: r.metadata?.fans ?? null, featuring: r.metadata?.featuring ?? [] }))
   );
   return recentPromise;
 }
