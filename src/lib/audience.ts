@@ -1,30 +1,28 @@
-// Popularité d'un artiste : ses auditeurs Last.fm (comptés sur toutes les plateformes) quand on les connaît,
-// sinon ses fans Deezer, ramenés à peu près à la même échelle en attendant la vérification Last.fm
-// (scripts/sync-listeners.ts). Sans dépendance : utilisé au build et dans le navigateur.
+// Popularité d'un artiste : moyenne géométrique de ses auditeurs Last.fm (toutes plateformes, mais public
+// peu francophone) et de ses fans Deezer (surtout français) : chaque source corrige le biais de l'autre.
+// Quand une source manque, on l'estime avec l'autre. Même calcul que la colonne artists.audience
+// (supabase/audience.sql), utilisée pour trier côté serveur. Sans dépendance : build et navigateur.
 type WithAudience = { popularity?: number | null; lastfm_listeners?: number | null } | null | undefined;
 
-// Les fans Deezer gonflent les artistes français et sous-estiment les autres : facteur moyen observé
+// Rapport moyen observé entre auditeurs Last.fm et fans Deezer
 const DEEZER_TO_LISTENERS = 0.3;
 
 export function audience(artist: WithAudience): number {
-  if (!artist) return 0;
-  if (artist.lastfm_listeners) return artist.lastfm_listeners;
-  return Math.round((artist.popularity ?? 0) * DEEZER_TO_LISTENERS);
+  const listeners = artist?.lastfm_listeners || (artist?.popularity ?? 0) * DEEZER_TO_LISTENERS;
+  const fans = artist?.popularity || (artist?.lastfm_listeners ?? 0) / DEEZER_TO_LISTENERS;
+  return Math.round(Math.sqrt(listeners * fans));
 }
 
-function compact(n: number): string {
+export function compact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.0', '').replace('.', ',')} M`;
   if (n >= 1_000) return `${Math.round(n / 1_000)} k`;
   return String(n);
 }
 
-// « 178 k auditeurs », sinon « 5,2 M de fans » (Deezer), sinon rien
+// « Audience 960 k » (le détail Last.fm / Deezer est sur la fiche de l'artiste), sinon rien
 export function formatAudience(artist: WithAudience): string {
-  if (!artist) return '';
-  if (artist.lastfm_listeners) return `${compact(artist.lastfm_listeners)} auditeurs`;
-  const fans = artist.popularity ?? 0;
-  if (!fans) return '';
-  return fans >= 1_000_000 ? `${compact(fans)} de fans` : `${compact(fans)} fans`;
+  const n = audience(artist);
+  return n ? `Audience ${compact(n)}` : '';
 }
 
 // Rééditions et versions spéciales : moins prioritaires qu'une vraie nouveauté dans « Populaires »

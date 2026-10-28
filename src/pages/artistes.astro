@@ -28,7 +28,7 @@ import { GENRE_CHIPS } from '../lib/genres';
         ))}
         <button type="button" class="bz-chip" data-genre="followed" aria-pressed="false">Mes artistes</button>
       </div>
-      <div class="bz-chips" id="artist-sort" role="group" aria-label="Trier par auditeurs">
+      <div class="bz-chips" id="artist-sort" role="group" aria-label="Trier par audience">
         <button type="button" class="bz-chip is-active" data-sort="" aria-pressed="true">Les plus écoutés</button>
         <button type="button" class="bz-chip" data-sort="decouverte" aria-pressed="false">Les moins connus</button>
       </div>
@@ -69,13 +69,8 @@ import { GENRE_CHIPS } from '../lib/genres';
       return sorted.slice(offset, offset + PAGE);
     }
     if (!supabase) return [];
-    // Auditeurs Last.fm d'abord ; les artistes pas encore vérifiés suivent, par fans Deezer
-    let q = supabase
-      .from('artists')
-      .select(ARTIST_LITE)
-      .order('lastfm_listeners', { ascending, nullsFirst: false })
-      .order('popularity', { ascending: false })
-      .range(offset, offset + PAGE - 1);
+    // Audience = moyenne Last.fm / Deezer (colonne calculée, supabase/audience.sql)
+    let q = supabase.from('artists').select(ARTIST_LITE).order('audience', { ascending }).range(offset, offset + PAGE - 1);
     if (ascending) q = q.or(`lastfm_listeners.gte.${MIN_LISTENERS},popularity.gte.${MIN_DEEZER_FANS}`);
     if (query) q = q.ilike('name', `%${query.replace(/[%_]/g, '')}%`);
     const chip = GENRE_CHIPS.find((c) => c.id === genre);
