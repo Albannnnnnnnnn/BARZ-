@@ -91,6 +91,11 @@
 }
 
 /* Reset */
+/* L'attribut hidden masque toujours, même un élément stylé en flex ou en grid (filtres, sections chargées en JS) */
+[hidden] {
+  display: none !important;
+}
+
 *,
 *::before,
 *::after {
