@@ -346,7 +346,7 @@ export function releaseTileHtml(r: { title: string; slug: string; cover_url: str
 // ============================================================
 export type FriendStatus = 'none' | 'sent' | 'received' | 'friends';
 export type Friendship = { requester_id: string; addressee_id: string; status: 'pending' | 'accepted'; created_at: string };
-export type FriendEntry = { profile: Pick<Profile, 'id' | 'username' | 'display_name'>; status: FriendStatus; since: string };
+export type FriendEntry = { profile: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_path'>; status: FriendStatus; since: string };
 
 const pairFilter = (a: string, b: string) => `and(requester_id.eq.${a},addressee_id.eq.${b}),and(requester_id.eq.${b},addressee_id.eq.${a})`;
 
@@ -386,7 +386,7 @@ export async function myFriendships(): Promise<FriendEntry[]> {
   const rows = must(
     await supabase
       .from('friendships')
-      .select('requester_id, addressee_id, status, created_at, requester:profiles!friendships_requester_id_fkey(id, username, display_name), addressee:profiles!friendships_addressee_id_fkey(id, username, display_name)')
+      .select('requester_id, addressee_id, status, created_at, requester:profiles!friendships_requester_id_fkey(id, username, display_name, avatar_path), addressee:profiles!friendships_addressee_id_fkey(id, username, display_name, avatar_path)')
       .or(`requester_id.eq.${me},addressee_id.eq.${me}`)
       .order('created_at', { ascending: false })
   ) as any[];
