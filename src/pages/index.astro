@@ -124,7 +124,7 @@ const weekData = sorted.map((r) => ({
 </Layout>
 
 <script>
-  import { BASE, coverHtml, escapeHtml, getSession, myFollows, timeAgo } from '../scripts/social';
+  import { BASE, coverHtml, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
   import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
   import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
   import { normName } from '../lib/feat';
@@ -188,15 +188,33 @@ const weekData = sorted.map((r) => ({
         if (id && !released.has(id) && !featured.has(id)) featured.set(id, r.slug);
       }
     }
+    // Sorties annoncées dans les 60 prochains jours : compte à rebours sous l'avatar
+    const upcoming = new Map<string, { slug: string; date: string }>();
+    if (supabase) {
+      const today = new Date();
+      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const { data } = await supabase
+        .from('releases')
+        .select('slug, release_date, artist_id')
+        .in('artist_id', follows.map((a) => a.id).slice(0, 300))
+        .gt('release_date', iso(today))
+        .lte('release_date', iso(new Date(today.getTime() + 60 * 86_400_000)))
+        .order('release_date');
+      for (const r of (data ?? []) as { slug: string; release_date: string; artist_id: string }[]) {
+        if (!upcoming.has(r.artist_id)) upcoming.set(r.artist_id, { slug: r.slug, date: r.release_date });
+      }
+    }
     const isNew = (id: string) => released.has(id) || featured.has(id);
-    const list = [...follows].sort((a, b) => Number(isNew(b.id)) - Number(isNew(a.id))).slice(0, 14);
+    const rank = (id: string) => (isNew(id) ? 2 : upcoming.has(id) ? 1 : 0);
+    const list = [...follows].sort((a, b) => rank(b.id) - rank(a.id)).slice(0, 14);
     const avatar = (a: (typeof follows)[number]) =>
       a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" />` : `<span class="story-fallback">${escapeHtml(a.name[0])}</span>`;
     document.getElementById('stories')!.innerHTML =
       list
         .map((a) => {
-          const slug = released.get(a.id) ?? featured.get(a.id);
-          const tag = released.has(a.id) ? 'Nouveau' : featured.has(a.id) ? 'En feat' : '';
+          const soon = upcoming.get(a.id);
+          const slug = released.get(a.id) ?? featured.get(a.id) ?? soon?.slug;
+          const tag = released.has(a.id) ? 'Nouveau' : featured.has(a.id) ? 'En feat' : soon ? `J-${daysUntil(soon.date)}` : '';
           const href = slug ? `${BASE}releases/${encodeURIComponent(slug)}` : `${BASE}artiste?a=${encodeURIComponent(a.slug)}`;
           return `<li><a class="story${slug ? ' is-new' : ''}" href="${href}">${avatar(a)}<span class="story-name">${escapeHtml(a.name)}</span>${tag ? `<span class="story-tag">${tag}</span>` : ''}</a></li>`;
         })
@@ -222,6 +240,9 @@ const weekData = sorted.map((r) => ({
   // Depuis ta dernière visite : seulement ce qui est nouveau pour ce membre
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+  const dayLabel = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  // Jours avant une date (AAAA-MM-JJ), en jours entiers
+  const daysUntil = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00`) - new Date(new Date().toDateString()).getTime()) / 86_400_000);
   const listNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0] ?? '');
 
   async function showVisit() {
@@ -235,6 +256,13 @@ const weekData = sorted.map((r) => ({
         .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.featWith ? `${r.artistName} feat. ${r.featWith}` : r.artistName)}</span>`)
         .join(' · ');
       items.push(`<li><b>${plural(news.releases.length, 'sortie')} de tes artistes</b> ${links}${news.releases.length > 3 ? ' …' : ''}</li>`);
+    }
+    if (news?.announced.length) {
+      const links = news.announced
+        .slice(0, 3)
+        .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.artistName)} · ${escapeHtml(dayLabel(r.date))}</span>`)
+        .join(' · ');
+      items.push(`<li><b>${plural(news.announced.length, 'sortie')} annoncée${news.announced.length > 1 ? 's' : ''}</b> ${links}</li>`);
     }
     if (news?.friendBarz) {
       items.push(`<li><a href="${BASE}commu"><b>${plural(news.friendBarz, 'Barz')}</b> de ${escapeHtml(listNames(news.friendNames))} →</a></li>`);

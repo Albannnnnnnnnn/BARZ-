@@ -51,19 +51,20 @@ const jsonLd = {
 
 <Layout
   title={`${release.title} — ${artistName}`}
-  description={`${typeLabel} de ${artistName}, sorti le ${dateLabel}.`}
+  description={`${typeLabel} de ${artistName}, ${Date.parse(release.release_date) > Date.now() ? 'à paraître le' : 'sorti le'} ${dateLabel}.`}
   image={release.cover_url ?? undefined}
   type="article"
 >
   <script type="application/ld+json" slot="json-ld" set:html={JSON.stringify(jsonLd)} />
 
   <div class="bz-page">
-    <a class="back" href="/BARZ-/">← Vendredi</a>
+    <a class="back" href="/BARZ-/">← Sorties</a>
 
     <section class="hero">
       <Cover title={release.title} src={release.cover_url} class="hero-cover" />
       <div class="info">
         <span class="bz-eyebrow">{typeLabel} · {dateLabel}</span>
+        <p class="countdown" id="countdown" data-date={release.release_date} hidden></p>
         <h1 class="bz-display">{release.title}</h1>
         <div class="artist">
           {release.artist?.image_url && <img src={release.artist.image_url} alt="" />}
@@ -147,6 +148,19 @@ const jsonLd = {
 </Layout>
 
 <script>
+  // Compte à rebours, calculé dans le navigateur (la page est construite à l'avance)
+  const countdown = document.getElementById('countdown');
+  if (countdown) {
+    const days = Math.round((Date.parse(`${countdown.dataset.date}T00:00:00`) - new Date(new Date().toDateString()).getTime()) / 86_400_000);
+    if (days > 0) {
+      countdown.textContent = days === 1 ? 'Sort demain' : `Sort dans ${days} jours`;
+      countdown.hidden = false;
+    } else if (days === 0) {
+      countdown.textContent = 'Sort aujourd’hui';
+      countdown.hidden = false;
+    }
+  }
+
   import { barzCardHtml, barzFeed, formatScore, getSession, isOnShelf, loginUrl, saveBarz, setOnShelf, wireBarzActions, authErrorMessage, errorText, type Shelf } from '../../scripts/social';
 
   const releaseId = document.querySelector<HTMLElement>('.shelves')!.dataset.releaseId!;
@@ -233,6 +247,17 @@ const jsonLd = {
 </script>
 
 <style>
+  .countdown {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font: 700 13px/1 var(--font-sans);
+    letter-spacing: 0.04em;
+  }
+
   .back {
     display: inline-block;
     margin-bottom: 36px;

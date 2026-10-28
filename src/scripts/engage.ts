@@ -36,6 +36,8 @@ export function previousVisit(): Date | null {
 export type VisitNews = {
   // featWith : l'artiste suivi est invité (feat.) sur la sortie de quelqu'un d'autre
   releases: { title: string; slug: string; artistName: string; featWith?: string }[];
+  // Sorties annoncées (date à venir) par les artistes suivis, apparues depuis la dernière visite
+  announced: { title: string; slug: string; artistName: string; date: string }[];
   friendBarz: number;
   friendNames: string[];
   requests: number;
@@ -50,7 +52,7 @@ export async function newsSince(since: Date): Promise<VisitNews | null> {
   const friends = friendships.filter((f) => f.status === 'friends');
   const names = new Map(friends.map((f) => [f.profile.id, f.profile.display_name]));
 
-  const [releases, feats, barz] = await Promise.all([
+  const [releases, feats, announced, barz] = await Promise.all([
     followIds.length
       ? supabase
           .from('releases')
@@ -72,6 +74,16 @@ export async function newsSince(since: Date): Promise<VisitNews | null> {
           .order('release_date', { ascending: false })
           .limit(500)
       : Promise.resolve({ data: [] }),
+    followIds.length
+      ? supabase
+          .from('releases')
+          .select('title, slug, release_date, artist:artists!artist_id(name)')
+          .in('artist_id', followIds)
+          .gt('release_date', localDay(new Date()))
+          .gt('created_at', since.toISOString())
+          .order('release_date')
+          .limit(20)
+      : Promise.resolve({ data: [] }),
     friends.length
       ? supabase.from('barz').select('user_id').in('user_id', [...names.keys()]).gt('created_at', since.toISOString())
       : Promise.resolve({ data: [] }),
@@ -85,6 +97,7 @@ export async function newsSince(since: Date): Promise<VisitNews | null> {
         .map((r) => ({ title: r.title, slug: r.slug, artistName: r.artist?.name ?? '', featWith: followedInFeat(r.metadata?.featuring, followedNames) ?? undefined }))
         .filter((r) => r.featWith),
     ],
+    announced: ((announced.data ?? []) as any[]).map((r) => ({ title: r.title, slug: r.slug, artistName: r.artist?.name ?? '', date: r.release_date })),
     friendBarz: (barz.data ?? []).length,
     friendNames: authors.map((id) => names.get(id)!).filter(Boolean),
     requests: friendships.filter((f) => f.status === 'received').length,
