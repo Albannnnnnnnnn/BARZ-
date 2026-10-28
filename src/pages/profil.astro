@@ -361,23 +361,56 @@ import Layout from '../layouts/Layout.astro';
     });
   }
 
-  // Carte « En écoute » : relue toutes les 30 secondes tant que la page est visible
-  let npTimer: number | undefined;
+  // Carte « En écoute » : relue toutes les 15 secondes (et dès qu'on revient sur l'onglet),
+  // la barre de progression avance chaque seconde entre deux lectures
+  const NP_POLL_MS = 15_000;
+  let npPoll: number | undefined;
+  let npClock: number | undefined;
+  let npRefresh: (() => void) | null = null;
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) npRefresh?.();
+  });
+
   function watchNowPlaying(profile: Profile, isMe: boolean, loggedIn: boolean) {
-    clearInterval(npTimer);
+    clearInterval(npPoll);
+    clearInterval(npClock);
+    npRefresh = null;
     const box = $('p-np');
     box.hidden = true;
     if (!loggedIn || !spotifyAvailable()) return;
+
+    let current: { key: string; playing: boolean; progressMs: number; durationMs: number; at: number } | null = null;
+    let endTimer: number | undefined;
+
     const tick = async () => {
       if (document.hidden) return;
       const np = (await nowPlaying([profile.id]).catch(() => ({}) as Record<string, null>))[profile.id];
-      if (!np?.title) return void (box.hidden = true);
-      const label = np.playing ? (isMe ? 'Tu écoutes' : 'En écoute') : 'En pause';
-      box.innerHTML = nowPlayingHtml(np, label);
-      box.hidden = false;
+      if (!np?.title) {
+        current = null;
+        return void (box.hidden = true);
+      }
+      const key = `${np.title}|${np.artists}|${np.playing}`;
+      // On ne redessine la carte (et sa pochette) que si le morceau ou l'état change
+      if (key !== current?.key) {
+        const label = np.playing ? (isMe ? 'Tu écoutes' : 'En écoute') : 'En pause';
+        box.innerHTML = nowPlayingHtml(np, label);
+        box.hidden = false;
+      }
+      current = { key, playing: np.playing, progressMs: np.progressMs ?? 0, durationMs: np.durationMs ?? 0, at: Date.now() };
+      // À la fin du morceau, on relit tout de suite pour afficher le suivant
+      clearTimeout(endTimer);
+      if (np.playing && current.durationMs) endTimer = window.setTimeout(tick, Math.max(1_000, current.durationMs - current.progressMs + 1_500));
     };
+
+    npRefresh = tick;
     tick();
-    npTimer = window.setInterval(tick, 30_000);
+    npPoll = window.setInterval(tick, NP_POLL_MS);
+    npClock = window.setInterval(() => {
+      if (!current?.playing || !current.durationMs) return;
+      const progress = Math.min(1, (current.progressMs + Date.now() - current.at) / current.durationMs);
+      const bar = box.querySelector<HTMLElement>('.np-bar span');
+      if (bar) bar.style.width = `${progress * 100}%`;
+    }, 1_000);
   }
 
   // Liste d'amis : ce qu'ils écoutent, pour ceux qui partagent
@@ -804,6 +837,7 @@ import Layout from '../layouts/Layout.astro';
     display: block;
     height: 100%;
     background: var(--color-accent);
+    transition: width 1s linear;
   }
 
   @keyframes np-pulse {

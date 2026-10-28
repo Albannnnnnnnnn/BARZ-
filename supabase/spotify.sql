@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS spotify_tokens (
   access_token TEXT,
   expires_at TIMESTAMPTZ,
   spotify_name TEXT,
-  -- Dernière réponse « en écoute », gardée 30 secondes pour ne pas solliciter Spotify à chaque visite
+  -- Dernière réponse « en écoute », gardée 10 secondes pour ne pas solliciter Spotify à chaque visite
   now_playing JSONB,
   checked_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()

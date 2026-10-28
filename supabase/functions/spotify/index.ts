@@ -16,7 +16,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 
 const ORIGINS = ['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322'];
 const REDIRECTS = ['https://albannnnnnnnnn.github.io/BARZ-/spotify', 'http://127.0.0.1:4322/BARZ-/spotify'];
-const CACHE_MS = 30_000;
+const CACHE_MS = 10_000;
 const UUID = /^[0-9a-f-]{36}$/i;
 
 type TokenRow = { user_id: string; refresh_token: string; access_token: string | null; expires_at: string | null; spotify_name: string | null; now_playing: unknown; checked_at: string | null };
