@@ -1,0 +1,23 @@
+---
+// PAGE HORS LIGNE : affichée par l'appli installée (public/sw.js) quand il n'y a pas de réseau
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Hors ligne" description="Pas de connexion internet pour le moment.">
+  <div class="bz-page">
+    <span class="bz-eyebrow">Hors ligne</span>
+    <h1 class="bz-display">Pas de <em>réseau.</em></h1>
+    <p class="text">Les pages que tu as déjà ouvertes restent disponibles. Le reste reviendra dès que tu seras reconnecté.</p>
+    <a class="bz-btn bz-btn--lime" href="/BARZ-/">Réessayer</a>
+  </div>
+</Layout>
+
+<style>
+  .text {
+    max-width: 480px;
+    margin: 24px 0 28px;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+</style>

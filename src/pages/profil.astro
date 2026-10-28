@@ -3,6 +3,7 @@
 // Les vraies données sont lues par le navigateur (src/scripts/social.ts).
 // Amis : demande puis acceptation (supabase/friends.sql) ; entre amis, la section « Pour vous deux ».
 import Layout from '../layouts/Layout.astro';
+import InstallApp from '../components/InstallApp.astro';
 ---
 
 <Layout title="Profil" description="Ton ADN musical, ta spin list, tes Barz.">
@@ -22,6 +23,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
             <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
+            <InstallApp compact />
           </div>
           <div class="own-actions" id="p-friend" hidden></div>
         </div>

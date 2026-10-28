@@ -1,6 +1,7 @@
 ---
 // Barre latérale (PC) : logo et navigation
 import NavIcon from './NavIcon.astro';
+import InstallApp from './InstallApp.astro';
 import { NAV_ITEMS, activeNav } from '../lib/nav';
 
 interface Props {
@@ -22,6 +23,10 @@ const active = activeNav(currentPath);
       </a>
     ))}
   </nav>
+
+  <div class="install-slot">
+    <InstallApp compact />
+  </div>
 </aside>
 
 <style>
@@ -57,6 +62,11 @@ const active = activeNav(currentPath);
 
   .word span {
     color: var(--color-accent);
+  }
+
+  .install-slot {
+    margin-top: auto;
+    padding: 0 6px;
   }
 
   .nav {

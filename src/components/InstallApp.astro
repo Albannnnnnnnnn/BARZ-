@@ -1,0 +1,79 @@
+---
+// Bouton « Installer l'appli » : visible seulement quand le navigateur le permet et que BARZ¡ n'est pas déjà installé.
+// Sur iPhone (pas d'installation automatique), il explique comment l'ajouter à l'écran d'accueil.
+interface Props {
+  compact?: boolean;
+}
+const { compact = false } = Astro.props;
+---
+
+<div class:list={['install', { 'is-compact': compact }]} data-install hidden>
+  <button type="button" class="bz-btn bz-btn--lime bz-btn--small" data-install-button>Installer l’appli</button>
+  <p class="install-ios" data-install-ios hidden>
+    Pour installer BARZ¡ : touche <b>Partager</b> en bas de Safari, puis <b>Sur l’écran d’accueil</b>.
+  </p>
+</div>
+
+<script>
+  type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+
+  const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  let deferred: InstallPrompt | null = null;
+
+  const boxes = () => document.querySelectorAll<HTMLElement>('[data-install]');
+
+  function paint() {
+    for (const box of boxes()) {
+      const iosHelp = box.querySelector<HTMLElement>('[data-install-ios]')!;
+      const button = box.querySelector<HTMLElement>('[data-install-button]')!;
+      if (standalone) {
+        box.hidden = true;
+      } else if (deferred) {
+        box.hidden = false;
+        button.hidden = false;
+        iosHelp.hidden = true;
+      } else if (ios) {
+        box.hidden = false;
+        button.hidden = true;
+        iosHelp.hidden = false;
+      }
+    }
+  }
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferred = event as InstallPrompt;
+    paint();
+  });
+  window.addEventListener('appinstalled', () => {
+    deferred = null;
+    for (const box of boxes()) box.hidden = true;
+  });
+  document.addEventListener('click', async (event) => {
+    if (!(event.target as HTMLElement).closest('[data-install-button]') || !deferred) return;
+    await deferred.prompt();
+    await deferred.userChoice;
+    deferred = null;
+    paint();
+  });
+  paint();
+</script>
+
+<style>
+  .install {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .install-ios {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .is-compact .install-ios {
+    font-size: 13px;
+  }
+</style>
