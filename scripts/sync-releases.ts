@@ -8,7 +8,7 @@
 //             assez écoutés (SYNC_CATALOG_MIN_FANS) + classements par genre, avec les vrais genres,
 //             le nombre de fans, le label et une pochette en grand format (sans clé d'API)
 //   Spotify : sorties des artistes suivis + nouveautés, avec le lien d'écoute et la photo d'artiste
-//             (désactivé par défaut : voir SPOTIFY_ENABLED)
+//             (appli Spotify dédiée à la synchro : voir SPOTIFY_ENABLED)
 // Les doublons sont fusionnés par code-barres (UPC), à défaut par artiste + titre.
 // Si une source tombe (ex. blocage Spotify), le sync continue avec l'autre.
 //
@@ -45,10 +45,10 @@ const CATALOG_MIN_FANS = Number(process.env.SYNC_CATALOG_MIN_FANS ?? 100_000);
 const SINGLES_MIN_FANS = Number(process.env.SYNC_SINGLES_MIN_FANS ?? 500_000);
 // L'API iTunes tolère ~20 requêtes/min : on plafonne par sync (le reste passe au sync suivant)
 const APPLE_LOOKUPS_PER_RUN = Number(process.env.SYNC_APPLE_LOOKUPS ?? 60);
-// Spotify est désactivé dans la synchronisation : en mode développement, la rafale de requêtes vaut à l'appli
-// un blocage de 24 h, qui coupe aussi l'écoute en direct (même appli). Deezer couvre déjà les sorties.
-// SYNC_SPOTIFY=1 le réactive (de préférence avec une appli Spotify dédiée à la synchronisation).
-const SPOTIFY_ENABLED = process.env.SYNC_SPOTIFY === '1';
+// Spotify passe par une appli dédiée à la synchronisation (SPOTIFY_SYNC_CLIENT_ID / _SECRET), jamais par celle
+// de l'écoute en direct : en mode développement, une rafale de requêtes bloque l'appli 24 h, et le blocage ne doit
+// toucher que la synchro. Actif dès que ces identifiants existent ; SYNC_SPOTIFY=0 le coupe.
+const SPOTIFY_ENABLED = !!process.env.SPOTIFY_SYNC_CLIENT_ID && process.env.SYNC_SPOTIFY !== '0';
 const RESET = process.argv.includes('--reset');
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -209,9 +209,9 @@ let spotifyCalls = 0;
 
 async function getSpotifyToken(): Promise<string> {
   if (spotifyToken && Date.now() < spotifyTokenExpires - 60_000) return spotifyToken;
-  const id = process.env.SPOTIFY_CLIENT_ID;
-  const secret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!id || !secret) throw new Error('SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET manquants');
+  const id = process.env.SPOTIFY_SYNC_CLIENT_ID;
+  const secret = process.env.SPOTIFY_SYNC_CLIENT_SECRET;
+  if (!id || !secret) throw new Error('SPOTIFY_SYNC_CLIENT_ID / SPOTIFY_SYNC_CLIENT_SECRET manquants');
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
@@ -228,7 +228,7 @@ async function getSpotifyToken(): Promise<string> {
 }
 
 // On espace les appels plutôt que de se faire bloquer (fenêtre glissante de 30 s)
-const SPOTIFY_MIN_INTERVAL_MS = Number(process.env.SYNC_SPOTIFY_INTERVAL_MS ?? 600);
+const SPOTIFY_MIN_INTERVAL_MS = Number(process.env.SYNC_SPOTIFY_INTERVAL_MS ?? 1000);
 let lastSpotifyCall = 0;
 
 async function spotifyFetch(endpoint: string): Promise<any | null> {
@@ -273,23 +273,32 @@ function spotifyInWindow(album: any, from: string, to: string): boolean {
   return album?.release_date_precision === 'day' && album.release_date >= from && album.release_date <= to;
 }
 
-async function collectSpotify(watched: [string, string[]][], from: string, to: string): Promise<Release[]> {
+// Watchlist et artistes suivis par les membres (singles compris). knownIds : identifiants Spotify déjà en base
+// (nom normalisé → id), qui évitent une recherche par artiste et donc la moitié des appels.
+async function collectSpotify(watched: [string, string[]][], followedNames: string[], knownIds: Map<string, string>, from: string, to: string): Promise<Release[]> {
   const albums = new Map<string, { album: any; genre?: string; watched: boolean }>();
   const artistImages = new Map<string, string | null>();
+  const watchedNames = new Set(watched.flatMap(([, names]) => names.map(normalizeName)));
+  const targets = [
+    ...watched.flatMap(([genre, names]) => names.map((name) => ({ name, genre, isWatched: true }))),
+    ...followedNames.filter((n) => !watchedNames.has(normalizeName(n))).map((name) => ({ name, genre: undefined, isWatched: false })),
+  ];
 
-  console.log('⭐ Spotify : artistes suivis...');
-  for (const [genre, names] of watched) {
-    for (const name of names) {
+  console.log(`⭐ Spotify : ${targets.length} artistes (watchlist et suivis)...`);
+  for (const { name, genre, isWatched } of targets) {
+    let artistId = knownIds.get(normalizeName(name));
+    if (!artistId) {
       const json = await spotifyFetch(`/search?type=artist&limit=10&market=FR&q=${encodeURIComponent(`artist:"${name}"`)}`);
       const artist = (json?.artists?.items || []).find((a: any) => normalizeName(a.name) === normalizeName(name));
       if (!artist) continue;
-      artistImages.set(artist.id, artist.images?.[0]?.url ?? null);
-      for (const group of ['album', 'single']) {
-        const list = await spotifyFetch(`/artists/${artist.id}/albums?include_groups=${group}&limit=10&market=FR`);
-        for (const album of list?.items || []) {
-          if (spotifyInWindow(album, from, to) && spotifyType(album, true) && !JUNK_TITLE.test(album.name)) {
-            albums.set(album.id, { album, genre, watched: true });
-          }
+      artistId = artist.id as string;
+      artistImages.set(artistId, artist.images?.[0]?.url ?? null);
+    }
+    for (const group of ['album', 'single']) {
+      const list = await spotifyFetch(`/artists/${artistId}/albums?include_groups=${group}&limit=10&market=FR`);
+      for (const album of list?.items || []) {
+        if (spotifyInWindow(album, from, to) && spotifyType(album, true) && !JUNK_TITLE.test(album.name)) {
+          albums.set(album.id, { album, genre, watched: isWatched });
         }
       }
     }
@@ -448,10 +457,11 @@ async function main() {
 
   const watched = readWatchlist();
   // Artistes suivis par au moins un membre (table follows de supabase/discovery.sql, absente avant)
-  const followsRes = await supabase.from('follows').select('artist:artists(deezer_id)');
+  const followsRes = await supabase.from('follows').select('artist:artists(deezer_id, name)');
   const followedIds = followsRes.error
     ? []
     : [...new Set((followsRes.data as any[]).map((f) => f.artist?.deezer_id).filter((id): id is number => !!id))];
+  const followedNames = followsRes.error ? [] : [...new Set((followsRes.data as any[]).map((f) => f.artist?.name).filter((n): n is string => !!n))];
 
   // Artistes du catalogue au-dessus du seuil de fans (par pages de 1 000)
   const catalog = new Map<number, number>();
@@ -479,13 +489,14 @@ async function main() {
   let spotify: Release[] = [];
   const blockedUntil = spotifyBlockedUntil();
   if (!SPOTIFY_ENABLED) {
-    console.log('⏭️  Spotify désactivé dans la synchronisation (SYNC_SPOTIFY=1 pour le réactiver).');
+    console.log('⏭️  Spotify ignoré : pas d’appli Spotify de synchronisation (SPOTIFY_SYNC_CLIENT_ID).');
   } else if (blockedUntil) {
     const at = new Date(blockedUntil).toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
     console.warn(`⚠️ Spotify ignoré : l'app est bloquée jusqu'à ${at} environ.`);
   } else {
     try {
-      spotify = await collectSpotify(watched, from, to);
+      const known = must(await supabase.from('artists').select('name, spotify_id').not('spotify_id', 'is', null), 'Lecture spotify_id') as { name: string; spotify_id: string }[];
+      spotify = await collectSpotify(watched, followedNames, new Map(known.map((a) => [normalizeName(a.name), a.spotify_id])), from, to);
     } catch (err) {
       console.warn(`⚠️ Spotify indisponible, on continue sans : ${err instanceof Error ? err.message : err}`);
     }
