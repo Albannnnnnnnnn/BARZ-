@@ -1,0 +1,69 @@
+---
+// Bandeau « Nouvelle version » : la page compare sa version à /version.json (au retour sur l'onglet
+// et toutes les 10 minutes) et propose de recharger quand du nouveau code a été mis en ligne.
+import { BUILD_ID } from '../lib/build-id';
+---
+
+<div class="update" id="update-banner" data-version={BUILD_ID} role="status" hidden>
+  <span>Nouvelle version de <b>BARZ¡</b></span>
+  <button type="button" class="bz-btn bz-btn--small update-button" id="update-button">Mettre à jour</button>
+</div>
+
+<script>
+  const banner = document.getElementById('update-banner')!;
+  const mine = banner.dataset.version;
+  let lastCheck = 0;
+
+  async function check() {
+    if (document.hidden || Date.now() - lastCheck < 60_000) return;
+    lastCheck = Date.now();
+    try {
+      const res = await fetch('/BARZ-/version.json', { cache: 'no-store' });
+      const { version } = await res.json();
+      if (version && version !== mine) banner.hidden = false;
+    } catch {
+      // Hors ligne : on réessaiera
+    }
+  }
+
+  document.getElementById('update-button')!.addEventListener('click', async () => {
+    // Récupère aussi le nouveau service worker avant de recharger
+    await navigator.serviceWorker?.getRegistration('/BARZ-/').then((reg) => reg?.update()).catch(() => {});
+    location.reload();
+  });
+  document.addEventListener('visibilitychange', check);
+  setInterval(check, 10 * 60_000);
+  setTimeout(check, 5_000);
+</script>
+
+<style>
+  .update {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 60;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 10px 10px 20px;
+    border-radius: 999px;
+    background: var(--color-ink);
+    color: var(--color-cream);
+    box-shadow: var(--shadow-lg);
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .update-button {
+    background: var(--color-cream);
+    color: var(--color-ink) !important;
+  }
+
+  @media (max-width: 900px) {
+    /* Au-dessus de la barre de navigation du bas */
+    .update {
+      bottom: calc(max(12px, env(safe-area-inset-bottom)) + 84px);
+    }
+  }
+</style>
