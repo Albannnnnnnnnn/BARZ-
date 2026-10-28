@@ -20,7 +20,7 @@ import Layout from '../layouts/Layout.astro';
           <p id="p-bio"></p>
           <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan">Bilan du mois →</a>
           <div class="own-actions" id="p-own" hidden>
-            <a class="bz-btn bz-btn--outline" href="/BARZ-/bienvenue?next=/BARZ-/profil">Modifier mes goûts</a>
+            <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
             <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
           </div>
           <div class="own-actions" id="p-friend" hidden></div>
@@ -117,6 +117,7 @@ import Layout from '../layouts/Layout.astro';
     authErrorMessage, errorText,
     barzCardHtml,
     barzFeed,
+    avatarUrl,
     coverHtml,
     escapeHtml,
     acceptFriendRequest,
@@ -225,7 +226,14 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
-    $('p-avatar').textContent = profile.display_name.slice(0, 1).toUpperCase();
+    $('p-avatar').innerHTML = profile.avatar_path
+      ? `<img src="${escapeHtml(avatarUrl(profile.avatar_path))}" alt="" />`
+      : escapeHtml(profile.display_name.slice(0, 1).toUpperCase());
+    if (isMe && new URLSearchParams(location.search).get('modifie') === '1') {
+      $('profile-error').textContent = 'Profil mis à jour.';
+      $('profile-error').className = 'bz-notice bz-notice--ok';
+      $('profile-error').hidden = false;
+    }
     $('p-name').textContent = profile.display_name;
     $('p-bio').textContent = [`@${profile.username}`, profile.bio].filter(Boolean).join(' · ');
     $('p-own').hidden = !isMe;
@@ -611,7 +619,14 @@ import Layout from '../layouts/Layout.astro';
       linear-gradient(100deg, var(--color-accent-soft) 0%, var(--color-paper) 55%, var(--color-accent-soft) 100%);
   }
 
+  .avatar :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
   .avatar {
+    overflow: hidden;
     width: 196px;
     height: 196px;
     border-radius: 50%;

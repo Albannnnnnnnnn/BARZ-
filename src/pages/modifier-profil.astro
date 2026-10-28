@@ -1,0 +1,279 @@
+---
+// MODIFIER LE PROFIL : photo, nom affiché, pseudo, bio (lus et enregistrés par le navigateur)
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Modifier le profil" description="Ta photo, ton nom, ton pseudo et ta bio sur BARZ¡.">
+  <div class="bz-page">
+    <a class="bz-link back" href="/BARZ-/profil">← Mon profil</a>
+    <span class="bz-eyebrow">Profil</span>
+    <h1 class="bz-display">Modifier <em>mon profil.</em></h1>
+
+    <p class="bz-notice" id="edit-loading">Chargement…</p>
+
+    <form class="edit" id="edit-form" hidden novalidate>
+      <section class="photo" aria-labelledby="photo-title">
+        <h2 id="photo-title" class="label">Photo de profil</h2>
+        <div class="photo-row">
+          <span class="preview" id="photo-preview" aria-hidden="true"></span>
+          <div class="photo-actions">
+            <label class="bz-btn bz-btn--lime bz-btn--small file">
+              Choisir une photo
+              <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" />
+            </label>
+            <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="photo-remove" hidden>Retirer</button>
+            <p class="hint">Recadrée en carré automatiquement.</p>
+          </div>
+        </div>
+        <p class="bz-notice" id="photo-message" hidden></p>
+      </section>
+
+      <label class="field">
+        <span class="label">Nom affiché</span>
+        <input class="bz-input" id="display-name" maxlength="40" required autocomplete="nickname" />
+      </label>
+
+      <label class="field">
+        <span class="label">Pseudo</span>
+        <span class="at-field">
+          <span aria-hidden="true">@</span>
+          <input class="bz-input" id="username" minlength="3" maxlength="24" pattern="[a-z0-9._]{3,24}" required autocomplete="username" />
+        </span>
+        <span class="hint">3 à 24 caractères : lettres minuscules, chiffres, point et tiret bas. C’est l’adresse de ton profil : si tu le changes, les anciens liens ne marcheront plus.</span>
+      </label>
+
+      <label class="field">
+        <span class="label">Bio <span class="count" id="bio-count">0 / 160</span></span>
+        <textarea class="bz-input" id="bio" maxlength="160" rows="3" placeholder="Ce que tu écoutes, ce que tu cherches…"></textarea>
+      </label>
+
+      <div class="actions">
+        <button type="submit" class="bz-btn bz-btn--lime" id="save">Enregistrer</button>
+        <a class="bz-btn bz-btn--outline" href="/BARZ-/bienvenue?next=/BARZ-/profil">Modifier mes goûts</a>
+      </div>
+      <p class="bz-notice" id="edit-message" hidden></p>
+    </form>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, avatarUrl, errorText, escapeHtml, getMyProfile, removeAvatar, requireSession, updateMyProfile, uploadAvatar, type Profile } from '../scripts/social';
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const form = $<HTMLFormElement>('edit-form');
+  const nameInput = $<HTMLInputElement>('display-name');
+  const usernameInput = $<HTMLInputElement>('username');
+  const bioInput = $<HTMLTextAreaElement>('bio');
+  let profile: Profile | null = null;
+
+  const show = (id: string, text: string, kind: 'ok' | 'error') => {
+    const box = $(id);
+    box.textContent = text;
+    box.className = `bz-notice bz-notice--${kind}`;
+    box.hidden = false;
+  };
+
+  function paintPhoto() {
+    const preview = $('photo-preview');
+    preview.innerHTML = profile?.avatar_path
+      ? `<img src="${escapeHtml(avatarUrl(profile.avatar_path))}" alt="" />`
+      : escapeHtml((profile?.display_name ?? '?').slice(0, 1).toUpperCase());
+    $('photo-remove').hidden = !profile?.avatar_path;
+  }
+
+  const countBio = () => ($('bio-count').textContent = `${bioInput.value.length} / 160`);
+
+  async function load() {
+    if (!(await requireSession())) return;
+    profile = await getMyProfile();
+    $('edit-loading').hidden = true;
+    if (!profile) return show('edit-message', 'Profil introuvable.', 'error');
+    nameInput.value = profile.display_name;
+    usernameInput.value = profile.username;
+    bioInput.value = profile.bio ?? '';
+    countBio();
+    paintPhoto();
+    form.hidden = false;
+  }
+
+  bioInput.addEventListener('input', countBio);
+  usernameInput.addEventListener('input', () => (usernameInput.value = usernameInput.value.toLowerCase().replace(/\s+/g, '')));
+
+  $<HTMLInputElement>('photo-input').addEventListener('change', async (event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    show('photo-message', 'Envoi de la photo…', 'ok');
+    try {
+      await uploadAvatar(file);
+      profile = await getMyProfile();
+      paintPhoto();
+      show('photo-message', 'Photo mise à jour.', 'ok');
+    } catch (err) {
+      show('photo-message', errorText(err), 'error');
+    }
+    input.value = '';
+  });
+
+  $('photo-remove').addEventListener('click', async () => {
+    try {
+      await removeAvatar();
+      profile = await getMyProfile();
+      paintPhoto();
+      show('photo-message', 'Photo retirée.', 'ok');
+    } catch (err) {
+      show('photo-message', errorText(err), 'error');
+    }
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const display_name = nameInput.value.trim();
+    const username = usernameInput.value.trim().toLowerCase();
+    const bio = bioInput.value.trim();
+    if (!display_name) return show('edit-message', 'Ton nom affiché ne peut pas être vide.', 'error');
+    if (!/^[a-z0-9._]{3,24}$/.test(username)) return show('edit-message', 'Pseudo : 3 à 24 caractères, lettres minuscules, chiffres, point ou tiret bas.', 'error');
+    const button = $<HTMLButtonElement>('save');
+    button.disabled = true;
+    try {
+      await updateMyProfile({ display_name, username, bio: bio || null });
+      location.href = `${BASE}profil?modifie=1`;
+    } catch (err) {
+      const text = errorText(err);
+      show('edit-message', /duplicate|unique/i.test(text) ? `Le pseudo @${username} est déjà pris.` : text, 'error');
+      button.disabled = false;
+    }
+  });
+
+  load().catch((err) => show('edit-message', errorText(err), 'error'));
+</script>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 28px;
+  }
+
+  #edit-loading {
+    margin-top: 32px;
+  }
+
+  .edit {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    max-width: 560px;
+    margin-top: 40px;
+  }
+
+  .label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .count {
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 600;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hint {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-text-dim);
+  }
+
+  .at-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+
+  .at-field .bz-input {
+    flex: 1;
+  }
+
+  textarea.bz-input {
+    resize: vertical;
+    font: inherit;
+    line-height: 1.5;
+  }
+
+  .photo-row {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .preview {
+    flex-shrink: 0;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font: 400 56px/1 var(--font-serif);
+  }
+
+  .preview :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .photo-actions .hint {
+    flex-basis: 100%;
+    margin: 0;
+  }
+
+  .file {
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* Le vrai champ fichier reste accessible au clavier, mais invisible sous le bouton */
+  .file input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .file:focus-within {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  #photo-message {
+    margin-top: 14px;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+</style>

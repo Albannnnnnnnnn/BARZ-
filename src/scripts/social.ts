@@ -21,6 +21,7 @@ export type Profile = {
   onboarded?: boolean;
   lastfm_username?: string | null;
   share_listening?: boolean;
+  avatar_path?: string | null;
 };
 export type ReleaseLite = {
   id: string;
@@ -37,13 +38,13 @@ export type Barz = {
   body: string;
   created_at: string;
   user_id: string;
-  profile: Pick<Profile, 'username' | 'display_name'> | null;
+  profile: Pick<Profile, 'username' | 'display_name' | 'avatar_path'> | null;
   release: ReleaseLite | null;
   likes: { user_id: string }[];
 };
 
 const RELEASE_LITE = 'id, title, slug, cover_url, genres, release_type, artist:artists!artist_id(name)';
-const BARZ_FIELDS = `id, score, body, created_at, user_id, profile:profiles!barz_user_id_fkey(username, display_name), release:releases(${RELEASE_LITE}), likes:barz_likes(user_id)`;
+const BARZ_FIELDS = `id, score, body, created_at, user_id, profile:profiles!barz_user_id_fkey(username, display_name, avatar_path), release:releases(${RELEASE_LITE}), likes:barz_likes(user_id)`;
 
 function must<T>(res: { data: T; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -218,7 +219,7 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
   return `<article class="barz-card${release ? '' : ' barz-card--solo'}" data-barz-id="${escapeHtml(b.id)}">
     <div class="barz-body">
       <header>
-        <a class="barz-avatar" href="${profileHref}">${initial}</a>
+        <a class="barz-avatar" href="${profileHref}">${b.profile?.avatar_path ? `<img src="${escapeHtml(avatarUrl(b.profile.avatar_path))}" alt="" loading="lazy" />` : initial}</a>
         <a href="${profileHref}"><b>${escapeHtml(name)}</b></a>
         <span class="barz-handle">${escapeHtml(handle)} · ${escapeHtml(timeAgo(b.created_at))}${scoreInline}</span>
       </header>
@@ -273,7 +274,7 @@ export async function setFollow(artistId: string, on: boolean) {
   else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
 }
 
-export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean }) {
+export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean }) {
   const session = await requireSession();
   if (!session || !supabase) return;
   must(await supabase.from('profiles').update(fields).eq('id', session.user.id));
@@ -404,4 +405,46 @@ export async function searchMembers(query: string): Promise<Pick<Profile, 'id' |
   const q = query.trim().replace(/^@/, '').replace(/[%_,()]/g, '');
   if (q.length < 2) return [];
   return must(await supabase.from('profiles').select('id, username, display_name').or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(8)) as any[];
+}
+
+// ============================================================
+// PHOTO DE PROFIL (supabase/avatars.sql) : espace public « avatars », un dossier par membre
+// ============================================================
+const AVATAR_SIZE = 400;
+
+export function avatarUrl(path: string): string {
+  return `${url}/storage/v1/object/public/avatars/${path}`;
+}
+
+// Recadre au centre en carré de 400 px et convertit en WebP (ce qui retire aussi les métadonnées, GPS compris)
+async function squareWebp(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = AVATAR_SIZE;
+  canvas.getContext('2d')!.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
+  if (!blob) throw new Error('Impossible de préparer cette image.');
+  return blob;
+}
+
+export async function uploadAvatar(file: File): Promise<string> {
+  const session = await requireSession();
+  if (!session || !supabase) throw new Error('Connecte-toi pour changer ta photo.');
+  if (!file.type.startsWith('image/')) throw new Error('Choisis une image (JPG, PNG ou WebP).');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Image trop lourde (15 Mo maximum).');
+  const blob = await squareWebp(file);
+  const path = `${session.user.id}/avatar-${Date.now()}.webp`;
+  must(await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/webp', cacheControl: '31536000' }));
+  const previous = (await getMyProfile())?.avatar_path;
+  await updateMyProfile({ avatar_path: path });
+  if (previous) await supabase.storage.from('avatars').remove([previous]);
+  return path;
+}
+
+export async function removeAvatar() {
+  const previous = (await getMyProfile())?.avatar_path;
+  await updateMyProfile({ avatar_path: null });
+  if (previous && supabase) await supabase.storage.from('avatars').remove([previous]);
 }
