@@ -53,6 +53,11 @@ jobs:
       - name: Run sync script
         run: npm run sync:releases
 
+      # Auditeurs Last.fm (popularité toutes plateformes) : un lot d'artistes à chaque passage
+      - name: Sync Last.fm listeners
+        continue-on-error: true
+        run: npm run sync:listeners
+
       - name: Notify on failure
         if: failure()
         uses: actions/github-script@v7

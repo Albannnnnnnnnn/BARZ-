@@ -7,6 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "sync:releases": "tsx scripts/sync-releases.ts",
+    "sync:listeners": "tsx scripts/sync-listeners.ts",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/lib/db-types.ts",
     "sync:artists": "tsx scripts/sync-artists.ts"

@@ -3,6 +3,7 @@
 // dans Supabase avec la clé anon. Les règles RLS (supabase/social.sql) protègent les données.
 import { createClient, type Session } from '@supabase/supabase-js';
 import { featLabel } from '../lib/feat';
+import { formatAudience } from '../lib/audience';
 
 export const BASE = '/BARZ-/';
 
@@ -257,8 +258,8 @@ export function wireBarzActions(container: HTMLElement, onChange: () => void) {
 // ============================================================
 // ARTISTES SUIVIS, GOÛTS DÉCLARÉS (supabase/discovery.sql)
 // ============================================================
-export type ArtistLite = { id: string; name: string; slug: string; image_url: string | null; popularity: number | null; genres: string[] | null };
-export const ARTIST_LITE = 'id, name, slug, image_url, popularity, genres';
+export type ArtistLite = { id: string; name: string; slug: string; image_url: string | null; popularity: number | null; lastfm_listeners?: number | null; genres: string[] | null };
+export const ARTIST_LITE = 'id, name, slug, image_url, popularity, lastfm_listeners, genres';
 
 export async function myFollows(): Promise<ArtistLite[]> {
   const session = await getSession();
@@ -300,7 +301,7 @@ export function artistCardHtml(a: ArtistLite, following: boolean, extra = ''): s
   return `<div class="bz-artist" data-artist-id="${escapeHtml(a.id)}">
     <a class="bz-artist-photo" href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${photo}</a>
     <a class="bz-artist-name" href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${escapeHtml(a.name)}</a>
-    <span class="bz-artist-meta">${escapeHtml(extra || formatFans(a.popularity))}</span>
+    <span class="bz-artist-meta">${escapeHtml(extra || formatAudience(a))}</span>
     <button type="button" class="bz-follow${following ? ' is-on' : ''}" data-follow="${escapeHtml(a.id)}" aria-pressed="${following}">${following ? 'Suivi' : 'Suivre'}</button>
   </div>`;
 }

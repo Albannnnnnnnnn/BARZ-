@@ -5,6 +5,7 @@
 import { getSession, myFollows, myFriendships, supabase } from './social';
 import { loadTaste, rank, recentReleases, scoreRelease, type RecentRelease, type Taste } from './reco';
 import { followedInFeat, normName } from '../lib/feat';
+import { audience } from '../lib/audience';
 
 // Date locale au format AAAA-MM-JJ (toISOString passerait en UTC)
 export function localDay(d: Date): string {
@@ -133,9 +134,9 @@ async function pickRelease(uid: string, week: string, taste: Taste): Promise<Rec
 async function releaseById(id: string): Promise<RecentRelease | null> {
   const cached = (await recentReleases()).find((r) => r.id === id);
   if (cached || !supabase) return cached ?? null;
-  const { data } = await supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, genres, metadata, artist:artists!artist_id(id, name)').eq('id', id).maybeSingle();
+  const { data } = await supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, genres, metadata, artist:artists!artist_id(id, name, popularity, lastfm_listeners)').eq('id', id).maybeSingle();
   const r = data as any;
-  return r ? { ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: r.metadata?.fans ?? null } : null;
+  return r ? { ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: audience(r.artist) || (r.metadata?.fans ?? null) } : null;
 }
 
 // Défis d'un membre (du plus récent au plus ancien), relevés ou non

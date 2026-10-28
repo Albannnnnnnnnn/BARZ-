@@ -11,6 +11,7 @@
 import { GENRE_CHIPS } from '../lib/genres';
 import { getMyProfile, getSession, supabase } from './social';
 import { followedInFeat, normName } from '../lib/feat';
+import { audience } from '../lib/audience';
 
 export type RecoRelease = {
   id: string;
@@ -247,13 +248,13 @@ export function recentReleases(): Promise<RecentRelease[]> {
   recentPromise ??= Promise.resolve(
     supabase
       .from('releases')
-      .select('id, title, slug, cover_url, release_type, release_date, genres, metadata, artist:artists!artist_id(id, name)')
+      .select('id, title, slug, cover_url, release_type, release_date, genres, metadata, artist:artists!artist_id(id, name, popularity, lastfm_listeners)')
       .gte('release_date', day(-30))
       .lte('release_date', day(14))
       .order('release_date', { ascending: false })
       .limit(1500)
   ).then(({ data }) =>
-    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: r.metadata?.fans ?? null, featuring: r.metadata?.featuring ?? [] }))
+    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: audience(r.artist) || (r.metadata?.fans ?? null), featuring: r.metadata?.featuring ?? [] }))
   );
   return recentPromise;
 }

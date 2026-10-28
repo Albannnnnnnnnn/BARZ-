@@ -6,6 +6,7 @@ import AlbumTile from '../components/AlbumTile.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
+import { audience } from '../lib/audience';
 
 const today = getToday();
 const supabase = getSupabaseServerSafe();
@@ -36,7 +37,7 @@ const exploreData = recent.map((r) => ({
   artistId: r.artist?.id ?? null,
   artistName: r.artist?.name ?? '',
   genres: r.genres ?? [],
-  fans: r.metadata?.fans ?? null,
+  fans: audience(r.artist) || (r.metadata?.fans ?? null),
   title: r.title,
   slug: r.slug,
   cover_url: r.cover_url,
@@ -106,7 +107,8 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.m
 </Layout>
 
 <script>
-  import { ARTIST_LITE, BASE, escapeHtml, formatFans, releaseTileHtml, supabase, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, escapeHtml, releaseTileHtml, supabase, type ArtistLite } from '../scripts/social';
+  import { audience, formatAudience } from '../lib/audience';
   import { loadTaste, rank, type RecoRelease, type Taste } from '../scripts/reco';
   import { GENRE_CHIPS } from '../lib/genres';
 
@@ -190,8 +192,8 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.m
       const candidates = (await relatedOf(chain[hop - 1].id)).filter((a) => !visited.has(a.id));
       if (!candidates.length) break;
       // Un terrier s'enfonce : à chaque saut, on préfère un voisin nettement moins connu que le précédent
-      const previousFans = chain[hop - 1].popularity ?? 0;
-      const deeper = candidates.filter((a) => (a.popularity ?? 0) < previousFans * 0.6);
+      const previousFans = audience(chain[hop - 1]);
+      const deeper = candidates.filter((a) => audience(a) < previousFans * 0.6);
       const pool = deeper.length ? deeper : candidates;
       const next = pool[Math.min(pool.length - 1, Math.floor(Math.random() * 3))];
       chain.push(next);
@@ -205,7 +207,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.m
           <span class="rabbit-dot"></span>
           <span class="rabbit-kind">${STEPS[i]}</span>
           <a class="rabbit-title is-link" href="${BASE}artiste?a=${encodeURIComponent(a.slug)}">${escapeHtml(a.name)}</a>
-          <span class="rabbit-sub">${escapeHtml([genre, formatFans(a.popularity)].filter(Boolean).join(' · '))}</span>
+          <span class="rabbit-sub">${escapeHtml([genre, formatAudience(a)].filter(Boolean).join(' · '))}</span>
         </li>`;
       })
       .join('');
