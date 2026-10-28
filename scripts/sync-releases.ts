@@ -108,7 +108,8 @@ async function deezerAlbumDetail(id: number, watched: boolean, from: string, to:
     artistName: a.artist.name,
     date: a.release_date,
     type,
-    cover: a.cover_xl ?? a.cover_big ?? null,
+    // Pré-sorties : Deezer laisse cover_xl vide mais donne l'identifiant de l'image, déjà en ligne sur son CDN
+    cover: a.cover_xl ?? a.cover_big ?? (a.md5_image ? `https://cdn-images.dzcdn.net/images/cover/${a.md5_image}/1000x1000-000000-80-0-0.jpg` : null),
     tracks: a.nb_tracks ?? 0,
     genres,
     watched,
