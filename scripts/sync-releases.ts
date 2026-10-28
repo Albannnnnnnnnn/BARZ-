@@ -38,6 +38,8 @@ const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 120);
 const UPCOMING_MIN_FANS = Number(process.env.SYNC_UPCOMING_MIN_FANS ?? 50_000);
 const MB_USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0 (https://albannnnnnnnnn.github.io/BARZ-/)';
 const DEEZER_CHART_SIZE = Number(process.env.SYNC_DEEZER_CHART_SIZE ?? 40);
+// Requêtes Deezer en cours en même temps pour le catalogue (le débit reste plafonné dans deezerFetch)
+const DEEZER_PARALLEL = Number(process.env.SYNC_DEEZER_PARALLEL ?? 6);
 // Artistes du catalogue dont on suit aussi les sorties, albums et singles : au moins cette audience
 // (artists.audience, moyenne Last.fm / Deezer ; environ 7 000 artistes à 30 000). Assez bas pour les artistes
 // moins connus (Makala : 35 000), le tri « Populaires » garde les plus écoutés en tête.
@@ -172,7 +174,14 @@ async function collectDeezer(
   // Artistes du catalogue assez écoutés : leurs sorties notables, même si personne ne les suit encore
   const before = out.length;
   console.log(`📚 Deezer : ${catalog.size} artistes du catalogue (audience ≥ ${CATALOG_MIN_AUDIENCE.toLocaleString('fr-FR')})...`);
-  for (const [id, { audience }] of catalog) await artistReleases(id, false, audience >= SINGLES_MIN_AUDIENCE);
+  // Plusieurs artistes à la fois : on attend surtout les réponses de Deezer, pas sa limite de débit
+  // (deezerFetch espace les départs de requêtes)
+  const queue = [...catalog];
+  await Promise.all(
+    Array.from({ length: DEEZER_PARALLEL }, async () => {
+      for (let next = queue.shift(); next; next = queue.shift()) await artistReleases(next[0], false, next[1].audience >= SINGLES_MIN_AUDIENCE);
+    })
+  );
   console.log(`   ${out.length - before} sorties en plus`);
 
   console.log('📈 Deezer : classements par genre...');

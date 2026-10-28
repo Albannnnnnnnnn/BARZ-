@@ -84,15 +84,17 @@ export function mapGenre(name: string): string | null {
 // ============================================================
 // DEEZER (pas de clé ; limite d'environ 50 requêtes / 5 s)
 // ============================================================
-const DEEZER_MIN_INTERVAL_MS = 130;
-let lastDeezerCall = 0;
+// Un départ de requête tous les 110 ms au plus (~9 par seconde), même avec plusieurs requêtes en parallèle :
+// chaque appel réserve le prochain créneau libre avant d'attendre
+const DEEZER_MIN_INTERVAL_MS = 110;
+let nextDeezerSlot = 0;
 export const deezerStats = { calls: 0 };
 
 export async function deezerFetch(endpoint: string): Promise<any | null> {
   for (let attempt = 1; attempt <= 5; attempt++) {
-    const wait = lastDeezerCall + DEEZER_MIN_INTERVAL_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    lastDeezerCall = Date.now();
+    const slot = Math.max(Date.now(), nextDeezerSlot);
+    nextDeezerSlot = slot + DEEZER_MIN_INTERVAL_MS;
+    if (slot > Date.now()) await sleep(slot - Date.now());
     deezerStats.calls++;
     let res: Response;
     try {
