@@ -522,9 +522,14 @@ import InstallApp from '../components/InstallApp.astro';
         ? `<button type="button" class="bz-btn bz-btn--lime bz-btn--small" data-friend="accept" data-user="${escapeHtml(f.profile.id)}">Accepter</button>
            <button type="button" class="bz-btn bz-btn--outline bz-btn--small" data-friend="remove" data-user="${escapeHtml(f.profile.id)}">Refuser</button>`
         : f.status === 'sent'
-          ? `<span class="friend-state">Demande envoyée</span>`
+          ? `<span class="friend-state">Demande envoyée</span>
+             <button type="button" class="bz-btn bz-btn--outline bz-btn--small" data-friend="remove" data-user="${escapeHtml(f.profile.id)}">Annuler</button>`
           : '';
+    const face = f.profile.avatar_path
+      ? `<img src="${escapeHtml(avatarUrl(f.profile.avatar_path))}" alt="" />`
+      : escapeHtml(f.profile.display_name.slice(0, 1).toUpperCase());
     return `<li data-friend-id="${escapeHtml(f.profile.id)}">
+      <span class="friend-face" aria-hidden="true">${face}</span>
       <a href="${BASE}profil?u=${encodeURIComponent(f.profile.username)}"><b>${escapeHtml(f.profile.display_name)}</b> <span>@${escapeHtml(f.profile.username)}</span></a>
       ${actions}
     </li>`;
@@ -806,6 +811,25 @@ import InstallApp from '../components/InstallApp.astro';
   .friend-list :global(a) {
     flex: 1;
     min-width: 0;
+  }
+
+  .friend-list :global(.friend-face) {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font: 700 14px/1 var(--font-sans);
+  }
+
+  .friend-list :global(.friend-face img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .friend-list :global(a span) {
