@@ -1,6 +1,7 @@
 // Utilitaires communs
 import { format, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay, isToday, isFuture, isPast, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { featLabel } from './feat';
 
 // ============================================================
 // DATES
@@ -163,6 +164,12 @@ export const RELEASE_TYPE_COLORS: Record<string, string> = {
 
 export function getReleaseTypeLabel(type: string): string {
   return RELEASE_TYPE_LABELS[type] || type;
+}
+
+// Sous-titre d'une vignette : « Artiste feat. X · Single »
+export function releaseSubtitle(r: { artist?: { name: string } | null; release_type: string; metadata?: { featuring?: string[] } | null }): string {
+  const feat = featLabel(r.metadata?.featuring);
+  return `${r.artist?.name ?? 'Artiste inconnu'}${feat ? ` ${feat}` : ''} · ${getReleaseTypeLabel(r.release_type)}`;
 }
 
 export function getReleaseTypeColor(type: string): string {

@@ -8,7 +8,7 @@ import AlbumTile from '../components/AlbumTile.astro';
 import SortiesTabs from '../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { GENRE_CHIPS, chipIdsFor, fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
-import { getReleaseTypeLabel } from '../lib/utils';
+import { getReleaseTypeLabel, releaseSubtitle } from '../lib/utils';
 
 const today = getToday();
 // Le vendredi de référence : aujourd'hui si c'est vendredi, sinon le dernier vendredi passé
@@ -31,7 +31,7 @@ for (const r of sorted) {
 const types = [...new Set(sorted.map((r) => r.release_type))].filter(Boolean);
 const genres = GENRE_CHIPS.filter((c) => sorted.some((r) => chipIdsFor(r.genres).includes(c.id)));
 const eyebrow = `Semaine ${getISOWeek(friday)} · vendredi ${format(friday, 'd MMMM', { locale: fr })}`;
-const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
+const subtitleOf = (r: ReleaseRow) => releaseSubtitle(r);
 // Données des sorties de la semaine pour le reclassement personnalisé (src/scripts/reco.ts)
 const weekData = sorted.map((r) => ({
   id: r.id,

@@ -8,7 +8,7 @@ import AlbumTile from '../../components/AlbumTile.astro';
 import Player from '../../components/Player.astro';
 import { getSupabaseServerSafe } from '../../lib/supabase';
 import { GENRE_CHIPS, fetchReleasesBetween, type ReleaseRow } from '../../lib/releases';
-import { getReleaseTypeLabel } from '../../lib/utils';
+import { getReleaseTypeLabel, releaseSubtitle } from '../../lib/utils';
 
 export async function getStaticPaths() {
   const all = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1900-01-01'), new Date('2100-01-01'));
@@ -135,7 +135,7 @@ const jsonLd = {
           {related.map((r) => (
             <AlbumTile
               title={r.title}
-              subtitle={`${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`}
+              subtitle={releaseSubtitle(r)}
               cover={r.cover_url}
               href={`/BARZ-/releases/${r.slug}`}
             />

@@ -6,7 +6,7 @@ import GenreChips from '../../components/GenreChips.astro';
 import SortiesTabs from '../../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../../lib/supabase';
 import { chipIdsFor, fetchReleasesBetween } from '../../lib/releases';
-import { getReleaseTypeLabel } from '../../lib/utils';
+import { releaseSubtitle } from '../../lib/utils';
 
 const releases = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1900-01-01'), new Date('2100-01-01'));
 ---
@@ -25,7 +25,7 @@ const releases = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1
           {releases.map((r) => (
             <AlbumTile
               title={r.title}
-              subtitle={`${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`}
+              subtitle={releaseSubtitle(r)}
               cover={r.cover_url}
               href={`/BARZ-/releases/${r.slug}`}
               chips={chipIdsFor(r.genres)}

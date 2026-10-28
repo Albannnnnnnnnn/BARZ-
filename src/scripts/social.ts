@@ -2,6 +2,7 @@
 // Le site est statique : tout ce qui dépend de l'utilisateur est lu et écrit ici, directement
 // dans Supabase avec la clé anon. Les règles RLS (supabase/social.sql) protègent les données.
 import { createClient, type Session } from '@supabase/supabase-js';
+import { featLabel } from '../lib/feat';
 
 export const BASE = '/BARZ-/';
 
@@ -329,11 +330,12 @@ export function wireFollowButtons(container: HTMLElement, onChange?: (artistId: 
 const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
 
 // Vignette album (même rendu que AlbumTile.astro), avec une raison de reco facultative
-export function releaseTileHtml(r: { title: string; slug: string; cover_url: string | null; release_type: string; artist?: { name: string } | null }, options: { badge?: string; reason?: string } = {}): string {
+export function releaseTileHtml(r: { title: string; slug: string; cover_url: string | null; release_type: string; artist?: { name: string } | null; featuring?: string[] }, options: { badge?: string; reason?: string } = {}): string {
+  const feat = featLabel(r.featuring);
   return `<a class="bz-ctile" href="${BASE}releases/${encodeURIComponent(r.slug)}">
     ${coverHtml(r.title, r.cover_url)}
     <span class="bz-ctile-row"><b>${escapeHtml(r.title)}</b>${options.badge ? `<span class="bz-score">${escapeHtml(options.badge)}</span>` : ''}</span>
-    <span class="bz-ctile-sub">${escapeHtml(r.artist?.name ?? '')}${TYPE_LABELS[r.release_type] ? ` · ${TYPE_LABELS[r.release_type]}` : ''}</span>
+    <span class="bz-ctile-sub">${escapeHtml(r.artist?.name ?? '')}${feat ? ` ${escapeHtml(feat)}` : ''}${TYPE_LABELS[r.release_type] ? ` · ${TYPE_LABELS[r.release_type]}` : ''}</span>
     ${options.reason ? `<span class="bz-reason">${escapeHtml(options.reason)}</span>` : ''}
   </a>`;
 }

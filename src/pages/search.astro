@@ -5,7 +5,7 @@ import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
-import { getReleaseTypeLabel } from '../lib/utils';
+import { releaseSubtitle } from '../lib/utils';
 
 const today = getToday();
 const supabase = getSupabaseServerSafe();
@@ -29,7 +29,7 @@ const pick = (genres: string[]) => {
 };
 const zoneTiles = ZONES.map((z) => pick(z.genres));
 
-const subtitleOf = (r: ReleaseRow) => `${r.artist?.name ?? 'Artiste inconnu'} · ${getReleaseTypeLabel(r.release_type)}`;
+const subtitleOf = (r: ReleaseRow) => releaseSubtitle(r);
 // Sorties récentes pour le curseur personnalisé (src/scripts/reco.ts)
 const exploreData = recent.map((r) => ({
   id: r.id,
@@ -41,8 +41,10 @@ const exploreData = recent.map((r) => ({
   slug: r.slug,
   cover_url: r.cover_url,
   release_type: r.release_type,
+  featuring: r.metadata?.featuring ?? [],
 }));
-const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.genres ?? []).join(' ')}`.toLowerCase();
+// On trouve aussi une sortie en cherchant un artiste invité (feat.)
+const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.metadata?.featuring ?? []).join(' ')} ${(r.genres ?? []).join(' ')}`.toLowerCase();
 ---
 
 <Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
