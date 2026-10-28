@@ -36,7 +36,7 @@ async function send(subs: Sub[], message: (userId: string) => Message | null): P
       const m = message(s.user_id);
       if (!m) return;
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(m), { TTL: 6 * 3600 });
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(m), { TTL: 6 * 3600, urgency: 'high' });
         sent++;
       } catch (err) {
         const status = (err as { statusCode?: number }).statusCode;
