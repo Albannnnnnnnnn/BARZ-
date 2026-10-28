@@ -28,6 +28,10 @@ import { GENRE_CHIPS } from '../lib/genres';
         ))}
         <button type="button" class="bz-chip" data-genre="followed" aria-pressed="false">Mes artistes</button>
       </div>
+      <div class="bz-chips" id="artist-sort" role="group" aria-label="Trier par auditeurs">
+        <button type="button" class="bz-chip is-active" data-sort="" aria-pressed="true">Les plus écoutés</button>
+        <button type="button" class="bz-chip" data-sort="decouverte" aria-pressed="false">Les moins connus</button>
+      </div>
     </div>
 
     <div class="bz-artists" id="artist-grid" aria-live="polite"></div>
@@ -39,22 +43,38 @@ import { GENRE_CHIPS } from '../lib/genres';
 <script>
   import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, myFollows, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
+  import { audience } from '../lib/audience';
 
   const PAGE = 48;
+  // « Les moins connus » : sous ce seuil, Last.fm a sans doute trouvé un homonyme (le catalogue part de 100 k fans Deezer)
+  const MIN_LISTENERS = 1000;
   const grid = document.getElementById('artist-grid')!;
   const empty = document.getElementById('artist-empty')!;
   const more = document.getElementById('artist-more') as HTMLButtonElement;
   const input = document.getElementById('artist-q') as HTMLInputElement;
-  let genre = new URLSearchParams(location.search).get('genre') ?? '';
+  const params = new URLSearchParams(location.search);
+  let genre = params.get('genre') ?? '';
+  let sort = params.get('tri') === 'decouverte' ? 'decouverte' : '';
   let query = '';
   let offset = 0;
   let followed = new Set<string>();
   let followedList: ArtistLite[] = [];
 
   async function fetchPage(): Promise<ArtistLite[]> {
-    if (genre === 'followed') return followedList.slice(offset, offset + PAGE);
+    const ascending = sort === 'decouverte';
+    if (genre === 'followed') {
+      const sorted = [...followedList].sort((a, b) => (ascending ? audience(a) - audience(b) : audience(b) - audience(a)));
+      return sorted.slice(offset, offset + PAGE);
+    }
     if (!supabase) return [];
-    let q = supabase.from('artists').select(ARTIST_LITE).order('popularity', { ascending: false }).range(offset, offset + PAGE - 1);
+    // Auditeurs Last.fm d'abord ; les artistes pas encore vérifiés suivent, par fans Deezer
+    let q = supabase
+      .from('artists')
+      .select(ARTIST_LITE)
+      .order('lastfm_listeners', { ascending, nullsFirst: false })
+      .order('popularity', { ascending: false })
+      .range(offset, offset + PAGE - 1);
+    if (ascending) q = q.gte('lastfm_listeners', MIN_LISTENERS);
     if (query) q = q.ilike('name', `%${query.replace(/[%_]/g, '')}%`);
     const chip = GENRE_CHIPS.find((c) => c.id === genre);
     if (chip) q = q.overlaps('genres', chip.genres);
@@ -88,10 +108,8 @@ import { GENRE_CHIPS } from '../lib/genres';
     }
     followedList = await myFollows().catch(() => []);
     followed = new Set(followedList.map((a) => a.id));
-    document.querySelectorAll<HTMLButtonElement>('[data-genre]').forEach((b) => {
-      b.classList.toggle('is-active', b.dataset.genre === genre);
-      b.setAttribute('aria-pressed', String(b.dataset.genre === genre));
-    });
+    markActive('[data-genre]', document.querySelector(`[data-genre="${genre}"]`) ?? document.querySelector('[data-genre=""]')!);
+    markActive('[data-sort]', document.querySelector(`[data-sort="${sort}"]`)!);
     load(true);
   }
 
@@ -99,13 +117,33 @@ import { GENRE_CHIPS } from '../lib/genres';
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-genre]');
     if (!button) return;
     genre = button.dataset.genre ?? '';
-    document.querySelectorAll<HTMLButtonElement>('[data-genre]').forEach((b) => {
-      b.classList.toggle('is-active', b === button);
-      b.setAttribute('aria-pressed', String(b === button));
-    });
-    history.replaceState(null, '', genre ? `?genre=${genre}` : location.pathname);
+    markActive('[data-genre]', button);
+    updateUrl();
     load(true);
   });
+
+  document.getElementById('artist-sort')!.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sort]');
+    if (!button) return;
+    sort = button.dataset.sort ?? '';
+    markActive('[data-sort]', button);
+    updateUrl();
+    load(true);
+  });
+
+  function markActive(selector: string, active: HTMLElement) {
+    document.querySelectorAll<HTMLButtonElement>(selector).forEach((b) => {
+      b.classList.toggle('is-active', b === active);
+      b.setAttribute('aria-pressed', String(b === active));
+    });
+  }
+
+  function updateUrl() {
+    const next = new URLSearchParams();
+    if (genre) next.set('genre', genre);
+    if (sort) next.set('tri', sort);
+    history.replaceState(null, '', next.size ? `?${next}` : location.pathname);
+  }
 
   let timer: number | undefined;
   input.addEventListener('input', () => {

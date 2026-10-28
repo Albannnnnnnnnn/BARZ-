@@ -12,7 +12,8 @@ const PER_RUN = Number(process.env.SYNC_LISTENERS_PER_RUN ?? 1000);
 const REFRESH_DAYS = Number(process.env.SYNC_LISTENERS_REFRESH_DAYS ?? 30);
 
 async function listenersOf(name: string, key: string): Promise<number | null> {
-  const params = new URLSearchParams({ method: 'artist.getinfo', artist: name, autocorrect: '0', api_key: key, format: 'json' });
+  // Last.fm décode le nom deux fois : sans double encodage, « Florence + The Machine » devient « Florence   The Machine »
+  const params = new URLSearchParams({ method: 'artist.getinfo', artist: encodeURIComponent(name), autocorrect: '0', api_key: key, format: 'json' });
   await sleep(250);
   const res = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`, { headers: { 'User-Agent': 'BARZ/1.0 (https://albannnnnnnnnn.github.io/BARZ-/)' } });
   const json = await res.json().catch(() => null);
