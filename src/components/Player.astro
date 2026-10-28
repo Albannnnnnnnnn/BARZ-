@@ -1,20 +1,17 @@
 ---
-// Lecteur intégré (Spotify, Apple Music, Deezer) : simples lecteurs officiels en iframe,
-// sans appel à leurs API. Seul l'onglet choisi est chargé.
+// Lecteur intégré (Spotify, Apple Music) : simples lecteurs officiels en iframe, sans appel à leurs API.
+// Seul l'onglet choisi est chargé. Pas de lecteur Deezer : le bouton « Écouter » (src/lib/listen.ts) y mène déjà.
 interface Props {
   title: string;
   spotifyId?: string | null;
   appleUrl?: string | null;
-  deezerUrl?: string | null;
 }
 
-const { title, spotifyId, appleUrl, deezerUrl } = Astro.props;
-const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
+const { title, spotifyId, appleUrl } = Astro.props;
 
 const players = [
   spotifyId && { id: 'spotify', label: 'Spotify', src: `https://open.spotify.com/embed/album/${spotifyId}?theme=0`, height: 352 },
   appleUrl && { id: 'apple', label: 'Apple Music', src: appleUrl.replace('://music.apple.com', '://embed.music.apple.com'), height: 450 },
-  deezerId && { id: 'deezer', label: 'Deezer', src: `https://widget.deezer.com/widget/dark/album/${deezerId}?tracklist=true`, height: 380 },
 ].filter(Boolean) as { id: string; label: string; src: string; height: number }[];
 ---
 
