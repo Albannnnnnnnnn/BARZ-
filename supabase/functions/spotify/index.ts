@@ -9,7 +9,7 @@
 //
 // Déploiement (par Alban) : supabase functions deploy spotify
 // Secret : supabase secrets set SPOTIFY_CLIENT_ID=… (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis)
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CLIENT_ID = Deno.env.get('SPOTIFY_CLIENT_ID') ?? '';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
