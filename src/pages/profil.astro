@@ -71,6 +71,17 @@ import InstallApp from '../components/InstallApp.astro';
             <ul class="friend-list" id="friend-list"></ul>
           </section>
 
+          <section class="lastfm" id="p-push" hidden aria-labelledby="push-title">
+            <div class="bz-section-head"><h2 id="push-title" class="bz-h2">Notifications</h2></div>
+            <p id="push-status">Chaque vendredi matin, une notification avec les sorties de tes artistes.</p>
+            <div class="spotify-actions">
+              <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="push-on" hidden>Activer sur cet appareil</button>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-test" hidden>Envoyer un test</button>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-off" hidden>Désactiver</button>
+            </div>
+            <p class="bz-notice" id="push-notice" hidden></p>
+          </section>
+
           <section class="lastfm" id="p-spotify" hidden aria-labelledby="spotify-title">
             <div class="bz-section-head"><h2 id="spotify-title" class="bz-h2">Spotify</h2></div>
             <p id="spotify-status">Relie ton compte Spotify pour montrer à tes amis ce que tu écoutes en ce moment.</p>
@@ -146,6 +157,7 @@ import InstallApp from '../components/InstallApp.astro';
   import { GENRE_CHIPS } from '../lib/genres';
   import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
   import { nowPlaying, nowPlayingHtml, spotifyAvailable, spotifyDisconnect, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
+  import { disablePush, enablePush, pushState, testPush } from '../scripts/push';
 
   const $ = (id: string) => document.getElementById(id)!;
   const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
@@ -292,6 +304,7 @@ import InstallApp from '../components/InstallApp.astro';
     renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
     renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
     if (isMe) renderSpotify(profile).catch((err) => console.warn('Spotify indisponible :', err));
+    if (isMe) renderPush().catch((err) => console.warn('Notifications indisponibles :', err));
     watchNowPlaying(profile, isMe, !!session);
 
     if (!wired) {
@@ -311,7 +324,64 @@ import InstallApp from '../components/InstallApp.astro';
       wireFollowButtons($('p-blend-artists'));
       wireFriendActions();
       wireSpotify();
+      wirePush();
     }
+  }
+
+  // ============================================================
+  // NOTIFICATIONS (src/scripts/push.ts)
+  // ============================================================
+  const PUSH_TEXT = {
+    'needs-install': 'Sur iPhone, les notifications marchent seulement dans l’appli installée : touche Partager dans Safari, puis « Sur l’écran d’accueil », et ouvre BARZ¡ depuis son icône.',
+    unsupported: 'Ce navigateur ne gère pas les notifications.',
+    denied: 'Les notifications sont bloquées pour BARZ¡ dans les réglages de ton navigateur.',
+    off: 'Chaque vendredi matin, une notification avec les sorties de tes artistes.',
+    on: 'Activées sur cet appareil : rendez-vous vendredi matin.',
+  } as const;
+
+  async function renderPush() {
+    const state = await pushState();
+    $('p-push').hidden = false;
+    $('push-status').textContent = PUSH_TEXT[state];
+    $('push-on').hidden = state !== 'off';
+    $('push-test').hidden = state !== 'on';
+    $('push-off').hidden = state !== 'on';
+  }
+
+  function showPush(text: string, kind: 'ok' | 'error') {
+    $('push-notice').textContent = text;
+    $('push-notice').className = `bz-notice bz-notice--${kind}`;
+    $('push-notice').hidden = false;
+  }
+
+  function wirePush() {
+    $('push-on').addEventListener('click', async () => {
+      try {
+        await enablePush();
+        await renderPush();
+        showPush('Notifications activées. Essaie « Envoyer un test ».', 'ok');
+      } catch (err) {
+        showPush(errorText(err), 'error');
+        renderPush();
+      }
+    });
+    $('push-off').addEventListener('click', async () => {
+      try {
+        await disablePush();
+        await renderPush();
+        showPush('Notifications désactivées sur cet appareil.', 'ok');
+      } catch (err) {
+        showPush(errorText(err), 'error');
+      }
+    });
+    $('push-test').addEventListener('click', async () => {
+      try {
+        const sent = await testPush();
+        showPush(sent ? 'Notification de test envoyée.' : 'Aucun appareil abonné trouvé : désactive puis réactive.', sent ? 'ok' : 'error');
+      } catch (err) {
+        showPush(errorText(err), 'error');
+      }
+    });
   }
 
   // ============================================================
@@ -668,6 +738,7 @@ import InstallApp from '../components/InstallApp.astro';
 
   .own-actions[hidden],
   .lastfm[hidden],
+  #p-push [hidden],
   #p-np[hidden],
   .share-toggle[hidden],
   .spotify-actions [hidden],

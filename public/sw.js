@@ -2,7 +2,8 @@
 // - Pages : le réseau d'abord (le site change deux fois par jour), sinon la dernière version vue, sinon la page hors ligne
 // - Fichiers de /_astro/ (noms qui changent à chaque version), icônes : gardés en cache
 // - Supabase, Spotify, Deezer… ne passent jamais par ce cache
-const VERSION = 'barz-v1';
+// - Notifications (supabase/functions/notify) : affichage, puis ouverture de la bonne page au clic
+const VERSION = 'barz-v2';
 const BASE = '/BARZ-/';
 const OFFLINE = `${BASE}hors-ligne/`;
 const PRECACHE = [OFFLINE, `${BASE}icon-192.png`, `${BASE}favicon.png`];
@@ -51,4 +52,34 @@ self.addEventListener('fetch', (event) => {
       )
     );
   }
+});
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'BARZ¡', {
+      body: data.body || '',
+      icon: `${BASE}icon-192.png`,
+      badge: `${BASE}favicon.png`,
+      tag: data.tag || 'barz',
+      data: { url: data.url || BASE },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || BASE, self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => w.url.startsWith(self.location.origin + BASE));
+      if (open) return open.navigate(target).then((w) => (w || open).focus());
+      return self.clients.openWindow(target);
+    })
+  );
 });

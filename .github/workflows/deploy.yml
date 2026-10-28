@@ -69,3 +69,21 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+  # Le vendredi matin, une fois le site reconstruit avec les sorties de la nuit :
+  # notification personnalisée aux membres abonnés (fonction Supabase supabase/functions/notify)
+  notify:
+    name: Notification du vendredi
+    needs: deploy
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Envoyer la notification (vendredi matin seulement)
+        run: |
+          if [ "$(TZ=Europe/Paris date +%u)" = "5" ] && [ "$(TZ=Europe/Paris date +%H)" -lt 12 ]; then
+            curl -sS -f -X POST "$SUPABASE_URL/functions/v1/notify" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" -H "apikey: $SUPABASE_SERVICE_KEY" \
+              -H "Content-Type: application/json" -d '{"action":"friday"}' \
+              || echo "::warning::Notification du vendredi non envoyée (fonction notify déployée ?)"
+          else
+            echo "Pas vendredi matin : rien à envoyer."
+          fi
