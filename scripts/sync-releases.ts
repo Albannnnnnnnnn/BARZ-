@@ -8,6 +8,7 @@
 //             assez écoutés (SYNC_CATALOG_MIN_FANS) + classements par genre, avec les vrais genres,
 //             le nombre de fans, le label et une pochette en grand format (sans clé d'API)
 //   Spotify : sorties des artistes suivis + nouveautés, avec le lien d'écoute et la photo d'artiste
+//             (désactivé par défaut : voir SPOTIFY_ENABLED)
 // Les doublons sont fusionnés par code-barres (UPC), à défaut par artiste + titre.
 // Si une source tombe (ex. blocage Spotify), le sync continue avec l'autre.
 //
@@ -44,6 +45,10 @@ const CATALOG_MIN_FANS = Number(process.env.SYNC_CATALOG_MIN_FANS ?? 100_000);
 const SINGLES_MIN_FANS = Number(process.env.SYNC_SINGLES_MIN_FANS ?? 500_000);
 // L'API iTunes tolère ~20 requêtes/min : on plafonne par sync (le reste passe au sync suivant)
 const APPLE_LOOKUPS_PER_RUN = Number(process.env.SYNC_APPLE_LOOKUPS ?? 60);
+// Spotify est désactivé dans la synchronisation : en mode développement, la rafale de requêtes vaut à l'appli
+// un blocage de 24 h, qui coupe aussi l'écoute en direct (même appli). Deezer couvre déjà les sorties.
+// SYNC_SPOTIFY=1 le réactive (de préférence avec une appli Spotify dédiée à la synchronisation).
+const SPOTIFY_ENABLED = process.env.SYNC_SPOTIFY === '1';
 const RESET = process.argv.includes('--reset');
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -473,7 +478,9 @@ async function main() {
 
   let spotify: Release[] = [];
   const blockedUntil = spotifyBlockedUntil();
-  if (blockedUntil) {
+  if (!SPOTIFY_ENABLED) {
+    console.log('⏭️  Spotify désactivé dans la synchronisation (SYNC_SPOTIFY=1 pour le réactiver).');
+  } else if (blockedUntil) {
     const at = new Date(blockedUntil).toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
     console.warn(`⚠️ Spotify ignoré : l'app est bloquée jusqu'à ${at} environ.`);
   } else {
