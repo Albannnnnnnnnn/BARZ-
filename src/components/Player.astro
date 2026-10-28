@@ -1,66 +1,235 @@
 ---
-// Lecteur intégré : un seul, celui de la plateforme d'écoute du membre (bouton « Écouter », src/scripts/listen.ts).
-// Simples lecteurs officiels en iframe, sans appel à leurs API ; chargé seulement une fois la plateforme connue.
-// Pas de lecteur si la plateforme n'en propose pas pour cette sortie (YouTube Music, SoundCloud, Spotify sans identifiant).
+// Lecteur BARZ¡ : les extraits de 30 secondes de chaque titre, fournis par l'API publique de Deezer.
+// Les liens des extraits expirent vite : la liste est demandée dans le navigateur (JSONP, l'API n'autorise
+// pas fetch depuis un autre site), et redemandée si un extrait a expiré. Le morceau entier : bouton « Écouter ».
 interface Props {
   title: string;
-  spotifyId?: string | null;
-  appleUrl?: string | null;
   deezerUrl?: string | null;
 }
 
-const { title, spotifyId, appleUrl, deezerUrl } = Astro.props;
+const { title, deezerUrl } = Astro.props;
 const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
-
-// Clés = noms des plateformes du bouton « Écouter » (src/lib/listen.ts)
-const embeds: Record<string, { src: string; height: number }> = {};
-if (spotifyId) embeds['Spotify'] = { src: `https://open.spotify.com/embed/album/${spotifyId}?theme=0`, height: 352 };
-if (deezerId) embeds['Deezer'] = { src: `https://widget.deezer.com/widget/auto/album/${deezerId}?tracklist=true`, height: 380 };
-if (appleUrl) embeds['Apple Music'] = { src: appleUrl.replace('://music.apple.com', '://embed.music.apple.com'), height: 450 };
 ---
 
-{Object.keys(embeds).length > 0 && (
-  <section class="player" aria-label={`Écouter ${title}`} data-player data-title={title} data-embeds={JSON.stringify(embeds)} hidden>
-    <iframe
-      class="frame"
-      loading="lazy"
-      allow="autoplay *; encrypted-media *; clipboard-write; fullscreen *; picture-in-picture"
-      sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"
-    ></iframe>
+{deezerId && (
+  <section class="previews" data-previews data-album={deezerId} aria-labelledby="previews-title" hidden>
+    <div class="bz-section-head">
+      <h2 id="previews-title" class="bz-h2">Les <em>extraits</em></h2>
+      <span class="hint">30 secondes par titre</span>
+    </div>
+    <ol class="tracks" aria-label={`Extraits de ${title}`}></ol>
   </section>
 )}
 
 <script>
-  import { LISTEN_EVENT, listenPlatform } from '../scripts/listen';
+  import { escapeHtml } from '../scripts/social';
 
-  function show() {
-    document.querySelectorAll<HTMLElement>('[data-player]').forEach((player) => {
-      const embeds = JSON.parse(player.dataset.embeds ?? '{}') as Record<string, { src: string; height: number }>;
-      const embed = embeds[listenPlatform()];
-      const frame = player.querySelector('iframe')!;
-      player.hidden = !embed;
-      if (!embed || frame.getAttribute('src') === embed.src) return;
-      frame.src = embed.src;
-      frame.height = String(embed.height);
-      frame.title = `Lecteur ${listenPlatform()} : ${player.dataset.title}`;
+  type Track = { title: string; duration: number; preview: string; readable: boolean };
+
+  // JSONP : <script> + fonction de rappel globale
+  function jsonp<T>(url: string): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const name = `barzDeezer${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+      const script = document.createElement('script');
+      const done = () => {
+        clearTimeout(timer);
+        delete (window as any)[name];
+        script.remove();
+      };
+      const timer = setTimeout(() => (done(), reject(new Error('Deezer ne répond pas'))), 8000);
+      (window as any)[name] = (data: T) => (done(), resolve(data));
+      script.onerror = () => (done(), reject(new Error('Deezer injoignable')));
+      script.src = `${url}${url.includes('?') ? '&' : '?'}output=jsonp&callback=${name}`;
+      document.head.append(script);
     });
   }
 
-  show();
-  document.addEventListener(LISTEN_EVENT, show);
+  const duration = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  document.querySelectorAll<HTMLElement>('[data-previews]').forEach(async (section) => {
+    const list = section.querySelector('ol')!;
+    const audio = new Audio();
+    let tracks: Track[] = [];
+    let current = -1;
+    let retried = false;
+
+    async function load() {
+      const res = await jsonp<{ data?: Track[] }>(`https://api.deezer.com/album/${section.dataset.album}/tracks?limit=100`);
+      tracks = res.data ?? [];
+    }
+
+    function render() {
+      list.innerHTML = tracks
+        .map((t, i) => {
+          const playable = t.readable && !!t.preview;
+          return `<li class="track" data-i="${i}">
+            <button type="button" class="track-button" ${playable ? '' : 'disabled'} aria-label="${escapeHtml(`Écouter l’extrait : ${t.title}`)}">
+              <span class="track-num">${i + 1}</span>
+              <span class="track-icon" aria-hidden="true">▶</span>
+              <span class="track-title">${escapeHtml(t.title)}</span>
+              <span class="track-time">${playable ? duration(t.duration) : 'Pas d’extrait'}</span>
+            </button>
+            <span class="track-bar" aria-hidden="true"><i></i></span>
+          </li>`;
+        })
+        .join('');
+    }
+
+    function paint() {
+      list.querySelectorAll<HTMLElement>('.track').forEach((row) => {
+        const on = Number(row.dataset.i) === current;
+        const playing = on && !audio.paused;
+        row.classList.toggle('is-current', on);
+        row.classList.toggle('is-playing', playing);
+        row.querySelector('.track-icon')!.textContent = playing ? '❚❚' : '▶';
+        if (!on) row.querySelector<HTMLElement>('.track-bar i')!.style.width = '0';
+      });
+    }
+
+    function play(i: number) {
+      if (i === current) {
+        audio.paused ? audio.play().catch(() => {}) : audio.pause();
+        return;
+      }
+      current = i;
+      audio.src = tracks[i].preview;
+      audio.play().catch(() => {});
+      paint();
+    }
+
+    function next() {
+      const n = tracks.findIndex((t, i) => i > current && t.readable && t.preview);
+      if (n >= 0) play(n);
+      else paint();
+    }
+
+    list.addEventListener('click', (event) => {
+      const row = (event.target as HTMLElement).closest<HTMLElement>('.track');
+      if (row && !row.querySelector('button')!.disabled) play(Number(row.dataset.i));
+    });
+    audio.addEventListener('play', paint);
+    audio.addEventListener('pause', paint);
+    audio.addEventListener('ended', next);
+    audio.addEventListener('timeupdate', () => {
+      const bar = list.querySelector<HTMLElement>(`.track[data-i="${current}"] .track-bar i`);
+      if (bar && audio.duration) bar.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    });
+    // Lien d'extrait expiré (page ouverte depuis longtemps) : nouvelle liste, puis on relance le titre
+    audio.addEventListener('error', async () => {
+      if (current < 0 || retried) return;
+      retried = true;
+      const i = current;
+      current = -1;
+      await load().catch(() => {});
+      if (tracks[i]?.preview) play(i);
+      retried = false;
+    });
+
+    try {
+      await load();
+      if (!tracks.some((t) => t.readable && t.preview)) return;
+      render();
+      section.hidden = false;
+    } catch {
+      // Deezer indisponible : pas d'extraits, le bouton « Écouter » reste
+    }
+  });
 </script>
 
 <style>
-  .player {
+  .previews {
     margin-top: 64px;
+    max-width: 760px;
   }
 
-  .frame {
-    display: block;
+  .hint {
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .tracks {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .previews :global(.track) {
+    position: relative;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .previews :global(.track-button) {
+    display: grid;
+    grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    max-width: 760px;
+    padding: 14px 8px;
     border: 0;
-    border-radius: 14px;
+    border-radius: 10px;
+    background: transparent;
+    font: 500 16px/1.3 var(--font-sans);
+    color: var(--color-text);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .previews :global(.track-button:hover:not(:disabled)),
+  .previews :global(.track-button:focus-visible) {
     background: var(--color-bg-elevated);
+  }
+
+  .previews :global(.track-button:disabled) {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .previews :global(.track-num),
+  .previews :global(.track-time) {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .previews :global(.track-icon) {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-size: 11px;
+  }
+
+  .previews :global(.track-title) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .previews :global(.is-current .track-title) {
+    font-weight: 700;
+  }
+
+  .previews :global(.is-playing .track-icon) {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .previews :global(.track-bar) {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+  }
+
+  .previews :global(.track-bar i) {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--color-accent);
+    transition: width 0.25s linear;
   }
 </style>

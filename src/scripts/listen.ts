@@ -24,18 +24,9 @@ function write(storage: Storage, key: string, value: string) {
   }
 }
 
-// Prévient les lecteurs intégrés (src/components/Player.astro) quand la plateforme change
-export const LISTEN_EVENT = 'barz-listen-platform';
-
-// Plateforme du membre, sinon celle du bouton par défaut de la page (lien exact connu, Deezer le plus souvent)
-export function listenPlatform(): string {
-  return read(localStorage, KEY) ?? document.querySelector<HTMLElement>('[data-listen]')?.dataset.default ?? 'Deezer';
-}
-
 function setPlatform(platform: string) {
   write(localStorage, KEY, platform);
   applyListenPreference();
-  document.dispatchEvent(new Event(LISTEN_EVENT));
 }
 
 export function applyListenPreference(root: ParentNode = document) {
