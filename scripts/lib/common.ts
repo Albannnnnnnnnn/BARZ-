@@ -163,6 +163,32 @@ export async function saveArtists(inputs: ArtistInput[], options: { replaceGenre
     });
   }
 
+  // Un même artiste Deezer peut arriver sous un nom un peu différent de celui du catalogue
+  // (casse, accents, variante) : on le rattache à la ligne existante plutôt que d'en créer une autre,
+  // car deezer_id est unique en base
+  const aliases = new Map<string, string>(); // slug reçu → slug existant
+  const deezerIds = [...new Set([...bySlug.values()].map((a) => a.deezer_id).filter((id): id is number => !!id))];
+  for (const part of chunk(deezerIds, 200)) {
+    const known = must(await supabase.from('artists').select('slug, name, deezer_id').in('deezer_id', part), 'Lecture artists par Deezer') as any[];
+    const slugOf = new Map(known.map((k) => [k.deezer_id as number, k as { slug: string; name: string }]));
+    for (const a of [...bySlug.values()]) {
+      const k = a.deezer_id ? slugOf.get(a.deezer_id) : undefined;
+      if (!k || k.slug === a.slug) continue;
+      aliases.set(a.slug, k.slug);
+      bySlug.delete(a.slug);
+      const prev = bySlug.get(k.slug);
+      bySlug.set(k.slug, {
+        ...a,
+        slug: k.slug,
+        name: k.name,
+        spotify_id: prev?.spotify_id ?? a.spotify_id ?? null,
+        image_url: prev?.image_url ?? a.image_url ?? null,
+        popularity: Math.max(prev?.popularity ?? 0, a.popularity ?? 0),
+        genres: [...new Set([...(prev?.genres ?? []), ...(a.genres ?? [])])],
+      });
+    }
+  }
+
   const ids = new Map<string, string>();
   for (const part of chunk([...bySlug.values()], 200)) {
     const existing = must(
@@ -193,5 +219,6 @@ export async function saveArtists(inputs: ArtistInput[], options: { replaceGenre
     const saved = must(await supabase.from('artists').upsert(rows, { onConflict: 'slug' }).select('id, slug'), 'Enregistrement artists');
     for (const s of saved ?? []) ids.set(s.slug, s.id);
   }
+  for (const [from, to] of aliases) if (ids.has(to)) ids.set(from, ids.get(to)!);
   return ids;
 }

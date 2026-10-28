@@ -4,7 +4,8 @@
 //   npm run sync:releases -- --reset   → vide d'abord les tables releases et artists
 //
 // Chaque source apporte ce qu'elle fait de mieux :
-//   Deezer  : sorties des artistes suivis + classements par genre, avec les vrais genres,
+//   Deezer  : sorties de la watchlist, des artistes suivis par les membres, des artistes du catalogue
+//             assez écoutés (SYNC_CATALOG_MIN_FANS) + classements par genre, avec les vrais genres,
 //             le nombre de fans, le label et une pochette en grand format (sans clé d'API)
 //   Spotify : sorties des artistes suivis + nouveautés, avec le lien d'écoute et la photo d'artiste
 // Les doublons sont fusionnés par code-barres (UPC), à défaut par artiste + titre.
@@ -36,6 +37,11 @@ const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 120);
 const UPCOMING_MIN_FANS = Number(process.env.SYNC_UPCOMING_MIN_FANS ?? 50_000);
 const MB_USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0 (https://albannnnnnnnnn.github.io/BARZ-/)';
 const DEEZER_CHART_SIZE = Number(process.env.SYNC_DEEZER_CHART_SIZE ?? 40);
+// Artistes du catalogue dont on suit aussi les sorties : au moins ce nombre de fans Deezer (environ 2 300 à 100 000)
+const CATALOG_MIN_FANS = Number(process.env.SYNC_CATALOG_MIN_FANS ?? 100_000);
+// Singles : toujours pour la watchlist et les artistes suivis par les membres ;
+// pour le reste du catalogue, seulement au-delà de ce nombre de fans (environ 900 à 500 000), pour ne pas noyer la page
+const SINGLES_MIN_FANS = Number(process.env.SYNC_SINGLES_MIN_FANS ?? 500_000);
 // L'API iTunes tolère ~20 requêtes/min : on plafonne par sync (le reste passe au sync suivant)
 const APPLE_LOOKUPS_PER_RUN = Number(process.env.SYNC_APPLE_LOOKUPS ?? 60);
 const RESET = process.argv.includes('--reset');
@@ -72,16 +78,17 @@ function nameKey(artist: string, title: string): string {
 // ============================================================
 // DEEZER
 // ============================================================
-function deezerType(album: any): string | null {
+function deezerType(album: any, allowSingle = false): string | null {
   if (album.record_type === 'album') return 'album';
   if (album.record_type === 'ep') return 'ep';
   if (album.record_type === 'compile') return 'compilation';
+  if (album.record_type === 'single' && allowSingle) return 'single';
   return null;
 }
 
-async function deezerAlbumDetail(id: number, watched: boolean, from: string, to: string): Promise<Release | null> {
+async function deezerAlbumDetail(id: number, watched: boolean, from: string, to: string, allowSingle = false): Promise<Release | null> {
   const a = await deezerFetch(`/album/${id}`);
-  const type = a && deezerType(a);
+  const type = a && deezerType(a, allowSingle);
   if (!a || !type || !a.release_date || a.release_date < from || a.release_date > to || JUNK_TITLE.test(a.title)) return null;
   const genres = new Set<string>();
   for (const g of a.genres?.data || []) {
@@ -106,10 +113,35 @@ async function deezerAlbumDetail(id: number, watched: boolean, from: string, to:
   };
 }
 
-async function collectDeezer(watched: [string, string[]][], followedIds: number[], from: string, to: string): Promise<Release[]> {
+async function collectDeezer(
+  watched: [string, string[]][],
+  followedIds: number[],
+  catalog: Map<number, number>, // id Deezer → fans
+  from: string,
+  to: string
+): Promise<Release[]> {
   const out: Release[] = [];
   const seen = new Set<number>();
   const artistFans = new Map<string, number>();
+  const doneArtists = new Set<number>();
+
+  // Sorties d'un artiste dans la fenêtre de dates
+  async function artistReleases(id: number, isWatched: boolean, allowSingle: boolean, genre?: string) {
+    if (doneArtists.has(id)) return;
+    doneArtists.add(id);
+    const albums = await deezerFetch(`/artist/${id}/albums?limit=30`);
+    for (const album of albums?.data || []) {
+      if (seen.has(album.id) || !album.release_date || album.release_date < from || album.release_date > to) continue;
+      // La liste indique déjà le type : inutile de demander le détail d'un single qu'on ne garde pas
+      if (!deezerType(album, allowSingle)) continue;
+      seen.add(album.id);
+      const release = await deezerAlbumDetail(album.id, isWatched, from, to, allowSingle);
+      if (release) {
+        if (genre) release.genres.add(genre);
+        out.push(release);
+      }
+    }
+  }
 
   console.log('⭐ Deezer : artistes suivis...');
   const notFound: string[] = [];
@@ -121,16 +153,7 @@ async function collectDeezer(watched: [string, string[]][], followedIds: number[
         continue;
       }
       artistFans.set(normalizeName(artist.name), artist.nb_fan);
-      const albums = await deezerFetch(`/artist/${artist.id}/albums?limit=30`);
-      for (const album of albums?.data || []) {
-        if (seen.has(album.id) || !album.release_date || album.release_date < from || album.release_date > to) continue;
-        seen.add(album.id);
-        const release = await deezerAlbumDetail(album.id, true, from, to);
-        if (release) {
-          release.genres.add(genre);
-          out.push(release);
-        }
-      }
+      await artistReleases(artist.id, true, true, genre);
     }
   }
   console.log(`   ${out.length} sorties`);
@@ -138,15 +161,13 @@ async function collectDeezer(watched: [string, string[]][], followedIds: number[
 
   // Artistes suivis par les membres : leurs sorties entrent dans BARZ¡ et sont marquées "suivies"
   if (followedIds.length) console.log(`👥 Deezer : ${followedIds.length} artistes suivis par les membres...`);
-  for (const id of followedIds) {
-    const albums = await deezerFetch(`/artist/${id}/albums?limit=30`);
-    for (const album of albums?.data || []) {
-      if (seen.has(album.id) || !album.release_date || album.release_date < from || album.release_date > to) continue;
-      seen.add(album.id);
-      const release = await deezerAlbumDetail(album.id, true, from, to);
-      if (release) out.push(release);
-    }
-  }
+  for (const id of followedIds) await artistReleases(id, true, true);
+
+  // Artistes du catalogue assez écoutés : leurs sorties notables, même si personne ne les suit encore
+  const before = out.length;
+  console.log(`📚 Deezer : ${catalog.size} artistes du catalogue (≥ ${CATALOG_MIN_FANS.toLocaleString('fr-FR')} fans)...`);
+  for (const [id, fans] of catalog) await artistReleases(id, false, fans >= SINGLES_MIN_FANS);
+  console.log(`   ${out.length - before} sorties en plus`);
 
   console.log('📈 Deezer : classements par genre...');
   const charts = [{ id: 0, name: 'Tous' }, ...(await deezerAppGenres())];
@@ -160,7 +181,7 @@ async function collectDeezer(watched: [string, string[]][], followedIds: number[
     }
   }
 
-  for (const r of out) r.artistFans = artistFans.get(normalizeName(r.artistName)) ?? null;
+  for (const r of out) r.artistFans = artistFans.get(normalizeName(r.artistName)) ?? (r.artistDeezerId ? catalog.get(r.artistDeezerId) : null) ?? null;
   console.log(`   ${out.length} sorties au total (${deezerStats.calls} appels Deezer)`);
   return out;
 }
@@ -235,11 +256,12 @@ async function spotifyFetch(endpoint: string): Promise<any | null> {
   throw new Error(`Spotify : abandon après plusieurs essais sur ${endpoint}`);
 }
 
-function spotifyType(album: any): string | null {
+function spotifyType(album: any, allowSingle = false): string | null {
   if (album.album_type === 'album') return 'album';
   if (album.album_type === 'compilation') return 'compilation';
   if (album.album_type === 'single' && album.total_tracks >= 4) return 'ep';
-  return null; // les singles ne sont pas des "sorties" au sens de l'app
+  if (album.album_type === 'single' && allowSingle) return 'single';
+  return null; // singles : seulement pour les artistes de la watchlist (voir collectSpotify)
 }
 
 function spotifyInWindow(album: any, from: string, to: string): boolean {
@@ -260,7 +282,7 @@ async function collectSpotify(watched: [string, string[]][], from: string, to: s
       for (const group of ['album', 'single']) {
         const list = await spotifyFetch(`/artists/${artist.id}/albums?include_groups=${group}&limit=10&market=FR`);
         for (const album of list?.items || []) {
-          if (spotifyInWindow(album, from, to) && spotifyType(album) && !JUNK_TITLE.test(album.name)) {
+          if (spotifyInWindow(album, from, to) && spotifyType(album, true) && !JUNK_TITLE.test(album.name)) {
             albums.set(album.id, { album, genre, watched: true });
           }
         }
@@ -289,7 +311,7 @@ async function collectSpotify(watched: [string, string[]][], from: string, to: s
       title: album.name,
       artistName: main.name,
       date: album.release_date,
-      type: spotifyType(album)!,
+      type: spotifyType(album, isWatched)!,
       cover: album.images?.[0]?.url ?? null,
       tracks: album.total_tracks ?? 0,
       genres: new Set(genre ? [genre] : []),
@@ -426,10 +448,25 @@ async function main() {
     ? []
     : [...new Set((followsRes.data as any[]).map((f) => f.artist?.deezer_id).filter((id): id is number => !!id))];
 
+  // Artistes du catalogue au-dessus du seuil de fans (par pages de 1 000)
+  const catalog = new Map<number, number>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase
+      .from('artists')
+      .select('deezer_id, popularity')
+      .not('deezer_id', 'is', null)
+      .gte('popularity', CATALOG_MIN_FANS)
+      .order('popularity', { ascending: false })
+      .range(offset, offset + 999);
+    if (error || !data?.length) break;
+    for (const a of data as { deezer_id: number; popularity: number }[]) catalog.set(a.deezer_id, a.popularity);
+    if (data.length < 1000) break;
+  }
+
   // Chaque source peut échouer sans emporter l'autre
   let deezer: Release[] = [];
   try {
-    deezer = await collectDeezer(watched, followedIds, from, to);
+    deezer = await collectDeezer(watched, followedIds, catalog, from, to);
   } catch (err) {
     console.warn(`⚠️ Deezer indisponible : ${err instanceof Error ? err.message : err}`);
   }
