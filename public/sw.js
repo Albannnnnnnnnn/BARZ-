@@ -28,7 +28,8 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      // no-cache : revalide auprès de GitHub Pages (sinon son cache de 10 min ressert l'ancienne version)
+      fetch(request, { cache: 'no-cache' })
         .then((response) => {
           const copy = response.clone();
           if (response.ok) caches.open(VERSION).then((cache) => cache.put(request, copy));

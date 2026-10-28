@@ -87,8 +87,9 @@ const currentPath = Astro.url.pathname;
     </div>
     <div class="shell-bottom">
       <BottomNav currentPath={currentPath} />
-      <UpdateBanner />
     </div>
+    <!-- Hors de .shell-bottom, masquée sur ordinateur -->
+    <UpdateBanner />
   </body>
 </html>
 
