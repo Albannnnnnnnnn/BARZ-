@@ -46,8 +46,10 @@ import { GENRE_CHIPS } from '../lib/genres';
   import { audience } from '../lib/audience';
 
   const PAGE = 48;
-  // « Les moins connus » : sous ce seuil, Last.fm a sans doute trouvé un homonyme (le catalogue part de 100 k fans Deezer)
+  // « Les moins connus » : sous MIN_LISTENERS auditeurs, surtout de faux artistes de playlists, sauf ceux que
+  // Deezer confirme (artistes réels peu présents sur Last.fm, souvent africains ou francophones)
   const MIN_LISTENERS = 1000;
+  const MIN_DEEZER_FANS = 10_000;
   const grid = document.getElementById('artist-grid')!;
   const empty = document.getElementById('artist-empty')!;
   const more = document.getElementById('artist-more') as HTMLButtonElement;
@@ -74,7 +76,7 @@ import { GENRE_CHIPS } from '../lib/genres';
       .order('lastfm_listeners', { ascending, nullsFirst: false })
       .order('popularity', { ascending: false })
       .range(offset, offset + PAGE - 1);
-    if (ascending) q = q.gte('lastfm_listeners', MIN_LISTENERS);
+    if (ascending) q = q.or(`lastfm_listeners.gte.${MIN_LISTENERS},popularity.gte.${MIN_DEEZER_FANS}`);
     if (query) q = q.ilike('name', `%${query.replace(/[%_]/g, '')}%`);
     const chip = GENRE_CHIPS.find((c) => c.id === genre);
     if (chip) q = q.overlaps('genres', chip.genres);
