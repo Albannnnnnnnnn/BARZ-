@@ -9,6 +9,7 @@ import Player from '../../components/Player.astro';
 import { getSupabaseServerSafe } from '../../lib/supabase';
 import { GENRE_CHIPS, fetchReleasesBetween, type ReleaseRow } from '../../lib/releases';
 import { getReleaseTypeLabel, releaseSubtitle } from '../../lib/utils';
+import { listenMenuHtml } from '../../lib/listen';
 
 export async function getStaticPaths() {
   const all = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1900-01-01'), new Date('2100-01-01'));
@@ -86,15 +87,7 @@ const jsonLd = {
           )}
         </dl>
         <div class="actions">
-          {release.spotify_url && (
-            <a class="bz-btn bz-btn--lime" href={release.spotify_url} target="_blank" rel="noopener">Écouter sur Spotify ↗</a>
-          )}
-          {release.deezer_url && (
-            <a class:list={['bz-btn', release.spotify_url ? 'bz-btn--outline' : 'bz-btn--lime']} href={release.deezer_url} target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
-          )}
-          {release.apple_music_url && (
-            <a class="bz-btn bz-btn--outline" href={release.apple_music_url} target="_blank" rel="noopener">Apple Music ↗</a>
-          )}
+          <Fragment set:html={listenMenuHtml({ artist: artistName, title: release.title, deezerUrl: release.deezer_url, spotifyUrl: release.spotify_url, appleUrl: release.apple_music_url })} />
         </div>
         <div class="shelves" data-release-id={release.id}>
           <button type="button" class="bz-chip" data-shelf="spin_list" aria-pressed="false">+ Spin list</button>

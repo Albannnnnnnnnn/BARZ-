@@ -59,6 +59,13 @@ const currentPath = Astro.url.pathname;
     <meta name="apple-mobile-web-app-title" content="BARZ¡" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script is:inline>
+      // Menus « Écouter » (src/lib/listen.ts) : fermés au clic à côté ou avec Échap
+      addEventListener('click', (e) => {
+        document.querySelectorAll('details.bz-listen-more[open]').forEach((d) => d.contains(e.target) || d.removeAttribute('open'));
+      });
+      addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('details.bz-listen-more[open]').forEach((d) => d.removeAttribute('open'));
+      });
       // Service worker (public/sw.js) : appli installable, pages déjà vues disponibles hors ligne
       if ('serviceWorker' in navigator) {
         addEventListener('load', () => navigator.serviceWorker.register('/BARZ-/sw.js', { scope: '/BARZ-/' }).catch(() => {}));
@@ -90,6 +97,9 @@ const currentPath = Astro.url.pathname;
     </div>
     <!-- Hors de .shell-bottom, masquée sur ordinateur -->
     <UpdateBanner />
+    <script>
+      import '../scripts/listen';
+    </script>
   </body>
 </html>
 

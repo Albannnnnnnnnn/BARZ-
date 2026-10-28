@@ -33,6 +33,8 @@ import Layout from '../layouts/Layout.astro';
 
 <script>
   import { formatAudience } from '../lib/audience';
+  import { listenMenuHtml } from '../lib/listen';
+  import { initListen } from '../scripts/listen';
   import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
 
@@ -68,7 +70,8 @@ import Layout from '../layouts/Layout.astro';
       .filter(Boolean)
       .join(' · ');
     $('a-actions').innerHTML = `<button type="button" class="bz-follow big${isFollowing ? ' is-on' : ''}" data-follow="${escapeHtml(a.id)}" aria-pressed="${isFollowing}">${isFollowing ? 'Suivi' : 'Suivre'}</button>
-      ${a.deezer_id ? `<a class="bz-btn bz-btn--outline" href="https://www.deezer.com/artist/${a.deezer_id}" target="_blank" rel="noopener">Écouter sur Deezer ↗</a>` : ''}`;
+      ${listenMenuHtml({ artist: a.name, deezerUrl: a.deezer_id ? `https://www.deezer.com/artist/${a.deezer_id}` : null })}`;
+    initListen();
     $('artist-hero').hidden = false;
 
     const rel = (releases.data ?? []) as any[];
