@@ -32,8 +32,8 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-  import { compact, formatAudience } from '../lib/audience';
-  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, escapeHtml, formatFans, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { formatAudience } from '../lib/audience';
+  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -64,7 +64,7 @@ import Layout from '../layouts/Layout.astro';
     $('a-name').textContent = a.name;
     $('a-genres').textContent = GENRE_CHIPS.filter((c) => c.genres.some((g) => a.genres?.includes(g))).map((c) => c.label).join(' · ') || 'Artiste';
     const nbFollowers = followers.count ?? 0;
-    $('a-meta').textContent = [formatAudience(a), a.lastfm_listeners ? `${compact(a.lastfm_listeners)} auditeurs sur Last.fm` : '', formatFans(a.popularity) && `${formatFans(a.popularity)} sur Deezer`, nbFollowers ? `${nbFollowers} membre${nbFollowers > 1 ? 's' : ''} le suive${nbFollowers > 1 ? 'nt' : ''} sur BARZ¡` : '']
+    $('a-meta').textContent = [formatAudience(a), nbFollowers ? `${nbFollowers} membre${nbFollowers > 1 ? 's' : ''} le suive${nbFollowers > 1 ? 'nt' : ''} sur BARZ¡` : '']
       .filter(Boolean)
       .join(' · ');
     $('a-actions').innerHTML = `<button type="button" class="bz-follow big${isFollowing ? ' is-on' : ''}" data-follow="${escapeHtml(a.id)}" aria-pressed="${isFollowing}">${isFollowing ? 'Suivi' : 'Suivre'}</button>
