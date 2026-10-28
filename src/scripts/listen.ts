@@ -24,6 +24,20 @@ function write(storage: Storage, key: string, value: string) {
   }
 }
 
+// Prévient les lecteurs intégrés (src/components/Player.astro) quand la plateforme change
+export const LISTEN_EVENT = 'barz-listen-platform';
+
+// Plateforme du membre, sinon celle du bouton par défaut de la page (lien exact connu, Deezer le plus souvent)
+export function listenPlatform(): string {
+  return read(localStorage, KEY) ?? document.querySelector<HTMLElement>('[data-listen]')?.dataset.default ?? 'Deezer';
+}
+
+function setPlatform(platform: string) {
+  write(localStorage, KEY, platform);
+  applyListenPreference();
+  document.dispatchEvent(new Event(LISTEN_EVENT));
+}
+
 export function applyListenPreference(root: ParentNode = document) {
   const platform = read(localStorage, KEY);
   if (!platform) return;
@@ -41,19 +55,15 @@ async function detectSpotify() {
   if (!(await getSession())) return;
   write(sessionStorage, CHECKED, '1');
   const status = await spotifyStatus().catch(() => null);
-  if (status?.connected) {
-    write(localStorage, KEY, 'Spotify');
-    applyListenPreference();
-  }
+  if (status?.connected) setPlatform('Spotify');
 }
 
 // Choisir une plateforme dans le menu la retient pour la suite
 document.addEventListener('click', (event) => {
   const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('[data-listen] [data-platform]');
   if (!link?.dataset.platform) return;
-  write(localStorage, KEY, link.dataset.platform);
   link.closest('details')?.removeAttribute('open');
-  applyListenPreference();
+  setPlatform(link.dataset.platform);
 });
 
 // Place le menu sous la flèche (au-dessus s'il manque de place) et le fait suivre au défilement

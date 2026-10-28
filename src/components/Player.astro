@@ -1,34 +1,28 @@
 ---
-// Lecteur intégré (Spotify, Apple Music) : simples lecteurs officiels en iframe, sans appel à leurs API.
-// Seul l'onglet choisi est chargé. Pas de lecteur Deezer : le bouton « Écouter » (src/lib/listen.ts) y mène déjà.
+// Lecteur intégré : un seul, celui de la plateforme d'écoute du membre (bouton « Écouter », src/scripts/listen.ts).
+// Simples lecteurs officiels en iframe, sans appel à leurs API ; chargé seulement une fois la plateforme connue.
+// Pas de lecteur si la plateforme n'en propose pas pour cette sortie (YouTube Music, SoundCloud, Spotify sans identifiant).
 interface Props {
   title: string;
   spotifyId?: string | null;
   appleUrl?: string | null;
+  deezerUrl?: string | null;
 }
 
-const { title, spotifyId, appleUrl } = Astro.props;
+const { title, spotifyId, appleUrl, deezerUrl } = Astro.props;
+const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
 
-const players = [
-  spotifyId && { id: 'spotify', label: 'Spotify', src: `https://open.spotify.com/embed/album/${spotifyId}?theme=0`, height: 352 },
-  appleUrl && { id: 'apple', label: 'Apple Music', src: appleUrl.replace('://music.apple.com', '://embed.music.apple.com'), height: 450 },
-].filter(Boolean) as { id: string; label: string; src: string; height: number }[];
+// Clés = noms des plateformes du bouton « Écouter » (src/lib/listen.ts)
+const embeds: Record<string, { src: string; height: number }> = {};
+if (spotifyId) embeds['Spotify'] = { src: `https://open.spotify.com/embed/album/${spotifyId}?theme=0`, height: 352 };
+if (deezerId) embeds['Deezer'] = { src: `https://widget.deezer.com/widget/auto/album/${deezerId}?tracklist=true`, height: 380 };
+if (appleUrl) embeds['Apple Music'] = { src: appleUrl.replace('://music.apple.com', '://embed.music.apple.com'), height: 450 };
 ---
 
-{players.length > 0 && (
-  <section class="player" aria-label={`Écouter ${title}`}>
-    <div class="tabs" role="tablist">
-      {players.map((p, i) => (
-        <button type="button" class="bz-chip" class:list={{ 'is-active': i === 0 }} role="tab" aria-selected={i === 0 ? 'true' : 'false'} data-src={p.src} data-height={p.height}>
-          {p.label}
-        </button>
-      ))}
-    </div>
+{Object.keys(embeds).length > 0 && (
+  <section class="player" aria-label={`Écouter ${title}`} data-player data-title={title} data-embeds={JSON.stringify(embeds)} hidden>
     <iframe
       class="frame"
-      src={players[0].src}
-      height={players[0].height}
-      title={`Lecteur ${players[0].label} : ${title}`}
       loading="lazy"
       allow="autoplay *; encrypted-media *; clipboard-write; fullscreen *; picture-in-picture"
       sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"
@@ -37,32 +31,28 @@ const players = [
 )}
 
 <script>
-  document.querySelectorAll<HTMLElement>('.player').forEach((player) => {
-    const frame = player.querySelector('iframe')!;
-    player.querySelector('[role="tablist"]')!.addEventListener('click', (event) => {
-      const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-src]');
-      if (!tab || tab.classList.contains('is-active')) return;
-      player.querySelectorAll('[data-src]').forEach((t) => {
-        t.classList.toggle('is-active', t === tab);
-        t.setAttribute('aria-selected', String(t === tab));
-      });
-      frame.src = tab.dataset.src!;
-      frame.height = tab.dataset.height!;
-      frame.title = `Lecteur ${tab.textContent?.trim()}`;
+  import { LISTEN_EVENT, listenPlatform } from '../scripts/listen';
+
+  function show() {
+    document.querySelectorAll<HTMLElement>('[data-player]').forEach((player) => {
+      const embeds = JSON.parse(player.dataset.embeds ?? '{}') as Record<string, { src: string; height: number }>;
+      const embed = embeds[listenPlatform()];
+      const frame = player.querySelector('iframe')!;
+      player.hidden = !embed;
+      if (!embed || frame.getAttribute('src') === embed.src) return;
+      frame.src = embed.src;
+      frame.height = String(embed.height);
+      frame.title = `Lecteur ${listenPlatform()} : ${player.dataset.title}`;
     });
-  });
+  }
+
+  show();
+  document.addEventListener(LISTEN_EVENT, show);
 </script>
 
 <style>
   .player {
     margin-top: 64px;
-  }
-
-  .tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
   }
 
   .frame {

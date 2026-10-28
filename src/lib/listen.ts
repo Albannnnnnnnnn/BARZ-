@@ -38,7 +38,7 @@ export function listenMenuHtml(t: ListenTarget): string {
   const items = links
     .map((l) => `<li><a href="${escape(l.url)}" target="_blank" rel="noopener" data-platform="${escape(l.name)}">${escape(l.name)} <span aria-hidden="true">↗</span></a></li>`)
     .join('');
-  return `<div class="bz-listen" data-listen>
+  return `<div class="bz-listen" data-listen data-default="${escape(main.name)}">
     <a class="bz-btn bz-btn--lime bz-listen-main" href="${escape(main.url)}" target="_blank" rel="noopener">Écouter sur <b>${escape(main.name)}</b> ↗</a>
     <details class="bz-listen-more"><summary class="bz-btn bz-btn--lime" aria-label="Choisir une autre plateforme"><span aria-hidden="true">▾</span></summary><ul class="bz-listen-menu">${items}</ul></details>
   </div>`;
