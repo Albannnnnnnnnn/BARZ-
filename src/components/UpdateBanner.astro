@@ -1,6 +1,6 @@
 ---
 // Bandeau « Nouvelle version » : la page compare sa version à /version.json (au retour sur l'onglet
-// et toutes les 10 minutes) et propose de recharger quand du nouveau code a été mis en ligne.
+// ou la fenêtre, et toutes les 2 minutes) et propose de recharger quand du nouveau code a été mis en ligne.
 import { BUILD_ID } from '../lib/build-id';
 ---
 
@@ -32,7 +32,9 @@ import { BUILD_ID } from '../lib/build-id';
     location.reload();
   });
   document.addEventListener('visibilitychange', check);
-  setInterval(check, 10 * 60_000);
+  // L'appli installée reste souvent visible : le focus de la fenêtre compte aussi
+  window.addEventListener('focus', check);
+  setInterval(check, 2 * 60_000);
   setTimeout(check, 5_000);
 </script>
 
