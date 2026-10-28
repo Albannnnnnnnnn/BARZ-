@@ -2,7 +2,9 @@ name: Sync Releases
 
 on:
   schedule:
-    # Tous les jours à 6h UTC (7h/8h en France) : les sorties de minuit
+    # Tous les jours à 23h15 UTC (0h15 en hiver, 1h15 en été) : les sorties de minuit, dès leur mise en ligne
+    - cron: '15 23 * * *'
+    # Tous les jours à 6h UTC (7h/8h en France) : les sorties de minuit que Deezer a ajoutées en retard
     - cron: '0 6 * * *'
     # Tous les jours à 18h UTC (19h/20h en France) : les sorties surprises de la journée
     - cron: '0 18 * * *'
