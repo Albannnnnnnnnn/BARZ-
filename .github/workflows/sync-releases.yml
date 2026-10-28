@@ -16,13 +16,14 @@ jobs:
   sync:
     name: Sync releases (Deezer + Spotify)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
       SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-      # Appli Spotify dédiée à la synchro (le blocage éventuel ne touche pas l'écoute en direct)
+      # Appli Spotify dédiée à la synchro : coupée (bloquée 13 h dès le premier passage le 28/10/2026)
+      SYNC_SPOTIFY: '0'
       SPOTIFY_SYNC_CLIENT_ID: ${{ secrets.SPOTIFY_SYNC_CLIENT_ID }}
       SPOTIFY_SYNC_CLIENT_SECRET: ${{ secrets.SPOTIFY_SYNC_CLIENT_SECRET }}
       # Contact demandé par MusicBrainz (annonces de sorties à venir)

@@ -5,7 +5,7 @@
 //
 // Chaque source apporte ce qu'elle fait de mieux :
 //   Deezer  : sorties de la watchlist, des artistes suivis par les membres, des artistes du catalogue
-//             assez écoutés (SYNC_CATALOG_MIN_FANS) + classements par genre, avec les vrais genres,
+//             assez écoutés (SYNC_CATALOG_MIN_AUDIENCE) + classements par genre, avec les vrais genres,
 //             le nombre de fans, le label et une pochette en grand format (sans clé d'API)
 //   Spotify : sorties des artistes suivis + nouveautés, avec le lien d'écoute et la photo d'artiste
 //             (appli Spotify dédiée à la synchro : voir SPOTIFY_ENABLED)
@@ -38,11 +38,12 @@ const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 120);
 const UPCOMING_MIN_FANS = Number(process.env.SYNC_UPCOMING_MIN_FANS ?? 50_000);
 const MB_USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0 (https://albannnnnnnnnn.github.io/BARZ-/)';
 const DEEZER_CHART_SIZE = Number(process.env.SYNC_DEEZER_CHART_SIZE ?? 40);
-// Artistes du catalogue dont on suit aussi les sorties : au moins ce nombre de fans Deezer (environ 2 300 à 100 000)
-const CATALOG_MIN_FANS = Number(process.env.SYNC_CATALOG_MIN_FANS ?? 100_000);
-// Singles : toujours pour la watchlist et les artistes suivis par les membres ;
-// pour le reste du catalogue, seulement au-delà de ce nombre de fans (environ 900 à 500 000), pour ne pas noyer la page
-const SINGLES_MIN_FANS = Number(process.env.SYNC_SINGLES_MIN_FANS ?? 500_000);
+// Artistes du catalogue dont on suit aussi les sorties, albums et singles : au moins cette audience
+// (artists.audience, moyenne Last.fm / Deezer ; environ 7 000 artistes à 30 000). Assez bas pour les artistes
+// moins connus (Makala : 35 000), le tri « Populaires » garde les plus écoutés en tête.
+const CATALOG_MIN_AUDIENCE = Number(process.env.SYNC_CATALOG_MIN_AUDIENCE ?? 30_000);
+// Singles : toujours pour la watchlist et les artistes suivis par les membres ; pour le catalogue, à partir de cette audience
+const SINGLES_MIN_AUDIENCE = Number(process.env.SYNC_SINGLES_MIN_AUDIENCE ?? 30_000);
 // L'API iTunes tolère ~20 requêtes/min : on plafonne par sync (le reste passe au sync suivant)
 const APPLE_LOOKUPS_PER_RUN = Number(process.env.SYNC_APPLE_LOOKUPS ?? 60);
 // Spotify passe par une appli dédiée à la synchronisation (SPOTIFY_SYNC_CLIENT_ID / _SECRET), jamais par celle
@@ -121,7 +122,7 @@ async function deezerAlbumDetail(id: number, watched: boolean, from: string, to:
 async function collectDeezer(
   watched: [string, string[]][],
   followedIds: number[],
-  catalog: Map<number, number>, // id Deezer → fans
+  catalog: Map<number, { fans: number; audience: number }>, // id Deezer → fans Deezer et audience
   from: string,
   to: string
 ): Promise<Release[]> {
@@ -170,8 +171,8 @@ async function collectDeezer(
 
   // Artistes du catalogue assez écoutés : leurs sorties notables, même si personne ne les suit encore
   const before = out.length;
-  console.log(`📚 Deezer : ${catalog.size} artistes du catalogue (≥ ${CATALOG_MIN_FANS.toLocaleString('fr-FR')} fans)...`);
-  for (const [id, fans] of catalog) await artistReleases(id, false, fans >= SINGLES_MIN_FANS);
+  console.log(`📚 Deezer : ${catalog.size} artistes du catalogue (audience ≥ ${CATALOG_MIN_AUDIENCE.toLocaleString('fr-FR')})...`);
+  for (const [id, { audience }] of catalog) await artistReleases(id, false, audience >= SINGLES_MIN_AUDIENCE);
   console.log(`   ${out.length - before} sorties en plus`);
 
   console.log('📈 Deezer : classements par genre...');
@@ -186,7 +187,7 @@ async function collectDeezer(
     }
   }
 
-  for (const r of out) r.artistFans = artistFans.get(normalizeName(r.artistName)) ?? (r.artistDeezerId ? catalog.get(r.artistDeezerId) : null) ?? null;
+  for (const r of out) r.artistFans = artistFans.get(normalizeName(r.artistName)) ?? (r.artistDeezerId ? catalog.get(r.artistDeezerId)?.fans : null) ?? null;
   console.log(`   ${out.length} sorties au total (${deezerStats.calls} appels Deezer)`);
   return out;
 }
@@ -463,18 +464,18 @@ async function main() {
     : [...new Set((followsRes.data as any[]).map((f) => f.artist?.deezer_id).filter((id): id is number => !!id))];
   const followedNames = followsRes.error ? [] : [...new Set((followsRes.data as any[]).map((f) => f.artist?.name).filter((n): n is string => !!n))];
 
-  // Artistes du catalogue au-dessus du seuil de fans (par pages de 1 000)
-  const catalog = new Map<number, number>();
+  // Artistes du catalogue au-dessus du seuil d'audience (par pages de 1 000, plafond de PostgREST)
+  const catalog = new Map<number, { fans: number; audience: number }>();
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await supabase
       .from('artists')
-      .select('deezer_id, popularity')
+      .select('deezer_id, popularity, audience')
       .not('deezer_id', 'is', null)
-      .gte('popularity', CATALOG_MIN_FANS)
-      .order('popularity', { ascending: false })
+      .gte('audience', CATALOG_MIN_AUDIENCE)
+      .order('audience', { ascending: false })
       .range(offset, offset + 999);
     if (error || !data?.length) break;
-    for (const a of data as { deezer_id: number; popularity: number }[]) catalog.set(a.deezer_id, a.popularity);
+    for (const a of data as { deezer_id: number; popularity: number | null; audience: number }[]) catalog.set(a.deezer_id, { fans: a.popularity ?? 0, audience: a.audience });
     if (data.length < 1000) break;
   }
 
