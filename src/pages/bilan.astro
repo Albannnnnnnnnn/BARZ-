@@ -130,7 +130,7 @@ import Layout from '../layouts/Layout.astro';
     const [listened, spin, barz, challenges] = await Promise.all([
       shelfOf('listened', profile.id),
       shelfOf('spin_list', profile.id),
-      barzFeed({ userId: profile.id, limit: 500 }),
+      barzFeed({ userId: profile.id, limit: 500, replies: false }),
       challengesOf(profile.id),
     ]);
     const listenedM = listened.filter((l) => inMonth(l.created_at));

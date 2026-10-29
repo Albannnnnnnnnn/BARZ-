@@ -42,6 +42,15 @@ export type Barz = {
   profile: Pick<Profile, 'username' | 'display_name' | 'avatar_path'> | null;
   release: ReleaseLite | null;
   likes: { user_id: string }[];
+  replies: BarzReply[];
+};
+export type BarzReply = {
+  id: string;
+  barz_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  profile: Pick<Profile, 'username' | 'display_name'> | null;
 };
 
 const RELEASE_LITE = 'id, title, slug, cover_url, genres, release_type, artist:artists!artist_id(name)';
@@ -188,13 +197,37 @@ export async function deleteBarz(id: string) {
   must(await supabase.from('barz').delete().eq('id', id));
 }
 
-export async function barzFeed(options: { releaseId?: string; userId?: string; limit?: number } = {}): Promise<Barz[]> {
+export async function barzFeed(options: { releaseId?: string; userId?: string; limit?: number; replies?: boolean } = {}): Promise<Barz[]> {
   if (!supabase) return [];
   let query = supabase.from('barz').select(BARZ_FIELDS).order('created_at', { ascending: false }).limit(options.limit ?? 30);
   if (options.releaseId) query = query.eq('release_id', options.releaseId);
   if (options.userId) query = query.eq('user_id', options.userId);
-  return (must(await query) ?? []) as unknown as Barz[];
+  const barz = ((must(await query) ?? []) as unknown as Barz[]).map((b) => ({ ...b, replies: [] as BarzReply[] }));
+  if (options.replies === false || !barz.length) return barz;
+  // Réponses lues à part : sans la table (supabase/barz-replies.sql), les Barz s'affichent quand même
+  const { data } = await supabase
+    .from('barz_replies')
+    .select('id, barz_id, user_id, body, created_at, profile:profiles(username, display_name)')
+    .in('barz_id', barz.map((b) => b.id))
+    .order('created_at');
+  const byBarz = new Map(barz.map((b) => [b.id, b]));
+  for (const r of (data ?? []) as unknown as BarzReply[]) byBarz.get(r.barz_id)?.replies.push(r);
+  return barz;
 }
+
+export async function replyToBarz(barzId: string, body: string) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  must(await supabase.from('barz_replies').insert({ barz_id: barzId, user_id: session.user.id, body: body.trim().slice(0, 280) }));
+}
+
+export async function deleteReply(id: string) {
+  if (!supabase) return;
+  must(await supabase.from('barz_replies').delete().eq('id', id));
+}
+
+// Fils de réponses ouverts : ils restent ouverts quand la liste est redessinée (après un j'aime, une réponse…)
+const openThreads = new Set<string>();
 
 export async function toggleLike(barzId: string, liked: boolean) {
   const session = await requireSession();
@@ -216,6 +249,28 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
         <span class="barz-album-row"><b>${escapeHtml(b.release.title)}</b><span class="bz-score">${formatScore(b.score)}</span></span>
       </a>`
     : '';
+  const replies = b.replies ?? [];
+  const open = openThreads.has(b.id);
+  const repliesHtml = replies
+    .map((r) => {
+      const author = r.profile ? `<a href="${BASE}profil?u=${encodeURIComponent(r.profile.username)}"><b>${escapeHtml(r.profile.display_name)}</b></a>` : '<b>Membre</b>';
+      const canDelete = !!myId && (myId === r.user_id || myId === b.user_id);
+      return `<li>${author} <span class="barz-handle">${escapeHtml(timeAgo(r.created_at))}</span>
+        <p>${escapeHtml(r.body)}</p>
+        ${canDelete ? `<button type="button" class="barz-delete" data-delete-reply="${escapeHtml(r.id)}">Supprimer</button>` : ''}</li>`;
+    })
+    .join('');
+  const thread = `<div class="barz-thread" data-thread="${escapeHtml(b.id)}"${open ? '' : ' hidden'}>
+      ${repliesHtml ? `<ul class="barz-replies">${repliesHtml}</ul>` : ''}
+      ${
+        myId
+          ? `<form class="barz-reply-form" data-reply-form="${escapeHtml(b.id)}">
+              <input class="bz-input" name="reply" maxlength="280" placeholder="Ta réponse…" autocomplete="off" aria-label="Ta réponse" required />
+              <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Répondre</button>
+            </form>`
+          : `<a class="barz-reply-login" href="${loginUrl()}">Connecte-toi pour répondre</a>`
+      }
+    </div>`;
   const scoreInline = options.showRelease === false ? ` · <b class="barz-score-inline">${formatScore(b.score)}</b>` : '';
   return `<article class="barz-card${release ? '' : ' barz-card--solo'}" data-barz-id="${escapeHtml(b.id)}">
     <div class="barz-body">
@@ -227,21 +282,59 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
       <p class="barz-text">« ${escapeHtml(b.body)} »</p>
       <footer>
         <button type="button" class="barz-like${liked ? ' is-liked' : ''}" data-like="${escapeHtml(b.id)}" aria-pressed="${liked}">♥ <span>${b.likes.length}</span></button>
+        <button type="button" class="barz-like" data-replies="${escapeHtml(b.id)}" aria-expanded="${open}">💬 <span>${replies.length ? replies.length : 'Répondre'}</span></button>
         ${myId && myId === b.user_id ? `<button type="button" class="barz-delete" data-delete="${escapeHtml(b.id)}">Supprimer</button>` : ''}
       </footer>
+      ${thread}
     </div>
     ${release}
   </article>`;
 }
 
-// Gestion des clics "j'aime" / "supprimer" sur une liste de Barz
+// Gestion des clics "j'aime" / "répondre" / "supprimer" sur une liste de Barz
 export function wireBarzActions(container: HTMLElement, onChange: () => void) {
+  container.addEventListener('submit', async (event) => {
+    const form = (event.target as HTMLElement).closest<HTMLFormElement>('[data-reply-form]');
+    if (!form) return;
+    event.preventDefault();
+    const input = form.elements.namedItem('reply') as HTMLInputElement;
+    if (!input.value.trim()) return;
+    const button = form.querySelector('button')!;
+    button.disabled = true;
+    try {
+      await replyToBarz(form.dataset.replyForm!, input.value);
+      openThreads.add(form.dataset.replyForm!);
+      onChange();
+    } catch (err) {
+      button.disabled = false;
+      alert(errorText(err));
+    }
+  });
+
   container.addEventListener('click', async (event) => {
     const target = event.target as HTMLElement;
     const like = target.closest<HTMLButtonElement>('[data-like]');
     const del = target.closest<HTMLButtonElement>('[data-delete]');
+    const toggle = target.closest<HTMLButtonElement>('[data-replies]');
+    const delReply = target.closest<HTMLButtonElement>('[data-delete-reply]');
+    if (toggle) {
+      const id = toggle.dataset.replies!;
+      const thread = container.querySelector<HTMLElement>(`[data-thread="${CSS.escape(id)}"]`);
+      if (!thread) return;
+      thread.hidden = !thread.hidden;
+      toggle.setAttribute('aria-expanded', String(!thread.hidden));
+      if (thread.hidden) openThreads.delete(id);
+      else {
+        openThreads.add(id);
+        thread.querySelector<HTMLInputElement>('input')?.focus();
+      }
+      return;
+    }
     try {
-      if (like) {
+      if (delReply && confirm('Supprimer cette réponse ?')) {
+        await deleteReply(delReply.dataset.deleteReply!);
+        onChange();
+      } else if (like) {
         like.disabled = true;
         await toggleLike(like.dataset.like!, like.getAttribute('aria-pressed') === 'true');
         onChange();

@@ -346,6 +346,55 @@
   color: var(--color-text);
 }
 
+.barz-thread {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.barz-thread[hidden] {
+  display: none;
+}
+
+.barz-replies {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+
+.barz-replies p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.barz-replies .barz-delete {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.barz-reply-form {
+  display: flex;
+  gap: 8px;
+}
+
+.barz-reply-form .bz-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.barz-reply-login {
+  color: var(--color-accent);
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .barz-album-row {
   display: flex;
   justify-content: space-between;
