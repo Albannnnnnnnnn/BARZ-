@@ -16,7 +16,7 @@ export async function getStaticPaths() {
   const supabase = getSupabaseServerSafe();
   const all = await fetchReleasesBetween(supabase, new Date('1900-01-01'), new Date('2100-01-01'));
   // Artistes invités (feat.) retrouvés dans le catalogue par leur nom réduit (colonne search_name, supabase/artist-search.sql) :
-  // leur nom devient un lien vers leur fiche
+  // leur nom devient un lien vers leur fiche (sinon ?nom=, qui l'ajoute au catalogue)
   const guests = [...new Set(all.flatMap((r) => r.metadata?.featuring ?? []).map(normName).filter(Boolean))];
   const guestSlugs = new Map<string, { slug: string; audience: number }>();
   for (let i = 0; supabase && i < guests.length; i += 200) {
@@ -91,8 +91,8 @@ const jsonLd = {
                 {featLinks.map((f, i) => (
                   <>
                     {i > 0 && (i === featLinks.length - 1 ? ' et ' : ', ')}
-                    {/* Hors catalogue : une recherche de son nom */}
-                    <a class="feat-link" href={f.slug ? `/BARZ-/artiste?a=${f.slug}` : `/BARZ-/search?q=${encodeURIComponent(f.name)}`}>{f.name}</a>
+                    {/* Hors catalogue : la fiche le cherche sur Deezer et l'ajoute */}
+                    <a class="feat-link" href={f.slug ? `/BARZ-/artiste?a=${f.slug}` : `/BARZ-/artiste?nom=${encodeURIComponent(f.name)}`}>{f.name}</a>
                   </>
                 ))}
               </>

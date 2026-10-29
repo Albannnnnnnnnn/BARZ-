@@ -36,6 +36,8 @@ import { GENRE_CHIPS } from '../lib/genres';
 
     <div class="bz-artists" id="artist-grid" aria-live="polite"></div>
     <p class="bz-empty" id="artist-empty" hidden></p>
+    <!-- Recherche : l'artiste n'est peut-être pas encore au catalogue -->
+    <p class="deezer-hint" id="artist-deezer" hidden>Pas celui que tu cherches ? <a class="bz-link" id="artist-deezer-link" href="/BARZ-/artiste">Chercher « <span id="artist-deezer-name"></span> » sur Deezer →</a></p>
     <button type="button" class="bz-btn bz-btn--outline more" id="artist-more" hidden>Voir plus d’artistes</button>
   </div>
 </Layout>
@@ -95,6 +97,12 @@ import { GENRE_CHIPS } from '../lib/genres';
       grid.insertAdjacentHTML('beforeend', page.map((a) => artistCardHtml(a, followed.has(a.id))).join(''));
       offset += page.length;
       more.hidden = page.length < PAGE;
+      const hint = document.getElementById('artist-deezer')!;
+      hint.hidden = !query;
+      if (query) {
+        document.getElementById('artist-deezer-name')!.textContent = query;
+        (document.getElementById('artist-deezer-link') as HTMLAnchorElement).href = `/BARZ-/artiste?nom=${encodeURIComponent(query)}`;
+      }
       empty.hidden = grid.children.length > 0;
       empty.textContent = genre === 'followed' ? 'Tu ne suis encore aucun artiste : clique sur « Suivre » sous ceux que tu aimes.' : 'Aucun artiste trouvé.';
     } catch (err) {
@@ -203,6 +211,15 @@ import { GENRE_CHIPS } from '../lib/genres';
 
   .more[hidden],
   .bz-empty[hidden] {
+    display: none;
+  }
+
+  .deezer-hint {
+    margin-top: 24px;
+    color: var(--color-text-muted);
+  }
+
+  .deezer-hint[hidden] {
     display: none;
   }
 </style>

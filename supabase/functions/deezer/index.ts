@@ -5,6 +5,8 @@
 // - link    { profile } : lien du profil (deezer.com/…/profile/123, lien de partage) ou numéro ; importe ses favoris
 // - refresh : réimporte les favoris du profil déjà relié
 // - unlink  : oublie le profil et ses artistes importés
+// - artist  { name } : fiche d'un artiste absent du catalogue (un invité en feat., une recherche) : trouvé sur Deezer
+//                      sous ce nom exact, ajouté au catalogue, et son slug renvoyé. Ouvert aux visiteurs sans compte.
 //
 // Déploiement : supabase functions deploy deezer --use-api (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis)
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -67,16 +69,46 @@ async function importFavorites(me: string, id: number): Promise<{ favorites: num
   return { favorites: ids.length, matched: matched.length };
 }
 
+// Mêmes règles que slugify / stableSlug de scripts/lib/common.ts : le même artiste garde la même ligne
+const slugify = (text: string) =>
+  text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+const compact = (text: string) => slugify(text).replace(/-/g, '');
+
+// Artiste Deezer portant exactement ce nom (aux accents et à la ponctuation près), le plus suivi s'il y en a plusieurs
+async function addArtist(name: string): Promise<{ slug: string } | { error: string }> {
+  const wanted = compact(name);
+  if (!wanted) return { error: 'Nom d’artiste invalide.' };
+  const known = await admin.from('artists').select('slug').eq('search_name', wanted).order('audience', { ascending: false }).limit(1).maybeSingle();
+  if (known.data) return { slug: known.data.slug };
+  const found = await deezerJson(`/search/artist?q=${encodeURIComponent(name)}&limit=10`);
+  const match = ((found?.data ?? []) as any[]).filter((a) => compact(a.name) === wanted).sort((a, b) => (b.nb_fan ?? 0) - (a.nb_fan ?? 0))[0];
+  if (!match) return { error: `« ${name} » est introuvable sur Deezer.` };
+  // Déjà au catalogue sous une autre graphie
+  const same = await admin.from('artists').select('slug').eq('deezer_id', match.id).maybeSingle();
+  if (same.data) return { slug: same.data.slug };
+  const slug = slugify(match.name) || `artiste-${match.id}`;
+  const { error } = await admin
+    .from('artists')
+    .upsert({ slug, name: match.name, deezer_id: match.id, image_url: match.picture_xl ?? match.picture_big ?? null, popularity: match.nb_fan ?? null, genres: [], updated_at: new Date().toISOString() }, { onConflict: 'slug', ignoreDuplicates: true });
+  if (error) return { error: error.message };
+  return { slug };
+}
+
 Deno.serve(async (req) => {
   const headers = { ...cors(req), 'Content-Type': 'application/json' };
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
 
+  const body = await req.json().catch(() => ({}));
+  if (body.action === 'artist') {
+    const result = await addArtist(String(body.name ?? '').slice(0, 120));
+    return 'error' in result ? reply(result, 404) : reply(result);
+  }
+
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
   const { data: auth } = await admin.auth.getUser(jwt);
   const me = auth?.user?.id;
   if (!me) return reply({ error: 'Connecte-toi pour relier Deezer.' }, 401);
-  const body = await req.json().catch(() => ({}));
 
   if (body.action === 'link' || body.action === 'refresh') {
     let id: number | null = null;

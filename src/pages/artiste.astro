@@ -1,6 +1,7 @@
 ---
-// FICHE ARTISTE (?a=slug) : photo, genres, suivre, sorties, artistes similaires.
+// FICHE ARTISTE (?a=slug) : photo, genres, suivre, sorties, featurings, artistes similaires.
 // Une seule page pour tout le catalogue : les données sont lues par le navigateur.
+// ?nom=Nom : artiste pas encore au catalogue (invité en feat., recherche) : la fonction deezer l'ajoute, puis on affiche sa fiche.
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -24,6 +25,11 @@ import Layout from '../layouts/Layout.astro';
       <div class="bz-tiles" id="a-releases"></div>
     </section>
 
+    <section class="block" id="a-feats-block" hidden>
+      <div class="bz-section-head"><h2 class="bz-h2">Ses <em>featurings</em></h2></div>
+      <div class="bz-tiles" id="a-feats"></div>
+    </section>
+
     <section class="block" id="a-related-block" hidden>
       <div class="bz-section-head"><h2 class="bz-h2">Dans le même <em>univers</em></h2></div>
       <div class="bz-artists" id="a-related"></div>
@@ -44,16 +50,36 @@ import Layout from '../layouts/Layout.astro';
     $('artist-error').hidden = false;
   };
 
+  // Artiste absent du catalogue : trouvé sur Deezer et ajouté par la fonction deezer, puis adresse ?a=slug
+  async function slugFromName(name: string): Promise<string | null> {
+    $('artist-error').textContent = `Recherche de ${name}…`;
+    $('artist-error').hidden = false;
+    const { data, error } = await supabase!.functions.invoke('deezer', { body: { action: 'artist', name } });
+    if (error || !data?.slug) {
+      const detail = await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+      fail(detail?.error ?? 'Cet artiste n’est pas (encore) dans le catalogue.');
+      return null;
+    }
+    $('artist-error').hidden = true;
+    history.replaceState(null, '', `?a=${encodeURIComponent(data.slug)}`);
+    return data.slug as string;
+  }
+
   async function load() {
-    const slug = new URLSearchParams(location.search).get('a');
-    if (!slug || !supabase) return fail('Artiste introuvable.');
+    const params = new URLSearchParams(location.search);
+    if (!supabase) return fail('Artiste introuvable.');
+    const name = params.get('nom')?.trim();
+    const slug = params.get('a') ?? (name ? await slugFromName(name) : null);
+    if (!slug) return name ? undefined : fail('Artiste introuvable.');
     const { data: artist, error } = await supabase.from('artists').select(`${ARTIST_LITE}, deezer_id`).eq('slug', slug).maybeSingle();
     if (error) throw error;
     if (!artist) return fail('Cet artiste n’est pas (encore) dans le catalogue.');
     const a = artist as ArtistLite & { deezer_id: number | null };
 
-    const [releases, related, followers, follows] = await Promise.all([
+    const [releases, feats, related, followers, follows] = await Promise.all([
       supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(24),
+      // Sorties où il est invité (le nom figure dans metadata.featuring)
+      supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, artist:artists!artist_id(name)').filter('metadata->featuring', 'cs', JSON.stringify([a.name])).order('release_date', { ascending: false }).limit(24),
       supabase.from('artist_relations').select(`rank, related:artists!artist_relations_related_id_fkey(${ARTIST_LITE})`).eq('artist_id', a.id).order('rank').limit(12),
       supabase.from('follows').select('*', { count: 'exact', head: true }).eq('artist_id', a.id),
       myFollows().catch(() => [] as ArtistLite[]),
@@ -79,6 +105,11 @@ import Layout from '../layouts/Layout.astro';
       $('a-releases').innerHTML = rel.map((r) => releaseTileHtml({ ...r, artist: { name: a.name } }, { badge: r.release_date?.slice(0, 4) })).join('');
       $('a-releases-block').hidden = false;
     }
+    const featRows = (feats.data ?? []) as any[];
+    if (featRows.length) {
+      $('a-feats').innerHTML = featRows.map((r) => releaseTileHtml(r, { badge: r.release_date?.slice(0, 4) })).join('');
+      $('a-feats-block').hidden = false;
+    }
     const similar = ((related.data ?? []) as any[]).map((r) => r.related).filter(Boolean) as ArtistLite[];
     if (similar.length) {
       $('a-related').innerHTML = similar.map((s) => artistCardHtml(s, followed.has(s.id))).join('');
@@ -103,6 +134,15 @@ import Layout from '../layouts/Layout.astro';
     grid-template-columns: 300px minmax(0, 1fr);
     align-items: center;
     gap: 56px;
+  }
+
+  /* Les noms longs (« Gesaffelstein ») passent à la ligne au lieu de déborder */
+  .info {
+    min-width: 0;
+  }
+
+  #a-name {
+    overflow-wrap: anywhere;
   }
 
   .hero[hidden],

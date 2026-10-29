@@ -165,6 +165,11 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* Menu fermé : rien à mesurer (sinon, placé hors de l'écran, il élargit la page sur certains navigateurs) */
+.bz-listen-more:not([open]) .bz-listen-menu {
+  display: none;
+}
+
 .bz-listen-menu a {
   display: flex;
   justify-content: space-between;
