@@ -34,7 +34,7 @@ import { GENRE_CHIPS } from '../lib/genres';
 </Layout>
 
 <script>
-  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, errorText, getMyProfile, myFollows, requireSession, supabase, updateMyProfile, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, errorText, getMyProfile, myFollows, requireSession, searchArtists, supabase, updateMyProfile, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -72,8 +72,7 @@ import { GENRE_CHIPS } from '../lib/genres';
     const grid = $('onboard-grid');
     let list: ArtistLite[] = [];
     if (query) {
-      const { data } = await supabase.from('artists').select(ARTIST_LITE).ilike('name', `%${query.replace(/[%_]/g, '')}%`).order('popularity', { ascending: false }).limit(24);
-      list = (data ?? []) as ArtistLite[];
+      list = await searchArtists(query, { limit: 24 });
     } else {
       const perGenre = Math.max(6, Math.ceil(30 / chosen.size));
       const lists = await Promise.all(

@@ -354,6 +354,18 @@ export function wireBarzActions(container: HTMLElement, onChange: () => void) {
 export type ArtistLite = { id: string; name: string; slug: string; image_url: string | null; popularity: number | null; lastfm_listeners?: number | null; genres: string[] | null };
 export const ARTIST_LITE = 'id, name, slug, image_url, popularity, lastfm_listeners, genres';
 
+// Recherche d'artistes tolérante aux espaces, accents et fautes de frappe (supabase/artist-search.sql) ;
+// sans la fonction search_artists, recherche du nom tel quel
+export async function searchArtists(query: string, options: { genres?: string[]; limit?: number } = {}): Promise<ArtistLite[]> {
+  if (!supabase || !query.trim()) return [];
+  const limit = options.limit ?? 48;
+  const fuzzy = await supabase.rpc('search_artists', { q: query, genre_filter: options.genres ?? null, lim: limit }).select(ARTIST_LITE);
+  if (!fuzzy.error) return (fuzzy.data ?? []) as ArtistLite[];
+  let q = supabase.from('artists').select(ARTIST_LITE).ilike('name', `%${query.replace(/[%_]/g, '')}%`).order('audience', { ascending: false }).limit(limit);
+  if (options.genres) q = q.overlaps('genres', options.genres);
+  return (must(await q) ?? []) as ArtistLite[];
+}
+
 export async function myFollows(): Promise<ArtistLite[]> {
   const session = await getSession();
   if (!session || !supabase) return [];

@@ -41,7 +41,7 @@ import { GENRE_CHIPS } from '../lib/genres';
 </Layout>
 
 <script>
-  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, myFollows, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, myFollows, searchArtists, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
   import { audience } from '../lib/audience';
 
@@ -69,10 +69,15 @@ import { GENRE_CHIPS } from '../lib/genres';
       return sorted.slice(offset, offset + PAGE);
     }
     if (!supabase) return [];
+    // Avec une recherche : résultats du plus pertinent au moins pertinent, en une seule page
+    if (query) {
+      if (offset > 0) return [];
+      const chip = GENRE_CHIPS.find((c) => c.id === genre);
+      return searchArtists(query, { genres: chip?.genres, limit: PAGE });
+    }
     // Audience = moyenne Last.fm / Deezer (colonne calculée, supabase/audience.sql)
     let q = supabase.from('artists').select(ARTIST_LITE).order('audience', { ascending }).range(offset, offset + PAGE - 1);
     if (ascending) q = q.or(`lastfm_listeners.gte.${MIN_LISTENERS},popularity.gte.${MIN_DEEZER_FANS}`);
-    if (query) q = q.ilike('name', `%${query.replace(/[%_]/g, '')}%`);
     const chip = GENRE_CHIPS.find((c) => c.id === genre);
     if (chip) q = q.overlaps('genres', chip.genres);
     const { data, error } = await q;
