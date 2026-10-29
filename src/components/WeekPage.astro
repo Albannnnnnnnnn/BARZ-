@@ -1,0 +1,739 @@
+---
+// PAGE D'UNE SEMAINE DE SORTIES (du vendredi au jeudi) : la semaine en cours (src/pages/index.astro), avec
+// nouveautés depuis la dernière visite, défi et artistes suivis, ou une semaine passée (src/pages/semaine/[vendredi].astro).
+// Sorties triées et filtrables, navigation vers les semaines voisines.
+import { addDays, format, getISOWeek, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import Layout from '../layouts/Layout.astro';
+import AlbumTile from './AlbumTile.astro';
+import SortiesTabs from './SortiesTabs.astro';
+import { getSupabaseServerSafe } from '../lib/supabase';
+import { GENRE_CHIPS, chipIdsFor, currentFriday, fetchReleasesBetween, firstFriday, getToday, weekHref, type ReleaseRow } from '../lib/releases';
+import { getReleaseTypeLabel, releaseSubtitle } from '../lib/utils';
+import { audience, releaseScore } from '../lib/audience';
+
+interface Props {
+  friday: Date; // premier jour de la semaine affichée
+}
+
+const { friday } = Astro.props;
+const today = getToday();
+const thisFriday = currentFriday();
+const current = format(friday, 'yyyy-MM-dd') === format(thisFriday, 'yyyy-MM-dd');
+const supabase = getSupabaseServerSafe();
+// Une semaine de sorties : du vendredi au jeudi suivant
+const releases = await fetchReleasesBetween(supabase, friday, addDays(friday, 6));
+const upcomingCount = (await fetchReleasesBetween(supabase, addDays(today, 1), addDays(today, 120))).length;
+// Semaines voisines : la précédente si la base remonte jusque-là, la suivante si ce n'est pas la semaine en cours
+const first = await firstFriday(supabase);
+const prevFriday = addDays(friday, -7);
+const nextFriday = addDays(friday, 7);
+const weekLabel = (d: Date) => `Semaine ${getISOWeek(d)}`;
+
+// Ordre par défaut (« Populaires ») : les artistes de la sélection d'abord, puis le score de chaque sortie
+// (auditeurs Last.fm de l'artiste × fans de l'album, rééditions et compilations en retrait : src/lib/audience.ts)
+const sorted = [...releases].sort((a, b) => Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || releaseScore(b) - releaseScore(a));
+const count = sorted.length;
+
+// Rangée d'artistes affichée sans compte : ceux de la sélection BARZ¡ qui ont sorti quelque chose
+const spotlight = new Map<string, { name: string; slug: string; image_url: string | null; releaseSlug: string }>();
+for (const r of sorted) {
+  if (r.artist && r.metadata?.watched && !spotlight.has(r.artist.id)) spotlight.set(r.artist.id, { ...r.artist, releaseSlug: r.slug });
+}
+
+const types = [...new Set(sorted.map((r) => r.release_type))].filter(Boolean);
+const genres = GENRE_CHIPS.filter((c) => sorted.some((r) => chipIdsFor(r.genres).includes(c.id)));
+const eyebrow = `Semaine ${getISOWeek(friday)} · vendredi ${format(friday, 'd MMMM', { locale: fr })}`;
+const subtitleOf = (r: ReleaseRow) => releaseSubtitle(r);
+// Données des sorties de la semaine pour le reclassement personnalisé (src/scripts/reco.ts)
+const weekData = sorted.map((r) => ({
+  id: r.id,
+  artistId: r.artist?.id ?? null,
+  artistName: r.artist?.name ?? '',
+  genres: r.genres ?? [],
+  fans: audience(r.artist) || (r.metadata?.fans ?? null),
+  featuring: r.metadata?.featuring ?? [],
+  title: r.title,
+  slug: r.slug,
+  date: r.release_date,
+}));
+const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', { locale: fr });
+// Titres de jour du tri « Plus récentes » (placés et affichés par le script de la page)
+const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
+---
+
+<Layout
+  title={current ? 'Sorties' : `${weekLabel(friday)} · Sorties`}
+  description={current ? 'Les sorties musicales de la semaine, triées pour toi.' : `Les sorties musicales de la semaine du ${format(friday, 'd MMMM yyyy', { locale: fr })}.`}
+>
+  <div class="bz-page" data-current-week={current ? '' : undefined}>
+    <span class="bz-eyebrow">{eyebrow}</span>
+    <h1 class="bz-display">Sorties</h1>
+    <SortiesTabs active={current ? 'semaine' : undefined} weekCount={current ? count : undefined} upcomingCount={upcomingCount} />
+
+    <nav class="week-nav" aria-label="Semaines">
+      {first && prevFriday >= first ? (
+        <a href={weekHref(prevFriday)} rel="prev">← {weekLabel(prevFriday)} <span class="week-date">· {format(prevFriday, 'd MMM', { locale: fr })}</span></a>
+      ) : <span />}
+      {!current && (
+        <a href={weekHref(nextFriday)} rel="next">{nextFriday >= thisFriday ? 'Cette semaine' : weekLabel(nextFriday)} →</a>
+      )}
+    </nav>
+
+    <section class="visit" id="visit" hidden aria-labelledby="visit-title">
+      <h2 class="label" id="visit-title">Depuis ta dernière visite</h2>
+      <ul class="visit-items" id="visit-items"></ul>
+    </section>
+
+    <section class="challenge" id="challenge" hidden aria-label="Défi de la semaine"></section>
+
+    <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
+      <h2 id="artists-title" class="label">{current ? 'Ils ont sorti cette semaine' : 'Ils ont sorti cette semaine-là'}</h2>
+      <ul class="stories" id="stories">
+        {[...spotlight.values()].map((a) => (
+          <li>
+            <a class="story is-new" href={`/BARZ-/releases/${a.releaseSlug}`}>
+              {a.image_url ? <img src={a.image_url} alt="" loading="lazy" /> : <span class="story-fallback">{a.name[0]}</span>}
+              <span class="story-name">{a.name}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {count > 0 ? (
+      <section aria-label="Toutes les sorties de la semaine">
+        <div class="toolbar">
+          <div class="tool-group">
+            <span class="tool-label" id="sort-label">Trier</span>
+            <div class="sorts" role="group" aria-labelledby="sort-label">
+              <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
+              <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
+              <button type="button" class="bz-chip" data-sort="date" aria-pressed="false">Plus récentes</button>
+              <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
+            </div>
+          </div>
+          <div class="tool-group">
+            <span class="tool-label" aria-hidden="true">Filtrer</span>
+            <div class="filters">
+              <label class="sr-only" for="filter-genre">Genre</label>
+              <select id="filter-genre" class="select">
+                <option value="">Tous les genres</option>
+                {genres.map((c) => <option value={c.id}>{c.label}</option>)}
+              </select>
+              {types.length > 1 && (
+                <>
+                  <label class="sr-only" for="filter-type">Type</label>
+                  <select id="filter-type" class="select">
+                    <option value="">Albums, EP et singles</option>
+                    {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
+                  </select>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div id="all-grid" class="bz-tiles grid is-capped">
+          {sorted.map((r) => (
+            <AlbumTile
+              title={r.title}
+              subtitle={subtitleOf(r)}
+              cover={r.cover_url}
+              href={`/BARZ-/releases/${r.slug}`}
+              chips={chipIdsFor(r.genres)}
+              releaseId={r.id}
+              type={r.release_type}
+              date={dateOf(r)}
+            />
+          ))}
+          {days.map((d) => (
+            <h3 class="day-head" data-day={d} hidden>{format(parseISO(d), 'EEEE d MMMM', { locale: fr })}</h3>
+          ))}
+        </div>
+        <p class="filter-empty" hidden>Aucune sortie ne correspond à ces filtres cette semaine.</p>
+        {count > 24 && <button type="button" class="bz-btn bz-btn--outline more" id="show-all">Voir les {count} sorties</button>}
+        <script type="application/json" id="week-data" set:html={JSON.stringify(weekData)} />
+      </section>
+    ) : (
+      <p class="bz-empty">
+        <strong>Aucune sortie enregistrée pour cette semaine.</strong><br />
+        {current ? 'Elles apparaissent au fil de la journée, dès leur mise en ligne.' : 'BARZ¡ n’a pas de sorties enregistrées pour ces dates.'}
+      </p>
+    )}
+  </div>
+</Layout>
+
+<script>
+  import { BASE, coverHtml, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
+  import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
+  import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
+  import { normName } from '../lib/feat';
+
+  type WeekRelease = RecoRelease & { title: string; slug: string; date: string };
+
+  const grid = document.getElementById('all-grid');
+  const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
+  const heads = new Map([...(grid?.querySelectorAll<HTMLElement>('.day-head') ?? [])].map((h) => [h.dataset.day!, h]));
+  const dateOfId = new Map(week.map((r) => [r.id, r.date]));
+  let currentSort = 'popular';
+  const tiles = new Map([...(grid?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
+  const orders: Record<string, string[]> = {
+    popular: week.map((r) => r.id),
+    // Les plus récentes d'abord ; le même jour, dans l'ordre « Populaires » (tri stable)
+    date: [...week].sort((a, b) => b.date.localeCompare(a.date)).map((r) => r.id),
+    alpha: [...week].sort((a, b) => a.title.localeCompare(b.title, 'fr')).map((r) => r.id),
+  };
+
+  function applySort(sort: string) {
+    document.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.sort === sort);
+      b.setAttribute('aria-pressed', String(b.dataset.sort === sort));
+    });
+    currentSort = sort;
+    // « Plus récentes » : un titre avant les sorties de chaque jour, comme dans « À venir »
+    let day = '';
+    for (const id of orders[sort] ?? []) {
+      const tile = tiles.get(id);
+      if (!tile) continue;
+      const head = sort === 'date' && dateOfId.get(id) !== day ? heads.get((day = dateOfId.get(id)!)) : undefined;
+      if (head) grid!.appendChild(head);
+      grid!.appendChild(tile);
+    }
+    updateHeads();
+  }
+
+  // Un titre de jour n'apparaît que si une sortie de ce jour est visible (filtres, liste limitée à 24)
+  function updateHeads() {
+    heads.forEach((head) => {
+      let visible = false;
+      if (currentSort === 'date') {
+        for (let el = head.nextElementSibling; el && !el.classList.contains('day-head'); el = el.nextElementSibling) {
+          if (getComputedStyle(el).display !== 'none') {
+            visible = true;
+            break;
+          }
+        }
+      }
+      head.hidden = !visible;
+    });
+  }
+
+  function applyFilters() {
+    const genre = (document.getElementById('filter-genre') as HTMLSelectElement | null)?.value ?? '';
+    const type = (document.getElementById('filter-type') as HTMLSelectElement | null)?.value ?? '';
+    let visible = 0;
+    tiles.forEach((tile) => {
+      const show = (!genre || tile.dataset.chips!.split(' ').includes(genre)) && (!type || tile.dataset.type === type);
+      tile.hidden = !show;
+      if (show) visible++;
+    });
+    const empty = document.querySelector<HTMLElement>('.filter-empty');
+    if (empty) empty.hidden = visible > 0;
+    updateHeads();
+  }
+
+  document.querySelector('.sorts')?.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sort]');
+    if (button) applySort(button.dataset.sort!);
+  });
+  document.getElementById('filter-genre')?.addEventListener('change', applyFilters);
+  document.getElementById('filter-type')?.addEventListener('change', applyFilters);
+  document.getElementById('show-all')?.addEventListener('click', (event) => {
+    grid?.classList.remove('is-capped');
+    (event.currentTarget as HTMLElement).remove();
+    updateHeads();
+  });
+
+  // Connecté : la rangée devient celle de ses artistes suivis (ceux qui ont sorti quelque chose d'abord)
+  async function showFollowed() {
+    const follows = await myFollows();
+    if (!follows.length) return;
+    const released = new Map(week.filter((r) => r.artistId).map((r) => [r.artistId!, r.slug]));
+    // Invités : un artiste suivi en feat sur la sortie de quelqu'un d'autre s'allume aussi
+    const byName = new Map(follows.map((a) => [normName(a.name), a.id]));
+    const featured = new Map<string, string>();
+    for (const r of week) {
+      for (const name of r.featuring ?? []) {
+        const id = byName.get(normName(name));
+        if (id && !released.has(id) && !featured.has(id)) featured.set(id, r.slug);
+      }
+    }
+    // Sorties annoncées dans les 60 prochains jours : compte à rebours sous l'avatar
+    const upcoming = new Map<string, { slug: string; date: string }>();
+    if (supabase) {
+      const today = new Date();
+      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const { data } = await supabase
+        .from('releases')
+        .select('slug, release_date, artist_id')
+        .in('artist_id', follows.map((a) => a.id).slice(0, 300))
+        .gt('release_date', iso(today))
+        .lte('release_date', iso(new Date(today.getTime() + 60 * 86_400_000)))
+        .order('release_date');
+      for (const r of (data ?? []) as { slug: string; release_date: string; artist_id: string }[]) {
+        if (!upcoming.has(r.artist_id)) upcoming.set(r.artist_id, { slug: r.slug, date: r.release_date });
+      }
+    }
+    const isNew = (id: string) => released.has(id) || featured.has(id);
+    const rank = (id: string) => (isNew(id) ? 2 : upcoming.has(id) ? 1 : 0);
+    const list = [...follows].sort((a, b) => rank(b.id) - rank(a.id)).slice(0, 14);
+    const avatar = (a: (typeof follows)[number]) =>
+      a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy" />` : `<span class="story-fallback">${escapeHtml(a.name[0])}</span>`;
+    document.getElementById('stories')!.innerHTML =
+      list
+        .map((a) => {
+          const soon = upcoming.get(a.id);
+          const slug = released.get(a.id) ?? featured.get(a.id) ?? soon?.slug;
+          const tag = released.has(a.id) ? 'Nouveau' : featured.has(a.id) ? 'En feat' : soon ? `J-${daysUntil(soon.date)}` : '';
+          const href = slug ? `${BASE}releases/${encodeURIComponent(slug)}` : `${BASE}artiste?a=${encodeURIComponent(a.slug)}`;
+          return `<li><a class="story${slug ? ' is-new' : ''}" href="${href}">${avatar(a)}<span class="story-name">${escapeHtml(a.name)}</span>${tag ? `<span class="story-tag">${tag}</span>` : ''}</a></li>`;
+        })
+        .join('') + `<li><a class="story" href="${BASE}artistes?genre=followed"><span class="story-fallback">+</span><span class="story-name">Tous</span></a></li>`;
+    document.getElementById('artists-title')!.textContent = 'Tes artistes';
+    document.getElementById('artists-section')!.hidden = false;
+  }
+
+  // Connecté avec des goûts : tri « Pour toi » par défaut, avec la raison sous chaque sortie
+  async function personalize() {
+    const taste = await loadTaste();
+    if (!taste || taste.empty || !grid) return;
+    const ranked = rank(week, taste, 0.15);
+    orders.reco = ranked.map((s) => s.item.id);
+    for (const s of ranked) {
+      const tile = tiles.get(s.item.id);
+      if (s.reason && tile && !tile.querySelector('.bz-reason')) tile.insertAdjacentHTML('beforeend', `<span class="bz-reason">${escapeHtml(s.reason)}</span>`);
+    }
+    document.querySelector<HTMLElement>('[data-sort="reco"]')!.hidden = false;
+    applySort('reco');
+  }
+
+  // Depuis ta dernière visite : seulement ce qui est nouveau pour ce membre
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+  const dayLabel = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  // Jours avant une date (AAAA-MM-JJ), en jours entiers
+  const daysUntil = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00`) - new Date(new Date().toDateString()).getTime()) / 86_400_000);
+  const listNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0] ?? '');
+
+  async function showVisit() {
+    const since = previousVisit();
+    if (!(await getSession())) return;
+    const items: string[] = [];
+    const news = since ? await newsSince(since) : null;
+    if (news?.releases.length) {
+      const links = news.releases
+        .slice(0, 3)
+        .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.featWith ? `${r.artistName} feat. ${r.featWith}` : r.artistName)}</span>`)
+        .join(' · ');
+      items.push(`<li><b>${plural(news.releases.length, 'sortie')} de tes artistes</b> ${links}${news.releases.length > 3 ? ' …' : ''}</li>`);
+    }
+    if (news?.announced.length) {
+      const links = news.announced
+        .slice(0, 3)
+        .map((r) => `<a href="${BASE}releases/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a> <span>${escapeHtml(r.artistName)} · ${escapeHtml(dayLabel(r.date))}</span>`)
+        .join(' · ');
+      items.push(`<li><b>${plural(news.announced.length, 'sortie')} annoncée${news.announced.length > 1 ? 's' : ''}</b> ${links}</li>`);
+    }
+    if (news?.friendBarz) {
+      items.push(`<li><a href="${BASE}commu"><b>${plural(news.friendBarz, 'Barz')}</b> de ${escapeHtml(listNames(news.friendNames))} →</a></li>`);
+    }
+    if (news?.requests) {
+      items.push(`<li><a href="${BASE}profil"><b>${plural(news.requests, 'demande')} d’ami</b> en attente →</a></li>`);
+    }
+    // La première semaine du mois, le bilan du mois précédent
+    const now = new Date();
+    if (now.getDate() <= 7) {
+      const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const key = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+      const name = MONTHS[last.getMonth()];
+      items.push(`<li><a href="${BASE}bilan?m=${key}"><b>Ton bilan ${/^[aeiou]/.test(name) ? 'd’' : 'de '}${name}</b> est prêt →</a></li>`);
+    }
+    if (!items.length) return;
+    if (since) document.getElementById('visit-title')!.textContent = `Depuis ta dernière visite · ${timeAgo(since.toISOString())}`;
+    document.getElementById('visit-items')!.innerHTML = items.join('');
+    document.getElementById('visit')!.hidden = false;
+  }
+
+  // Défi de la semaine : un disque hors de la bulle, relevé quand on l'écoute ou qu'on le note
+  async function showChallenge() {
+    const c = await weeklyChallenge();
+    if (!c) return;
+    const href = `${BASE}releases/${encodeURIComponent(c.release.slug)}`;
+    const status = c.done
+      ? `<p class="challenge-done">Défi relevé ✓</p>`
+      : `<p class="challenge-how">Écoute-le, puis marque-le comme écouté ou note-le pour relever le défi.</p>`;
+    document.getElementById('challenge')!.innerHTML = `
+      <a class="challenge-cover" href="${href}">${coverHtml(c.release.title, c.release.cover_url)}</a>
+      <div class="challenge-body">
+        <span class="challenge-eyebrow">Défi de la semaine · Sors de ta bulle</span>
+        <h2><a href="${href}">${escapeHtml(c.release.title)}</a></h2>
+        <p class="challenge-artist">${escapeHtml(c.release.artistName)}${c.reason ? ` · ${escapeHtml(c.reason)}` : ''}</p>
+        ${status}
+        <div class="challenge-actions">
+          <a class="bz-btn bz-btn--lime bz-btn--small" href="${href}">${c.done ? 'Revoir la fiche' : 'Écouter'}</a>
+          ${c.doneCount ? `<span>${plural(c.doneCount, 'défi')} relevé${c.doneCount > 1 ? 's' : ''} au total</span>` : ''}
+        </div>
+      </div>`;
+    document.getElementById('challenge')!.hidden = false;
+  }
+
+  // Nouveautés, défi et artistes suivis : seulement sur la semaine en cours
+  if (document.querySelector('[data-current-week]')) {
+    showVisit().catch((err) => console.warn('Nouveautés indisponibles :', err));
+    showChallenge().catch((err) => console.warn('Défi indisponible :', err));
+    showFollowed().catch(() => {});
+  }
+  personalize().catch((err) => console.warn('Personnalisation indisponible :', err));
+</script>
+
+<style>
+  .grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden]))) {
+    display: none;
+  }
+
+  .day-head {
+    grid-column: 1 / -1;
+    margin-top: 20px;
+    font: 400 30px/1 var(--font-serif);
+    color: var(--color-text);
+  }
+
+  .day-head:first-child {
+    margin-top: 0;
+  }
+
+  .day-head::first-letter {
+    text-transform: uppercase;
+  }
+
+  .day-head[hidden] {
+    display: none;
+  }
+
+  .artists {
+    margin-top: 36px;
+  }
+
+  .artists[hidden],
+  .visit[hidden],
+  .challenge[hidden] {
+    display: none;
+  }
+
+  .visit {
+    margin-top: 28px;
+    padding: 20px 22px;
+    border: 1px solid var(--color-accent-line);
+    border-radius: 18px;
+  }
+
+  .visit .label {
+    margin-bottom: 14px;
+    color: var(--color-accent);
+  }
+
+  .visit-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+  }
+
+  .visit-items :global(b) {
+    color: var(--color-text);
+    margin-right: 6px;
+  }
+
+  .visit-items :global(a) {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-decoration-color: var(--color-text-dim);
+    text-underline-offset: 4px;
+  }
+
+  .visit-items :global(a:hover) {
+    text-decoration-color: var(--color-accent);
+  }
+
+  .challenge {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: 26px;
+    align-items: center;
+    margin-top: 28px;
+    padding: 22px;
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse 70% 140% at 100% 0%, var(--color-accent-soft) 0%, transparent 70%),
+      var(--color-bg-elevated);
+  }
+
+  .challenge :global(.bz-cover) {
+    border-radius: 12px;
+  }
+
+  .challenge :global(.challenge-eyebrow) {
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .challenge :global(h2) {
+    margin: 12px 0 6px;
+    font: 400 clamp(28px, 3vw, 40px) / 1.05 var(--font-serif);
+    color: var(--color-text);
+  }
+
+  .challenge :global(.challenge-artist),
+  .challenge :global(.challenge-how) {
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .challenge :global(.challenge-how),
+  .challenge :global(.challenge-done) {
+    margin-top: 10px;
+  }
+
+  .challenge :global(.challenge-done) {
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  .challenge :global(.challenge-actions) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .challenge {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+  }
+
+  .label {
+    margin-bottom: 18px;
+    font: 600 12px/1 var(--font-sans);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .stories {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 6px 4px 4px;
+    scrollbar-width: none;
+  }
+
+  .stories :global(.story) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 84px;
+    color: var(--color-text);
+  }
+
+  .stories :global(img),
+  .stories :global(.story-fallback) {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px var(--color-border);
+    transition: transform var(--transition-fast);
+  }
+
+  .stories :global(.story-fallback) {
+    display: grid;
+    place-items: center;
+    background: var(--color-bg-hover);
+    font: 400 28px/1 var(--font-serif);
+  }
+
+  .stories :global(.story.is-new img),
+  .stories :global(.story.is-new .story-fallback) {
+    box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-accent);
+  }
+
+  .stories :global(.story:hover img),
+  .stories :global(.story:hover .story-fallback) {
+    transform: scale(1.05);
+  }
+
+  .stories :global(.story-name) {
+    max-width: 100%;
+    font-size: 13px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stories :global(.story-tag) {
+    margin-top: -4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  /* Deux blocs : « Trier » (un seul choix, boutons groupés) à gauche, « Filtrer » (menus) à droite */
+  .week-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .week-nav a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .week-nav a:hover {
+    color: var(--color-accent);
+  }
+
+  .week-date {
+    font-weight: 400;
+    color: var(--color-text-dim);
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 32px;
+    margin: 36px 0 28px;
+    padding: 16px 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .tool-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tool-label {
+    font: 600 11px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .sorts {
+    display: inline-flex;
+    align-self: flex-start;
+    max-width: 100%;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--color-border-hover);
+    border-radius: 999px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .sorts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sorts .bz-chip {
+    flex-shrink: 0;
+    border-color: transparent;
+    white-space: nowrap;
+  }
+
+  .sorts .bz-chip:not(.is-active):hover {
+    border-color: transparent;
+    background: var(--color-bg-elevated);
+  }
+
+  .sorts [hidden] {
+    display: none;
+  }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+  }
+
+  .select {
+    appearance: none;
+    padding: 8px 34px 8px 15px;
+    border: 1px solid var(--color-border-hover);
+    border-radius: 999px;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a09a' stroke-width='3'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 13px center;
+    color: var(--color-text);
+    font: 500 14px/1.2 var(--font-sans);
+    cursor: pointer;
+  }
+
+  .select option {
+    background: var(--color-bg-elevated);
+  }
+
+  .filter-empty {
+    margin-top: 24px;
+    color: var(--color-text-muted);
+  }
+
+  .filter-empty[hidden] {
+    display: none;
+  }
+
+  .more {
+    display: block;
+    margin: 44px auto 0;
+    padding: 14px 26px;
+    font-size: 15px;
+  }
+
+  @media (max-width: 900px) {
+    .artists {
+      margin-top: 24px;
+    }
+    .stories {
+      gap: 14px;
+    }
+    .stories :global(.story) {
+      width: 66px;
+    }
+    .stories :global(img),
+    .stories :global(.story-fallback) {
+      width: 60px;
+      height: 60px;
+    }
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      margin: 24px 0 20px;
+    }
+    .filters .select {
+      flex: 1;
+      min-width: 0;
+      text-overflow: ellipsis;
+    }
+  }
+</style>

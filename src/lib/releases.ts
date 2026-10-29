@@ -30,6 +30,30 @@ export function getToday(): Date {
 
 export { GENRE_CHIPS, chipIdsFor } from './genres';
 
+// Semaines de sorties : du vendredi au jeudi. Le vendredi d'une date : ce jour-là si c'est un vendredi, sinon le précédent
+export function fridayOf(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return addDays(d, -((d.getDay() - 5 + 7) % 7));
+}
+
+export const currentFriday = () => fridayOf(getToday());
+
+// Page d'une semaine : l'accueil pour la semaine en cours, /semaine/AAAA-MM-JJ (son vendredi) pour les précédentes
+export function weekHref(friday: Date): string {
+  return friday >= currentFriday() ? '/BARZ-/' : `/BARZ-/semaine/${format(friday, 'yyyy-MM-dd')}`;
+}
+
+// Vendredi de la plus ancienne sortie en base : les semaines d'avant n'ont pas de page (lu une fois par build)
+let firstFridayPromise: Promise<Date | null> | null = null;
+export function firstFriday(supabase: SupabaseClient<any> | null): Promise<Date | null> {
+  if (!supabase) return Promise.resolve(null);
+  firstFridayPromise ??= (async () => {
+    const { data } = await supabase.from('releases').select('release_date').order('release_date').limit(1);
+    return data?.[0] ? fridayOf(parseISO(data[0].release_date)) : null;
+  })();
+  return firstFridayPromise;
+}
+
 const RELEASE_FIELDS =
   'id, title, slug, release_date, release_type, cover_url, genres, track_count, spotify_id, spotify_url, deezer_url, apple_music_url, metadata, artist:artists!artist_id(id, name, slug, image_url, popularity, lastfm_listeners)';
 
@@ -39,17 +63,24 @@ export async function fetchReleasesBetween(
   to: Date
 ): Promise<ReleaseRow[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('releases')
-    .select(RELEASE_FIELDS)
-    .gte('release_date', format(from, 'yyyy-MM-dd'))
-    .lte('release_date', format(to, 'yyyy-MM-dd'))
-    .order('release_date', { ascending: false });
-  if (error) {
-    console.warn('Lecture des sorties impossible :', error.message);
-    return [];
+  // Par pages de 1 000 lignes, le plafond de PostgREST (sinon un gros vendredi serait tronqué)
+  const rows: ReleaseRow[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase
+      .from('releases')
+      .select(RELEASE_FIELDS)
+      .gte('release_date', format(from, 'yyyy-MM-dd'))
+      .lte('release_date', format(to, 'yyyy-MM-dd'))
+      .order('release_date', { ascending: false })
+      .order('id')
+      .range(offset, offset + 999);
+    if (error) {
+      console.warn('Lecture des sorties impossible :', error.message);
+      return rows;
+    }
+    rows.push(...((data ?? []) as unknown as ReleaseRow[]));
+    if (!data || data.length < 1000) return rows;
   }
-  return (data ?? []) as unknown as ReleaseRow[];
 }
 
 export async function fetchWeeklyReleases(

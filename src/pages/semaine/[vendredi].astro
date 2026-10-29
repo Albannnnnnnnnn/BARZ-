@@ -1,0 +1,19 @@
+---
+// SEMAINES PASSÉES : une page par semaine de sorties (du vendredi au jeudi), depuis la plus ancienne sortie en base
+// jusqu'à la semaine dernière. Adresse : /semaine/AAAA-MM-JJ, le vendredi de la semaine.
+import { addDays, format, parseISO } from 'date-fns';
+import WeekPage from '../../components/WeekPage.astro';
+import { getSupabaseServerSafe } from '../../lib/supabase';
+import { currentFriday, firstFriday } from '../../lib/releases';
+
+export async function getStaticPaths() {
+  const first = await firstFriday(getSupabaseServerSafe());
+  const paths = [];
+  for (let d = first; d && d < currentFriday(); d = addDays(d, 7)) paths.push({ params: { vendredi: format(d, 'yyyy-MM-dd') } });
+  return paths;
+}
+
+const friday = parseISO(Astro.params.vendredi!);
+---
+
+<WeekPage friday={friday} />

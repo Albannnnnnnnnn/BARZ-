@@ -1,7 +1,7 @@
 ---
-// Onglets de la rubrique Sorties : cette semaine, à venir, tout le catalogue
+// Onglets de la rubrique Sorties : cette semaine, à venir (les semaines passées se parcourent depuis l'accueil)
 interface Props {
-  active: 'semaine' | 'a-venir' | 'toutes';
+  active?: 'semaine' | 'a-venir'; // aucun onglet actif sur une semaine passée
   weekCount?: number;
   upcomingCount?: number;
 }
@@ -10,7 +10,6 @@ const { active, weekCount, upcomingCount } = Astro.props;
 const tabs = [
   { id: 'semaine', href: '/BARZ-/', label: 'Cette semaine', count: weekCount },
   { id: 'a-venir', href: '/BARZ-/a-venir', label: 'À venir', count: upcomingCount },
-  { id: 'toutes', href: '/BARZ-/releases', label: 'Toutes', count: undefined },
 ];
 ---
 
