@@ -7,6 +7,7 @@ import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
 import { audience } from '../lib/audience';
+import { normalizeSearch } from '../lib/fuzzy';
 
 const today = getToday();
 const supabase = getSupabaseServerSafe();
@@ -45,7 +46,7 @@ const exploreData = recent.map((r) => ({
   featuring: r.metadata?.featuring ?? [],
 }));
 // On trouve aussi une sortie en cherchant un artiste invité (feat.)
-const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.metadata?.featuring ?? []).join(' ')} ${(r.genres ?? []).join(' ')}`.toLowerCase();
+const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.name ?? ''} ${(r.metadata?.featuring ?? []).join(' ')} ${(r.genres ?? []).join(' ')}`);
 ---
 
 <Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
@@ -111,6 +112,7 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.m
   import { audience, formatAudience } from '../lib/audience';
   import { loadTaste, rank, type RecoRelease, type Taste } from '../scripts/reco';
   import { GENRE_CHIPS } from '../lib/genres';
+  import { searchScore } from '../lib/fuzzy';
 
   // Curseur d'exploration : 4 zones, chacune avec ses disques
   const slider = document.getElementById('cursor') as HTMLInputElement | null;
@@ -221,13 +223,17 @@ const searchText = (r: ReleaseRow) => `${r.title} ${r.artist?.name ?? ''} ${(r.m
   const query = new URLSearchParams(location.search).get('q')?.trim();
   if (query) {
     const results = document.getElementById('results')!;
-    const terms = query.toLowerCase().split(/\s+/);
+    // Tolérant aux espaces, accents et fautes de frappe. Les résultats avec fautes (score ≥ 2)
+    // n'apparaissent que si rien ne correspond tel quel, et du plus proche au plus lointain
+    const items = [...results.querySelectorAll<HTMLElement>('.result')].map((el) => ({ el, score: searchScore(query, el.dataset.search!) }));
+    const limit = items.some((i) => i.score !== null && i.score < 2) ? 1 : Infinity;
     let found = 0;
-    results.querySelectorAll<HTMLElement>('.result').forEach((el) => {
-      const match = terms.every((t) => el.dataset.search!.includes(t));
+    for (const { el, score } of items) {
+      const match = score !== null && score <= limit;
       el.hidden = !match;
+      el.style.order = String(score ?? 0);
       if (match) found++;
-    });
+    }
     document.getElementById('results-query')!.textContent = query;
     document.getElementById('results-empty')!.hidden = found > 0;
     results.hidden = false;
