@@ -1,0 +1,298 @@
+---
+// RETOURS : les membres signalent un bug, proposent une idée ou laissent une remarque.
+// Les retours sont écrits dans la table feedback (supabase/feedback.sql) ; Alban est prévenu par notification
+// et voit tous les retours en bas de cette page, où il change leur statut.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Retours" description="Un bug, une idée, une remarque sur BARZ¡ ? Écris-le ici.">
+  <div class="bz-page feedback">
+    <span class="bz-eyebrow">Ton avis</span>
+    <h1 class="bz-display">Un bug, une <em>idée ?</em></h1>
+    <p class="intro">Ce qui ne marche pas, ce qui manque, ce qui te gêne : chaque message est lu, et sert à décider des prochaines modifications.</p>
+
+    <form id="fb-form" class="form" novalidate>
+      <div class="bz-chips" role="radiogroup" aria-label="Type de retour">
+        <button type="button" class="bz-chip is-active" role="radio" aria-checked="true" data-kind="bug">🐞 Un bug</button>
+        <button type="button" class="bz-chip" role="radio" aria-checked="false" data-kind="idee">💡 Une idée</button>
+        <button type="button" class="bz-chip" role="radio" aria-checked="false" data-kind="remarque">💬 Une remarque</button>
+      </div>
+      <label class="bz-field">
+        <span id="fb-label">Que s’est-il passé ?</span>
+        <textarea class="bz-input" name="body" id="fb-body" rows="6" maxlength="2000" required placeholder="Sur quelle page, ce que tu as fait, ce qui s’est affiché…"></textarea>
+      </label>
+      <p class="bz-notice" id="fb-page" hidden></p>
+      <p id="fb-message" class="bz-notice" hidden></p>
+      <button type="submit" class="bz-btn bz-btn--lime" id="fb-submit">Envoyer</button>
+    </form>
+
+    <section class="block" id="fb-mine" hidden aria-labelledby="mine-title">
+      <div class="bz-section-head"><h2 id="mine-title" class="bz-h2">Tes retours</h2></div>
+      <ul class="list" id="fb-mine-list"></ul>
+    </section>
+
+    <section class="block" id="fb-admin" hidden aria-labelledby="admin-title">
+      <div class="bz-section-head"><h2 id="admin-title" class="bz-h2">Tous les retours</h2></div>
+      <div class="bz-chips" id="fb-filters">
+        <button type="button" class="bz-chip is-active" data-filter="open">À traiter</button>
+        <button type="button" class="bz-chip" data-filter="all">Tous</button>
+        <button type="button" class="bz-chip" data-filter="fait">Faits</button>
+        <button type="button" class="bz-chip" data-filter="ecarte">Écartés</button>
+      </div>
+      <ul class="list" id="fb-admin-list"></ul>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, supabase, escapeHtml, errorText, getSession, timeAgo } from '../scripts/social';
+
+  type Kind = 'bug' | 'idee' | 'remarque';
+  type Status = 'nouveau' | 'prevu' | 'fait' | 'ecarte';
+  type Item = { id: string; kind: Kind; body: string; page: string | null; device: string | null; status: Status; created_at: string; author?: { username: string } | null };
+
+  const KINDS: Record<Kind, { label: string; prompt: string; placeholder: string }> = {
+    bug: { label: '🐞 Bug', prompt: 'Que s’est-il passé ?', placeholder: 'Sur quelle page, ce que tu as fait, ce qui s’est affiché…' },
+    idee: { label: '💡 Idée', prompt: 'Qu’est-ce qui te manque ?', placeholder: 'Une fonction, une rubrique, un réglage…' },
+    remarque: { label: '💬 Remarque', prompt: 'Ta remarque', placeholder: 'Ce qui te plaît, ce qui te gêne, ce qui n’est pas clair…' },
+  };
+  const STATUSES: Record<Status, string> = { nouveau: 'Reçu', prevu: 'Prévu', fait: 'Fait', ecarte: 'Écarté' };
+
+  const form = document.getElementById('fb-form') as HTMLFormElement;
+  const body = document.getElementById('fb-body') as HTMLTextAreaElement;
+  const label = document.getElementById('fb-label')!;
+  const message = document.getElementById('fb-message')!;
+  const submit = document.getElementById('fb-submit') as HTMLButtonElement;
+  let kind: Kind = 'bug';
+
+  // Page d'où vient le membre (lien « Un bug, une idée ? » : ?depuis=/BARZ-/…), jointe au retour
+  const from = new URLSearchParams(location.search).get('depuis');
+  const page = from && from.startsWith(BASE) && !from.startsWith(`${BASE}retours`) ? from.slice(0, 300) : null;
+  if (page) {
+    const note = document.getElementById('fb-page')!;
+    note.textContent = `Page jointe à ton message : ${decodeURIComponent(page.slice(BASE.length - 1))}`;
+    note.hidden = false;
+  }
+
+  const show = (text: string, kindOf: 'error' | 'ok' = 'ok') => {
+    message.textContent = text;
+    message.className = `bz-notice bz-notice--${kindOf}`;
+    message.hidden = false;
+  };
+
+  document.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach((chip) =>
+    chip.addEventListener('click', () => {
+      kind = chip.dataset.kind as Kind;
+      document.querySelectorAll('[data-kind]').forEach((c) => {
+        c.classList.toggle('is-active', c === chip);
+        c.setAttribute('aria-checked', String(c === chip));
+      });
+      label.textContent = KINDS[kind].prompt;
+      body.placeholder = KINDS[kind].placeholder;
+    })
+  );
+
+  const itemHtml = (item: Item, admin: boolean) => `
+    <li class="item">
+      <div class="item-head">
+        <span class="kind">${KINDS[item.kind].label}</span>
+        <span class="meta">${admin ? `${escapeHtml(item.author?.username ? `@${item.author.username}` : 'Sans compte')} · ` : ''}${escapeHtml(timeAgo(item.created_at))}${item.page ? ` · <a href="${escapeHtml(item.page)}">${escapeHtml(decodeURIComponent(item.page.slice(BASE.length - 1)))}</a>` : ''}</span>
+        ${
+          admin
+            ? `<select class="status-select" data-id="${item.id}" aria-label="Statut">${(Object.keys(STATUSES) as Status[])
+                .map((s) => `<option value="${s}"${s === item.status ? ' selected' : ''}>${STATUSES[s]}</option>`)
+                .join('')}</select>`
+            : `<span class="status status--${item.status}">${STATUSES[item.status]}</span>`
+        }
+      </div>
+      <p class="item-body">${escapeHtml(item.body)}</p>
+      ${admin && item.device ? `<p class="device">${escapeHtml(item.device)}</p>` : ''}
+    </li>`;
+
+  async function loadMine(userId: string) {
+    const { data } = await supabase!.from('feedback').select('id, kind, body, page, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+    const items = (data ?? []) as Item[];
+    document.getElementById('fb-mine')!.hidden = !items.length;
+    document.getElementById('fb-mine-list')!.innerHTML = items.map((i) => itemHtml(i, false)).join('');
+  }
+
+  // Vue d'Alban : tous les retours, filtrés par statut
+  let filter = 'open';
+  async function loadAdmin() {
+    let query = supabase!.from('feedback').select('id, kind, body, page, device, status, created_at, author:profiles(username)').order('created_at', { ascending: false }).limit(200);
+    if (filter === 'open') query = query.in('status', ['nouveau', 'prevu']);
+    else if (filter !== 'all') query = query.eq('status', filter);
+    const { data } = await query;
+    const items = (data ?? []) as unknown as Item[];
+    document.getElementById('fb-admin-list')!.innerHTML = items.length ? items.map((i) => itemHtml(i, true)).join('') : '<li class="bz-empty">Rien ici.</li>';
+  }
+
+  document.getElementById('fb-filters')!.addEventListener('click', (event) => {
+    const chip = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]');
+    if (!chip) return;
+    filter = chip.dataset.filter!;
+    document.querySelectorAll('[data-filter]').forEach((c) => c.classList.toggle('is-active', c === chip));
+    loadAdmin();
+  });
+
+  document.getElementById('fb-admin-list')!.addEventListener('change', async (event) => {
+    const select = event.target as HTMLSelectElement;
+    if (!select.matches('.status-select')) return;
+    const { error } = await supabase!.from('feedback').update({ status: select.value }).eq('id', select.dataset.id!);
+    if (error) alert(errorText(error));
+  });
+
+  let session: Awaited<ReturnType<typeof getSession>> = null;
+  getSession().then(async (s) => {
+    session = s;
+    if (!supabase || !s) return;
+    loadMine(s.user.id);
+    const { data: isAdmin } = await supabase.rpc('is_barz_admin');
+    if (isAdmin) {
+      document.getElementById('fb-admin')!.hidden = false;
+      loadAdmin();
+    }
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!supabase) return show('Supabase n’est pas configuré sur ce site.', 'error');
+    const text = body.value.trim();
+    if (text.length < 5) return show('Écris au moins quelques mots.', 'error');
+
+    submit.disabled = true;
+    try {
+      // Identifiant choisi ici : sans compte, la ligne envoyée ne peut pas être relue
+      const id = crypto.randomUUID();
+      const { error } = await supabase.from('feedback').insert({ id, kind, body: text, page, device: navigator.userAgent.slice(0, 300) });
+      if (error) throw error;
+      supabase.functions.invoke('notify', { body: { action: 'feedback', id } }).catch(() => {});
+      body.value = '';
+      show(session ? 'Merci, c’est envoyé ! Tu peux suivre ton retour juste en dessous.' : 'Merci, c’est envoyé !');
+      if (session) loadMine(session.user.id);
+    } catch (err) {
+      show(errorText(err), 'error');
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .feedback {
+    max-width: 760px;
+  }
+
+  .intro {
+    margin: 20px 0 36px;
+    color: var(--color-text-muted);
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form .bz-btn {
+    align-self: flex-start;
+  }
+
+  textarea.bz-input {
+    resize: vertical;
+    min-height: 140px;
+  }
+
+  .block {
+    margin-top: 56px;
+  }
+
+  #fb-filters {
+    margin-bottom: 16px;
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .item {
+    padding: 16px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background: var(--color-paper);
+  }
+
+  .item-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    font-size: 14px;
+  }
+
+  .kind {
+    font-weight: 700;
+  }
+
+  .meta {
+    flex: 1;
+    min-width: 0;
+    color: var(--color-text-muted);
+  }
+
+  .meta a {
+    color: var(--color-accent);
+  }
+
+  .status {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-bg-elevated);
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .status--prevu {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .status--fait {
+    background: #d9ecd2;
+    color: #2b5a1d;
+  }
+
+  .status-select {
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: 600 13px var(--font-sans);
+  }
+
+  .item-body {
+    margin: 10px 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .device {
+    margin: 8px 0 0;
+    color: var(--color-text-dim);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>

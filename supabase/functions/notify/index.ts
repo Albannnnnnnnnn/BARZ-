@@ -2,6 +2,7 @@
 // - friday : la notification du vendredi, personnalisée pour chaque membre abonné.
 //            Appelée par GitHub Actions après la reconstruction du vendredi matin, avec la clé service_role.
 // - test   : une notification de test vers ses propres appareils (appelée depuis le profil).
+// - feedback : prévient Alban d'un nouveau retour (appelée depuis la page Retours, même sans compte).
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
 // Secrets : VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY (dans .env) ; SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis
@@ -13,7 +14,10 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, SERVICE_KEY, { auth: {
 const SITE = 'https://albannnnnnnnnn.github.io/BARZ-/';
 webpush.setVapidDetails(SITE, Deno.env.get('VAPID_PUBLIC_KEY') ?? '', Deno.env.get('VAPID_PRIVATE_KEY') ?? '');
 
-const ORIGINS = ['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322', 'http://localhost:4322'];
+// Alban : reçoit les notifications des retours (même identifiant que is_barz_admin dans supabase/feedback.sql)
+const ADMIN_ID = '1b7ffb47-27e0-47ec-8bf2-1d516f3035dd';
+
+const ORIGINS =['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322', 'http://localhost:4322'];
 type Sub = { endpoint: string; user_id: string; p256dh: string; auth: string };
 type Message = { title: string; body: string; url: string; tag: string };
 
@@ -129,6 +133,32 @@ Deno.serve(async (req) => {
       body: 'Tu recevras une notification le vendredi matin pour les sorties de tes artistes.',
       url: `${SITE}profil`,
       tag: 'test',
+    }));
+    return reply({ sent });
+  }
+
+  if (body.action === 'feedback') {
+    // Appelée par la page Retours juste après l'envoi : prévient Alban, une seule fois par retour récent
+    const id = String(body.id ?? '');
+    if (!/^[0-9a-f-]{36}$/.test(id)) return reply({ error: 'Retour inconnu.' }, 400);
+    const since = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { data: claimed } = await admin
+      .from('feedback')
+      .update({ notified_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('notified_at', null)
+      .gte('created_at', since)
+      .select('kind, body')
+      .maybeSingle();
+    if (!claimed) return reply({ sent: 0 });
+    const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').eq('user_id', ADMIN_ID);
+    const label = { bug: 'Bug signalé', idee: 'Nouvelle idée', remarque: 'Nouvelle remarque' }[claimed.kind as string] ?? 'Nouveau retour';
+    const text = String(claimed.body);
+    const sent = await send((data ?? []) as Sub[], () => ({
+      title: label,
+      body: text.length > 140 ? `${text.slice(0, 139)}…` : text,
+      url: `${SITE}retours`,
+      tag: `feedback-${id}`,
     }));
     return reply({ sent });
   }

@@ -10,7 +10,8 @@
     "sync:listeners": "tsx scripts/sync-listeners.ts",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/lib/db-types.ts",
-    "sync:artists": "tsx scripts/sync-artists.ts"
+    "sync:artists": "tsx scripts/sync-artists.ts",
+    "retours": "tsx scripts/retours.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
