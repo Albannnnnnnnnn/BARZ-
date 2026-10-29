@@ -256,12 +256,13 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
     ($('p-bilan') as HTMLAnchorElement).href = `${BASE}bilan?u=${encodeURIComponent(profile.username)}`;
+    // Chaque compteur ouvre la liste correspondante plus bas
     $('p-stats').innerHTML = [
-      ['Écoutés', listened.length],
-      ['Spin list', spin.length],
-      ['Barz', barz.length],
-      ['Artistes', artists.length],
-    ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
+      ['Écoutés', listened.length, 'listened'],
+      ['Spin list', spin.length, 'spin_list'],
+      ['Barz', barz.length, 'barz'],
+      ['Artistes', artists.length, 'artists'],
+    ].map(([label, value, tab]) => `<div role="button" tabindex="0" data-stat-tab="${tab}" aria-label="Voir : ${label} (${value})"><dt>${label}</dt><dd>${value}</dd></div>`).join('');
 
     $('dna-title').textContent = isMe ? 'Ton ADN musical' : `L’ADN musical de ${profile.display_name}`;
     const all = [...listened.map((l) => l.release), ...spin.map((s) => s.release), ...barz.map((b) => b.release).filter((r): r is ReleaseLite => !!r)];
@@ -321,6 +322,19 @@ import InstallApp from '../components/InstallApp.astro';
           t.setAttribute('aria-selected', String(t === tab));
         });
         renderTab(tab.dataset.tab!);
+      });
+      const openStat = (event: Event) => {
+        const stat = (event.target as HTMLElement).closest<HTMLElement>('[data-stat-tab]');
+        if (!stat) return;
+        $('p-tabs').querySelector<HTMLButtonElement>(`[data-tab="${stat.dataset.statTab}"]`)?.click();
+        $('p-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      $('p-stats').addEventListener('click', openStat);
+      $('p-stats').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openStat(event);
+        }
       });
       wireBarzActions($('p-collection'), load);
       wireFollowButtons($('p-collection'));
@@ -1014,6 +1028,20 @@ import InstallApp from '../components/InstallApp.astro';
     flex-direction: column-reverse;
     align-items: center;
     gap: 6px;
+    padding: 6px 10px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+
+  /* La barre du haut reste collée en haut : les onglets s'arrêtent juste en dessous */
+  #p-tabs {
+    scroll-margin-top: 110px;
+  }
+
+  .stats :global(div:hover),
+  .stats :global(div:focus-visible) {
+    background: var(--color-bg-hover);
   }
 
   .stats :global(dd) {
