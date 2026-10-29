@@ -1,0 +1,114 @@
+---
+// Bandeau de notification dans l'appli : quand une notification arrive alors que BARZ¡ est ouvert et visible,
+// le service worker (public/sw.js) l'envoie ici au lieu de l'afficher sur le téléphone.
+---
+
+<a class="push-toast" id="push-toast" href="/BARZ-/" role="status" aria-live="polite" hidden>
+  <img src="/BARZ-/icon-192.png" alt="" width="40" height="40" />
+  <span class="push-text">
+    <b id="push-toast-title"></b>
+    <span id="push-toast-body"></span>
+  </span>
+  <button type="button" class="push-close" id="push-toast-close" aria-label="Fermer">×</button>
+</a>
+
+<script>
+  const toast = document.getElementById('push-toast') as HTMLAnchorElement;
+  let timer = 0;
+
+  const hide = () => {
+    toast.classList.remove('is-visible');
+    window.setTimeout(() => (toast.hidden = true), 250);
+  };
+
+  navigator.serviceWorker?.addEventListener('message', (event) => {
+    const data = event.data as { type?: string; title?: string; body?: string; url?: string } | null;
+    if (data?.type !== 'barz-push') return;
+    document.getElementById('push-toast-title')!.textContent = data.title ?? 'BARZ¡';
+    document.getElementById('push-toast-body')!.textContent = data.body ?? '';
+    toast.href = data.url ?? '/BARZ-/';
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+    window.clearTimeout(timer);
+    timer = window.setTimeout(hide, 10_000);
+  });
+
+  document.getElementById('push-toast-close')!.addEventListener('click', (event) => {
+    event.preventDefault();
+    hide();
+  });
+</script>
+
+<style>
+  .push-toast {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: min(420px, calc(100vw - 32px));
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: var(--color-paper);
+    box-shadow: 0 12px 32px rgba(20, 24, 60, 0.18);
+    color: var(--color-text);
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .push-toast.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  .push-toast[hidden] {
+    display: none;
+  }
+
+  .push-toast img {
+    flex-shrink: 0;
+    border-radius: 10px;
+  }
+
+  .push-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .push-text b {
+    font-size: 15px;
+  }
+
+  .push-text span {
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .push-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    font: 400 22px/1 var(--font-sans);
+    cursor: pointer;
+  }
+
+  @media (max-width: 900px) {
+    .push-toast {
+      top: auto;
+      right: 16px;
+      bottom: 96px; /* au-dessus de la barre de navigation du bas */
+      transform: translateY(12px);
+    }
+  }
+</style>

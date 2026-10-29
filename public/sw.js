@@ -2,7 +2,8 @@
 // - Pages : le réseau d'abord (le site change deux fois par jour), sinon la dernière version vue, sinon la page hors ligne
 // - Fichiers de /_astro/ (noms qui changent à chaque version), icônes : gardés en cache
 // - Supabase, Spotify, Deezer… ne passent jamais par ce cache
-// - Notifications (supabase/functions/notify) : affichage, puis ouverture de la bonne page au clic
+// - Notifications (supabase/functions/notify) : bandeau dans l'appli si elle est ouverte, sinon notification du téléphone ;
+//   au clic, ouverture de la bonne page
 const VERSION = 'barz-v2';
 const BASE = '/BARZ-/';
 const OFFLINE = `${BASE}hors-ligne/`;
@@ -62,13 +63,23 @@ self.addEventListener('push', (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : '' };
   }
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'BARZ¡', {
-      body: data.body || '',
+  const message = { type: 'barz-push', title: data.title || 'BARZ¡', body: data.body || '', url: data.url || BASE };
+  const notify = () =>
+    self.registration.showNotification(message.title, {
+      body: message.body,
       icon: `${BASE}icon-192.png`,
       badge: `${BASE}favicon.png`,
       tag: data.tag || 'barz',
-      data: { url: data.url || BASE },
+      data: { url: message.url },
+    });
+  // Appli ouverte et visible : bandeau dans l'appli (src/components/PushToast.astro) plutôt qu'une notification du téléphone.
+  // Sur iPhone et iPad, Apple exige une notification à chaque envoi (sinon il coupe l'abonnement) : les deux.
+  const apple = /iphone|ipad|ipod|macintosh/i.test(self.navigator.userAgent) && !/chrome|android/i.test(self.navigator.userAgent);
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const visible = windows.filter((w) => w.visibilityState === 'visible' && w.url.startsWith(self.location.origin + BASE));
+      visible.forEach((w) => w.postMessage(message));
+      return visible.length && !apple ? undefined : notify();
     })
   );
 });
