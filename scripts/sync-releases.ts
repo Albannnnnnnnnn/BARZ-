@@ -465,6 +465,9 @@ async function main() {
   const from = isoDate(new Date(today.getTime() - DAYS_BACK * 86_400_000));
   const to = isoDate(new Date(today.getTime() + DAYS_AHEAD * 86_400_000));
   console.log(`🚀 Sync des sorties du ${from} au ${to}`);
+  // Deezer met les sorties en ligne à minuit selon le pays de la requête : on note celui du serveur et l'heure de départ
+  const infos = await deezerFetch('/infos');
+  console.log(`🌍 Deezer voit ce serveur en ${infos?.country ?? '?'} (${infos?.country_iso ?? '?'}), départ à ${today.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })} (heure de Paris)`);
 
   const watched = readWatchlist();
   // Artistes suivis par au moins un membre (table follows de supabase/discovery.sql, absente avant)
