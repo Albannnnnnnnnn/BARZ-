@@ -1,0 +1,279 @@
+---
+// GUIDE : comment marche BARZ¡ et quels comptes connecter.
+// Montré juste après Bienvenue (?premiere=1, avec ?next= pour la suite), puis retrouvable depuis la barre latérale et le profil.
+import Layout from '../layouts/Layout.astro';
+import InstallApp from '../components/InstallApp.astro';
+
+const STEPS = [
+  {
+    icon: '📅',
+    title: 'Les sorties du vendredi',
+    text: 'L’accueil montre les sorties de la semaine, du vendredi au jeudi. « Pour toi » fait une sélection selon tes goûts, avec quelques disques hors de ta bulle ; « Plus récentes » montre tout, jour par jour. Les semaines passées restent accessibles avec les flèches.',
+    link: { href: '/BARZ-/', label: 'Voir les sorties' },
+  },
+  {
+    icon: '🎧',
+    title: 'Sur la fiche d’un disque',
+    text: '« + Spin list » le met de côté pour plus tard, « ✓ Écouté » le range dans tes écoutes. Tu peux aussi le noter sur 10 et écrire ton Barz : ton avis en une phrase, visible par la communauté.',
+  },
+  {
+    icon: '⭐',
+    title: 'Suis tes artistes',
+    text: 'Le bouton « Suivre » sous un artiste fait remonter ses sorties en premier, affine tes recommandations et te prévient quand il sort quelque chose (si les notifications sont activées).',
+    link: { href: '/BARZ-/artistes', label: 'Parcourir les artistes' },
+  },
+  {
+    icon: '🧭',
+    title: 'Sors de ta bulle',
+    text: 'Chaque semaine, un défi te propose un disque loin de tes habitudes : écoute-le, puis marque-le comme écouté ou note-le, et un nouveau défi arrive. Dans Explorer, le curseur va de tes habitudes à l’inconnu, et le Rabbit Hole t’emmène d’artiste en artiste.',
+    link: { href: '/BARZ-/search', label: 'Explorer' },
+  },
+  {
+    icon: '👥',
+    title: 'Avec tes amis',
+    text: 'Ajoute tes amis depuis ton profil, en cherchant leur pseudo. Sur le profil d’un ami, « Pour vous deux » montre les sorties qui vous plairaient à tous les deux. Dans la Communauté, aime et réponds aux Barz des autres membres.',
+    link: { href: '/BARZ-/commu', label: 'Voir la Communauté' },
+  },
+];
+
+const ACCOUNTS = [
+  {
+    name: 'Notifications',
+    tag: 'Recommandé',
+    text: 'Sorties de tes artistes, demandes d’ami et nouveautés du vendredi matin. À activer sur chaque appareil. Sur iPhone, installe d’abord l’appli (ci-dessous) : les notifications ne marchent que depuis son icône.',
+    href: '/BARZ-/profil#p-push',
+    action: 'Activer',
+  },
+  {
+    name: 'Last.fm',
+    tag: 'Si tu l’utilises',
+    text: 'Si Last.fm enregistre déjà tes écoutes (Spotify, Deezer, Apple Music…), donne simplement ton pseudo, sans mot de passe : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait le lundi et le vendredi matin.',
+    href: '/BARZ-/profil#p-lastfm',
+    action: 'Ajouter mon pseudo',
+  },
+  {
+    name: 'Spotify',
+    tag: 'Facultatif',
+    text: 'Pour montrer à tes amis ce que tu écoutes en ce moment. Tu choisis ensuite si tu partages ton écoute en direct, et tu peux te déconnecter quand tu veux.',
+    href: '/BARZ-/profil#p-spotify',
+    action: 'Connecter',
+  },
+];
+---
+
+<Layout title="Guide" description="Comment marche BARZ¡ et quels comptes connecter.">
+  <div class="bz-page guide">
+    <span class="bz-eyebrow" id="guide-eyebrow">Guide</span>
+    <h1 class="bz-display">Comment ça <em>marche ?</em></h1>
+    <p class="lead">BARZ¡, c’est l’appli du vendredi : les nouvelles sorties chaque semaine, des découvertes hors de ta bulle, et l’avis de tes amis. En deux minutes :</p>
+
+    <ol class="steps">
+      {STEPS.map((step, i) => (
+        <li class="step">
+          <span class="step-icon" aria-hidden="true">{step.icon}</span>
+          <div>
+            <h2><span class="step-num">{i + 1}.</span> {step.title}</h2>
+            <p>{step.text}</p>
+            {step.link && <a class="bz-link step-link" href={step.link.href}>{step.link.label} →</a>}
+          </div>
+        </li>
+      ))}
+    </ol>
+
+    <section class="accounts" aria-labelledby="accounts-title">
+      <div class="bz-section-head"><h2 id="accounts-title" class="bz-h2">Comptes à connecter</h2></div>
+      <p class="lead small">Rien n’est obligatoire. Tout se règle dans ton profil, et se défait aussi facilement.</p>
+      <div class="account-grid">
+        {ACCOUNTS.map((a) => (
+          <article class="account">
+            <div class="account-head">
+              <h3>{a.name}</h3>
+              <span class:list={['tag', { 'tag--main': a.tag === 'Recommandé' }]}>{a.tag}</span>
+            </div>
+            <p>{a.text}</p>
+            <a class="bz-btn bz-btn--outline bz-btn--small" href={a.href} data-needs-account>{a.action}</a>
+          </article>
+        ))}
+      </div>
+      <div class="install-box">
+        <h3>Installer l’appli</h3>
+        <p>BARZ¡ s’installe sur ton téléphone ou ton ordinateur comme une vraie appli, sans passer par un store.</p>
+        <InstallApp />
+      </div>
+    </section>
+
+    <p class="help">Un bug, une idée, une question ? <a class="bz-link" href="/BARZ-/retours?depuis=/BARZ-/guide">Écris-le ici →</a></p>
+
+    <div class="finish" id="guide-finish" hidden>
+      <a class="bz-btn bz-btn--lime" id="guide-next" href="/BARZ-/">C’est parti →</a>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, getSession, loginUrl } from '../scripts/social';
+
+  // Juste après l'inscription : « dernière étape », puis on file vers la page demandée au départ
+  const params = new URLSearchParams(location.search);
+  if (params.get('premiere') === '1') {
+    document.getElementById('guide-eyebrow')!.textContent = 'Dernière étape';
+    const next = params.get('next');
+    (document.getElementById('guide-next') as HTMLAnchorElement).href = next && next.startsWith(BASE) ? next : BASE;
+    document.getElementById('guide-finish')!.hidden = false;
+  }
+
+  // Sans compte, les réglages du profil passent d'abord par la connexion
+  getSession().then((session) => {
+    if (session) return;
+    document.querySelectorAll<HTMLAnchorElement>('[data-needs-account]').forEach((a) => (a.href = loginUrl()));
+  });
+</script>
+
+<style>
+  .guide {
+    max-width: 900px;
+  }
+
+  .lead {
+    max-width: 640px;
+    margin: 20px 0 0;
+    color: var(--color-text-muted);
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .lead.small {
+    margin: 0 0 24px;
+    font-size: 16px;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .step {
+    display: flex;
+    gap: 18px;
+    padding: 22px 24px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: var(--color-paper);
+  }
+
+  .step-icon {
+    flex-shrink: 0;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .step h2,
+  .account h3,
+  .install-box h3 {
+    margin: 0;
+    font: 700 19px/1.25 var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .step-num {
+    color: var(--color-accent);
+  }
+
+  .step p,
+  .account p,
+  .install-box p {
+    margin: 8px 0 0;
+    color: var(--color-text-muted);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .step-link {
+    display: inline-block;
+    margin-top: 10px;
+  }
+
+  .accounts {
+    margin-top: 56px;
+  }
+
+  .account-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .account {
+    display: flex;
+    flex-direction: column;
+    padding: 20px 22px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: var(--color-paper);
+  }
+
+  .account .bz-btn {
+    align-self: flex-start;
+    margin-top: auto;
+  }
+
+  .account p {
+    margin-bottom: 16px;
+  }
+
+  .account-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .tag {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-bg-elevated);
+    color: var(--color-text-muted);
+    font: 600 12px/1 var(--font-sans);
+  }
+
+  .tag--main {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .install-box {
+    margin-top: 14px;
+    padding: 20px 22px;
+    border: 1px dashed var(--color-border-hover);
+    border-radius: 18px;
+  }
+
+  .install-box :global([data-install]) {
+    margin-top: 14px;
+  }
+
+  .help {
+    margin-top: 40px;
+    color: var(--color-text-muted);
+  }
+
+  .finish {
+    margin-top: 32px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .step {
+      padding: 18px;
+      gap: 14px;
+    }
+  }
+</style>

@@ -122,7 +122,8 @@ import { GENRE_CHIPS } from '../lib/genres';
     const genres = [...chosen].flatMap((id) => GENRE_CHIPS.find((c) => c.id === id)?.genres ?? []);
     try {
       await updateMyProfile({ favorite_genres: genres, onboarded: true });
-      location.href = next;
+      // Puis le guide (comment ça marche, quels comptes connecter), qui mène ensuite à la page demandée
+      location.href = `${BASE}guide?premiere=1&next=${encodeURIComponent(next)}`;
     } catch (err) {
       alert(errorText(err));
     }

@@ -24,6 +24,7 @@ import InstallApp from '../components/InstallApp.astro';
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
             <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
+            <a class="bz-btn bz-btn--outline" href="/BARZ-/guide">Comment ça marche ?</a>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/retours?depuis=/BARZ-/profil">Un bug, une idée ?</a>
             <InstallApp compact />
           </div>
@@ -101,7 +102,7 @@ import InstallApp from '../components/InstallApp.astro';
 
           <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
             <div class="bz-section-head"><h2 id="lastfm-title" class="bz-h2">Last.fm</h2></div>
-            <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait à chaque synchronisation (vendredi et mardi matin).</p>
+            <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait le lundi et le vendredi matin.</p>
             <form id="lastfm-form" class="lastfm-form">
               <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
               <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
@@ -312,6 +313,16 @@ import InstallApp from '../components/InstallApp.astro';
     if (isMe) renderSpotify(profile).catch((err) => console.warn('Spotify indisponible :', err));
     if (isMe) renderPush().catch((err) => console.warn('Notifications indisponibles :', err));
     watchNowPlaying(profile, isMe, !!session);
+    // Lien du guide (#p-push, #p-lastfm, #p-spotify) : ces sections n'apparaissent qu'une fois chargées
+    if (isMe && /^#p-[a-z]+$/.test(location.hash)) {
+      const target = document.querySelector<HTMLElement>(location.hash);
+      let tries = 0;
+      const reveal = () => {
+        if (target && !target.hidden) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        else if (tries++ < 20) setTimeout(reveal, 150);
+      };
+      reveal();
+    }
 
     if (!wired) {
       wired = true;
