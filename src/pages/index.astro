@@ -1,7 +1,7 @@
 ---
 // PAGE SORTIES (cette semaine) : nouveautés depuis la dernière visite, défi de la semaine,
 // artistes suivis en tête, puis toutes les sorties triées et filtrables
-import { addDays, format, getISOWeek } from 'date-fns';
+import { addDays, format, getISOWeek, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
@@ -43,7 +43,9 @@ const weekData = sorted.map((r) => ({
   featuring: r.metadata?.featuring ?? [],
   title: r.title,
   slug: r.slug,
+  date: r.release_date,
 }));
+const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', { locale: fr });
 ---
 
 <Layout title="Sorties" description="Les sorties musicales de la semaine, triées pour toi.">
@@ -79,6 +81,7 @@ const weekData = sorted.map((r) => ({
           <div class="sorts" role="group" aria-label="Trier">
             <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
             <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
+            <button type="button" class="bz-chip" data-sort="date" aria-pressed="false">Plus récentes</button>
             <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
           </div>
           <span class="sep" aria-hidden="true"></span>
@@ -108,6 +111,7 @@ const weekData = sorted.map((r) => ({
               chips={chipIdsFor(r.genres)}
               releaseId={r.id}
               type={r.release_type}
+              date={dateOf(r)}
             />
           ))}
         </div>
@@ -130,13 +134,15 @@ const weekData = sorted.map((r) => ({
   import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
   import { normName } from '../lib/feat';
 
-  type WeekRelease = RecoRelease & { title: string; slug: string };
+  type WeekRelease = RecoRelease & { title: string; slug: string; date: string };
 
   const grid = document.getElementById('all-grid');
   const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
   const tiles = new Map([...(grid?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
   const orders: Record<string, string[]> = {
     popular: week.map((r) => r.id),
+    // Les plus récentes d'abord ; le même jour, dans l'ordre « Populaires » (tri stable)
+    date: [...week].sort((a, b) => b.date.localeCompare(a.date)).map((r) => r.id),
     alpha: [...week].sort((a, b) => a.title.localeCompare(b.title, 'fr')).map((r) => r.id),
   };
 
@@ -145,6 +151,7 @@ const weekData = sorted.map((r) => ({
       b.classList.toggle('is-active', b.dataset.sort === sort);
       b.setAttribute('aria-pressed', String(b.dataset.sort === sort));
     });
+    grid?.classList.toggle('by-date', sort === 'date');
     for (const id of orders[sort] ?? []) {
       const tile = tiles.get(id);
       if (tile) grid!.appendChild(tile);

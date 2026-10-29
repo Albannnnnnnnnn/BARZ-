@@ -13,9 +13,10 @@ interface Props {
   chips?: string[];
   releaseId?: string; // pour le reclassement personnalisé côté navigateur
   type?: string; // album, ep, single : pour le filtre par type
+  date?: string; // date de sortie lisible, affichée seulement dans une grille triée par date (.by-date)
 }
 
-const { title, subtitle, cover, palette, badge, href, checked = false, chips = [], releaseId, type } = Astro.props;
+const { title, subtitle, cover, palette, badge, href, checked = false, chips = [], releaseId, type, date } = Astro.props;
 const Tag = href ? 'a' : 'div';
 ---
 
@@ -33,6 +34,7 @@ const Tag = href ? 'a' : 'div';
     {badge && <span class="bz-score">{badge}</span>}
   </div>
   <span class="tile-sub">{subtitle}</span>
+  {date && <span class="tile-date">{date}</span>}
 </Tag>
 
 <style>
@@ -88,6 +90,17 @@ const Tag = href ? 'a' : 'div';
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .tile-date {
+    display: none;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+
+  :global(.by-date) .tile-date {
+    display: block;
   }
 
   @media (max-width: 900px) {
