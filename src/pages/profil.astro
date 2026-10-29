@@ -39,6 +39,7 @@ import InstallApp from '../components/InstallApp.astro';
         <div class="bz-tiles" id="p-picks-releases"></div>
         <h3 class="sub" id="p-picks-artists-title">Artistes préférés</h3>
         <div class="bz-artists" id="p-picks-artists"></div>
+        <button type="button" class="bz-btn bz-btn--outline bz-btn--small picks-more" id="p-picks-more" hidden>Voir tous les artistes</button>
       </section>
 
       <section class="block" id="p-blend" hidden aria-labelledby="blend-title">
@@ -618,10 +619,15 @@ import InstallApp from '../components/InstallApp.astro';
   // ============================================================
   // COUPS DE CŒUR et POUR VOUS DEUX
   // ============================================================
+  const PICKS_SHOWN = 6;
+
   async function artistsByIds(ids: string[]): Promise<ArtistLite[]> {
     if (!ids.length || !supabase) return [];
-    const { data } = await supabase.from('artists').select(ARTIST_LITE).in('id', ids);
-    const byId = new Map(((data ?? []) as ArtistLite[]).map((a) => [a.id, a]));
+    // Par paquets de 100 : une longue liste d'identifiants ne tient pas dans une seule adresse
+    const parts = await Promise.all(
+      Array.from({ length: Math.ceil(ids.length / 100) }, (_, i) => supabase!.from('artists').select(ARTIST_LITE).in('id', ids.slice(i * 100, i * 100 + 100)))
+    );
+    const byId = new Map(parts.flatMap((p) => (p.data ?? []) as ArtistLite[]).map((a) => [a.id, a]));
     return ids.map((id) => byId.get(id)).filter((a): a is ArtistLite => !!a);
   }
 
@@ -631,9 +637,20 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-picks-releases').innerHTML = best.map((b) => releaseTileHtml(b.release!, { badge: Number(b.score).toFixed(1) })).join('');
 
     const taste = await tastePromise;
-    const topIds = taste ? [...taste.artistWeights.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id]) => id) : [];
+    // Tous ses artistes préférés, du plus aimé au moins aimé : les 6 premiers, puis « Voir les N artistes »
+    const topIds = taste ? [...taste.artistWeights.entries()].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]).slice(0, 300).map(([id]) => id) : [];
     const artists = await artistsByIds(topIds);
-    $('p-picks-artists').innerHTML = artists.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('');
+    const grid = $('p-picks-artists');
+    grid.innerHTML = artists.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('');
+    grid.classList.toggle('is-collapsed', artists.length > PICKS_SHOWN);
+    const more = $('p-picks-more') as HTMLButtonElement;
+    more.hidden = artists.length <= PICKS_SHOWN;
+    more.textContent = `Voir les ${artists.length} artistes`;
+    more.onclick = () => {
+      const collapsed = grid.classList.toggle('is-collapsed');
+      more.textContent = collapsed ? `Voir les ${artists.length} artistes` : 'Voir moins';
+      if (collapsed) $('p-picks-artists-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
     $('p-picks-artists-title').hidden = !artists.length;
     $('p-picks').hidden = !best.length && !artists.length;
   }
@@ -806,6 +823,19 @@ import InstallApp from '../components/InstallApp.astro';
 
   .block {
     margin-top: 56px;
+  }
+
+  /* Artistes préférés repliés : les 6 premiers seulement */
+  .bz-artists.is-collapsed > :global(:nth-child(n + 7)) {
+    display: none;
+  }
+
+  .picks-more {
+    margin-top: 24px;
+  }
+
+  .picks-more[hidden] {
+    display: none;
   }
 
   .sub {
