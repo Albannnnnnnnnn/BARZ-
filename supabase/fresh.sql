@@ -40,5 +40,5 @@ REVOKE ALL ON FUNCTION barz_call_sync_fresh(TEXT) FROM PUBLIC, anon, authenticat
 
 -- Veille toutes les 15 minutes
 SELECT cron.schedule('barz-veille', '*/15 * * * *', $$ SELECT barz_call_sync_fresh('veille') $$);
--- Synchro complète à minuit heure de Paris : 23h15 UTC en hiver, 22h15 UTC en été (la fonction ne lance que celle qui tombe à 0h)
-SELECT cron.schedule('barz-minuit', '15 22,23 * * *', $$ SELECT barz_call_sync_fresh('minuit') $$);
+-- Synchro complète à 0h05 heure de Paris : 23h05 UTC en hiver, 22h05 UTC en été (la fonction ne lance que celle qui tombe à 0h)
+SELECT cron.schedule('barz-minuit', '5 22,23 * * *', $$ SELECT barz_call_sync_fresh('minuit') $$);

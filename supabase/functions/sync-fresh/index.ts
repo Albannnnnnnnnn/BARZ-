@@ -5,7 +5,7 @@
 //             et le site est reconstruit (au plus une fois toutes les 30 min). La synchro complète
 //             (scripts/sync-releases.ts) repasse ensuite derrière et complète les lignes.
 // - minuit  : lance la synchro complète sur GitHub à minuit heure de Paris, à l'heure (les tâches programmées de
-//             GitHub partent avec beaucoup de retard). pg_cron appelle à 22h15 et 23h15 UTC ; seul l'appel qui
+//             GitHub partent avec beaucoup de retard). pg_cron appelle à 22h05 et 23h05 UTC ; seul l'appel qui
 //             tombe à 0h à Paris lance la synchro (heure d'été comme d'hiver).
 //
 // Déploiement : npx supabase@latest functions deploy sync-fresh --use-api
