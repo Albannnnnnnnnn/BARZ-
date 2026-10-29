@@ -46,6 +46,8 @@ const weekData = sorted.map((r) => ({
   date: r.release_date,
 }));
 const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', { locale: fr });
+// Titres de jour du tri « Plus récentes » (placés et affichés par le script de la page)
+const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 ---
 
 <Layout title="Sorties" description="Les sorties musicales de la semaine, triées pour toi.">
@@ -114,6 +116,9 @@ const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', 
               date={dateOf(r)}
             />
           ))}
+          {days.map((d) => (
+            <h3 class="day-head" data-day={d} hidden>{format(parseISO(d), 'EEEE d MMMM', { locale: fr })}</h3>
+          ))}
         </div>
         <p class="filter-empty" hidden>Aucune sortie ne correspond à ces filtres cette semaine.</p>
         {count > 24 && <button type="button" class="bz-btn bz-btn--outline more" id="show-all">Voir les {count} sorties</button>}
@@ -138,6 +143,9 @@ const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', 
 
   const grid = document.getElementById('all-grid');
   const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
+  const heads = new Map([...(grid?.querySelectorAll<HTMLElement>('.day-head') ?? [])].map((h) => [h.dataset.day!, h]));
+  const dateOfId = new Map(week.map((r) => [r.id, r.date]));
+  let currentSort = 'popular';
   const tiles = new Map([...(grid?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
   const orders: Record<string, string[]> = {
     popular: week.map((r) => r.id),
@@ -151,11 +159,33 @@ const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', 
       b.classList.toggle('is-active', b.dataset.sort === sort);
       b.setAttribute('aria-pressed', String(b.dataset.sort === sort));
     });
-    grid?.classList.toggle('by-date', sort === 'date');
+    currentSort = sort;
+    // « Plus récentes » : un titre avant les sorties de chaque jour, comme dans « À venir »
+    let day = '';
     for (const id of orders[sort] ?? []) {
       const tile = tiles.get(id);
-      if (tile) grid!.appendChild(tile);
+      if (!tile) continue;
+      const head = sort === 'date' && dateOfId.get(id) !== day ? heads.get((day = dateOfId.get(id)!)) : undefined;
+      if (head) grid!.appendChild(head);
+      grid!.appendChild(tile);
     }
+    updateHeads();
+  }
+
+  // Un titre de jour n'apparaît que si une sortie de ce jour est visible (filtres, liste limitée à 24)
+  function updateHeads() {
+    heads.forEach((head) => {
+      let visible = false;
+      if (currentSort === 'date') {
+        for (let el = head.nextElementSibling; el && !el.classList.contains('day-head'); el = el.nextElementSibling) {
+          if (getComputedStyle(el).display !== 'none') {
+            visible = true;
+            break;
+          }
+        }
+      }
+      head.hidden = !visible;
+    });
   }
 
   function applyFilters() {
@@ -169,6 +199,7 @@ const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', 
     });
     const empty = document.querySelector<HTMLElement>('.filter-empty');
     if (empty) empty.hidden = visible > 0;
+    updateHeads();
   }
 
   document.querySelector('.sorts')?.addEventListener('click', (event) => {
@@ -180,6 +211,7 @@ const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', 
   document.getElementById('show-all')?.addEventListener('click', (event) => {
     grid?.classList.remove('is-capped');
     (event.currentTarget as HTMLElement).remove();
+    updateHeads();
   });
 
   // Connecté : la rangée devient celle de ses artistes suivis (ceux qui ont sorti quelque chose d'abord)
@@ -322,7 +354,26 @@ const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', 
 </script>
 
 <style>
-  .grid.is-capped > :global(:nth-child(n + 25 of :not([hidden]))) {
+  .grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden]))) {
+    display: none;
+  }
+
+  .day-head {
+    grid-column: 1 / -1;
+    margin-top: 20px;
+    font: 400 30px/1 var(--font-serif);
+    color: var(--color-text);
+  }
+
+  .day-head:first-child {
+    margin-top: 0;
+  }
+
+  .day-head::first-letter {
+    text-transform: uppercase;
+  }
+
+  .day-head[hidden] {
     display: none;
   }
 

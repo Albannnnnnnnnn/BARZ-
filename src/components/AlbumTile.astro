@@ -13,7 +13,7 @@ interface Props {
   chips?: string[];
   releaseId?: string; // pour le reclassement personnalisé côté navigateur
   type?: string; // album, ep, single : pour le filtre par type
-  date?: string; // date de sortie lisible, affichée seulement dans une grille triée par date (.by-date)
+  date?: string; // date de sortie lisible, sous l'artiste
 }
 
 const { title, subtitle, cover, palette, badge, href, checked = false, chips = [], releaseId, type, date } = Astro.props;
@@ -93,14 +93,9 @@ const Tag = href ? 'a' : 'div';
   }
 
   .tile-date {
-    display: none;
     margin-top: 2px;
     font-size: 13px;
     color: var(--color-text-muted);
-  }
-
-  :global(.by-date) .tile-date {
-    display: block;
   }
 
   @media (max-width: 900px) {
