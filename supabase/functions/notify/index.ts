@@ -3,6 +3,8 @@
 //            Appelée par GitHub Actions après la reconstruction du vendredi matin, avec la clé service_role.
 // - test   : une notification de test vers ses propres appareils (appelée depuis le profil).
 // - feedback : prévient Alban d'un nouveau retour (appelée depuis la page Retours, même sans compte).
+// - friend   : demande d'ami reçue ou acceptée (appelée par un déclencheur de la base, supabase/notifications.sql).
+// - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
 // Secrets : VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY (dans .env) ; SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis
@@ -53,36 +55,75 @@ async function send(subs: Sub[], message: (userId: string) => Message | null): P
   return sent;
 }
 
+// Appels réservés à la base et à GitHub Actions : la passerelle Supabase a déjà vérifié la signature du jeton,
+// il reste à lire son rôle (le texte de la clé injectée dans la fonction diffère de celui du .env)
+function isServiceRole(token: string): boolean {
+  try {
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).role === 'service_role';
+  } catch {
+    return false;
+  }
+}
+
+// Heure, jour de la semaine et date à Paris
+function parisNow() {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: 'numeric', hourCycle: 'h23', weekday: 'short' }).formatToParts(new Date()).map((p) => [p.type, p.value])
+  );
+  return { hour: Number(parts.hour), weekday: parts.weekday, today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date()) };
+}
+
+const subsOf = async (userIds: string[]) =>
+  ((await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').in('user_id', userIds)).data ?? []) as Sub[];
+
 // Nom comparable (mêmes règles que src/lib/feat.ts)
 const normName = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
 const listNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0] ?? '');
 
-async function fridayMessages(userIds: string[]): Promise<Map<string, Message>> {
-  // Date du jour à Paris
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
-  const [{ data: releases }, { data: follows }] = await Promise.all([
-    admin.from('releases').select('slug, artist_id, metadata, artist:artists!artist_id(name)').eq('release_date', today).limit(3000),
-    admin.from('follows').select('user_id, artist_id, artist:artists(name)').in('user_id', userIds),
-  ]);
-  const all = (releases ?? []) as { slug: string; artist_id: string | null; metadata: { featuring?: string[] } | null; artist: { name: string } | null }[];
+type ReleaseRow = { id: string; slug: string; title?: string; artist_id: string | null; metadata: { featuring?: string[] } | null; artist: { name: string } | null };
+
+// Artistes suivis par membre : identifiants et noms comparables (pour les feats)
+async function followsOf(userIds: string[]) {
+  const { data: follows } = await admin.from('follows').select('user_id, artist_id, artist:artists(name)').in('user_id', userIds);
   const byUser = new Map<string, { ids: Set<string>; names: Map<string, string> }>();
-  for (const f of (follows ?? []) as { user_id: string; artist_id: string; artist: { name: string } | null }[]) {
+  for (const f of (follows ?? []) as unknown as { user_id: string; artist_id: string; artist: { name: string } | null }[]) {
     const u = byUser.get(f.user_id) ?? { ids: new Set(), names: new Map() };
     u.ids.add(f.artist_id);
     if (f.artist?.name) u.names.set(normName(f.artist.name), f.artist.name);
     byUser.set(f.user_id, u);
   }
+  return byUser;
+}
+
+// Sorties d'un membre : à son artiste suivi, ou avec un artiste suivi en feat ; et le nom suivi à afficher
+function matchFollowed(all: ReleaseRow[], u: { ids: Set<string>; names: Map<string, string> } | undefined) {
+  if (!u) return { mine: [] as ReleaseRow[], shownName: (_: ReleaseRow) => undefined as string | undefined };
+  const mine = all.filter((r) => (r.artist_id && u.ids.has(r.artist_id)) || (r.metadata?.featuring ?? []).some((n) => u.names.has(normName(n))));
+  const shownName = (r: ReleaseRow) =>
+    r.artist_id && u.ids.has(r.artist_id) ? r.artist?.name : (r.metadata?.featuring ?? []).map((n) => u.names.get(normName(n))).find(Boolean);
+  return { mine, shownName };
+}
+
+// Sorties déjà annoncées, pour ne jamais notifier deux fois
+async function markNotified(rows: { user_id: string; release_id: string }[]) {
+  for (let i = 0; i < rows.length; i += 500) await admin.from('notified_releases').upsert(rows.slice(i, i + 500), { onConflict: 'user_id,release_id', ignoreDuplicates: true });
+}
+
+async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string, Message>; announced: { user_id: string; release_id: string }[] }> {
+  // Date du jour à Paris
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+  const [{ data: releases }, byUser] = await Promise.all([
+    admin.from('releases').select('id, slug, artist_id, metadata, artist:artists!artist_id(name)').eq('release_date', today).limit(3000),
+    followsOf(userIds),
+  ]);
+  const all = (releases ?? []) as unknown as ReleaseRow[];
+  const announced: { user_id: string; release_id: string }[] = [];
 
   const messages = new Map<string, Message>();
   for (const userId of userIds) {
-    const u = byUser.get(userId);
-    // Ses artistes : sorties à leur nom, ou invités en feat
-    const mine = u
-      ? all.filter((r) => (r.artist_id && u.ids.has(r.artist_id)) || (r.metadata?.featuring ?? []).some((n) => u.names.has(normName(n))))
-      : [];
-    // Le nom à afficher : l'artiste principal s'il est suivi, sinon l'artiste suivi invité
-    const shownName = (r: (typeof all)[number]) =>
-      r.artist_id && u!.ids.has(r.artist_id) ? r.artist?.name : (r.metadata?.featuring ?? []).map((n) => u!.names.get(normName(n))).find(Boolean);
+    // Ses artistes : sorties à leur nom, ou invités en feat ; le nom affiché est celui de l'artiste suivi
+    const { mine, shownName } = matchFollowed(all, byUser.get(userId));
+    for (const r of mine) announced.push({ user_id: userId, release_id: r.id });
     const artists = [...new Set(mine.map(shownName).filter((n): n is string => !!n))];
     if (mine.length) {
       const shown = artists.slice(0, 3);
@@ -102,7 +143,57 @@ async function fridayMessages(userIds: string[]): Promise<Map<string, Message>> 
       });
     }
   }
-  return messages;
+  return { messages, announced };
+}
+
+// Nouvelles sorties des artistes suivis (enregistrées ces 3 derniers jours, déjà sorties), pas encore annoncées
+async function releaseMessages(userIds: string[], today: string): Promise<{ messages: Map<string, Message>; announced: { user_id: string; release_id: string }[] }> {
+  const since = new Date(Date.now() - 3 * 86400_000).toISOString();
+  const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
+  const [{ data: releases }, byUser] = await Promise.all([
+    admin
+      .from('releases')
+      .select('id, slug, title, artist_id, metadata, artist:artists!artist_id(name)')
+      .gte('created_at', since)
+      .gte('release_date', weekAgo)
+      .lte('release_date', today)
+      .limit(5000),
+    followsOf(userIds),
+  ]);
+  const all = (releases ?? []) as unknown as ReleaseRow[];
+  const messages = new Map<string, Message>();
+  const announced: { user_id: string; release_id: string }[] = [];
+  if (!all.length) return { messages, announced };
+  const { data: done } = await admin.from('notified_releases').select('user_id, release_id').in('user_id', userIds).gte('created_at', new Date(Date.now() - 10 * 86400_000).toISOString());
+  const seen = new Set(((done ?? []) as { user_id: string; release_id: string }[]).map((d) => `${d.user_id}:${d.release_id}`));
+
+  for (const userId of userIds) {
+    const { mine, shownName } = matchFollowed(all, byUser.get(userId));
+    const fresh = mine.filter((r) => !seen.has(`${userId}:${r.id}`));
+    if (!fresh.length) continue;
+    for (const r of fresh) announced.push({ user_id: userId, release_id: r.id });
+    if (fresh.length === 1) {
+      const r = fresh[0];
+      const feat = !(r.artist_id && byUser.get(userId)?.ids.has(r.artist_id));
+      messages.set(userId, {
+        title: feat ? `${shownName(r)} en feat` : `Nouveau : ${shownName(r) ?? r.artist?.name}`,
+        body: `« ${r.title ?? 'Nouvelle sortie'} »${feat && r.artist?.name ? ` de ${r.artist.name}` : ''} vient de sortir. À écouter sur BARZ¡.`,
+        url: `${SITE}releases/${r.slug}`,
+        tag: `release-${r.id}`,
+      });
+    } else {
+      const artists = [...new Set(fresh.map(shownName).filter((n): n is string => !!n))];
+      const shown = artists.slice(0, 3);
+      const rest = artists.length - shown.length;
+      messages.set(userId, {
+        title: `${fresh.length} nouvelles sorties de tes artistes`,
+        body: `${listNames(rest > 0 ? [...shown, `${rest} autre${rest > 1 ? 's' : ''}`] : shown)}.`,
+        url: SITE,
+        tag: `releases-${today}`,
+      });
+    }
+  }
+  return { messages, announced };
 }
 
 Deno.serve(async (req) => {
@@ -114,13 +205,48 @@ Deno.serve(async (req) => {
 
   if (body.action === 'friday') {
     // Réservé à GitHub Actions (clé service_role)
-    if (!token || token !== SERVICE_KEY) return reply({ error: 'Non autorisé.' }, 401);
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth');
     const subs = (data ?? []) as Sub[];
     if (!subs.length) return reply({ sent: 0, subscribers: 0 });
-    const messages = await fridayMessages([...new Set(subs.map((s) => s.user_id))]);
+    const { messages, announced } = await fridayMessages([...new Set(subs.map((s) => s.user_id))]);
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
+    await markNotified(announced); // la vérification des sorties ne les annoncera pas une deuxième fois
     return reply({ sent, subscribers: subs.length });
+  }
+
+  if (body.action === 'friend') {
+    // Déclencheur de la table friendships (supabase/notifications.sql)
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const accepted = body.event === 'accepted';
+    const from = String(accepted ? body.addressee : body.requester); // celui qui agit
+    const to = String(accepted ? body.requester : body.addressee); // celui qu'on prévient
+    const { data: who } = await admin.from('profiles').select('username, display_name').eq('id', from).maybeSingle();
+    if (!who) return reply({ sent: 0 });
+    const sent = await send(await subsOf([to]), () => ({
+      title: accepted ? 'Demande acceptée' : 'Nouvelle demande d’ami',
+      body: accepted ? `${who.display_name} (@${who.username}) a accepté ta demande d’ami.` : `${who.display_name} (@${who.username}) veut être ton ami sur BARZ¡.`,
+      url: accepted ? `${SITE}profil?u=${encodeURIComponent(who.username)}` : `${SITE}profil`,
+      tag: `friend-${from}`,
+    }));
+    return reply({ sent });
+  }
+
+  if (body.action === 'releases') {
+    // pg_cron toutes les 15 minutes (supabase/notifications.sql)
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { hour, weekday, today } = parisNow();
+    // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi matin, la notification du vendredi s'en charge
+    if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit' });
+    if (weekday === 'Fri' && hour < 12) return reply({ skipped: 'vendredi matin' });
+    const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth');
+    const subs = (data ?? []) as Sub[];
+    if (!subs.length) return reply({ sent: 0 });
+    const { messages, announced } = await releaseMessages([...new Set(subs.map((s) => s.user_id))], today);
+    if (!announced.length) return reply({ sent: 0 });
+    await markNotified(announced); // avant l'envoi : deux passages rapprochés n'enverront pas deux fois
+    const sent = await send(subs, (userId) => messages.get(userId) ?? null);
+    return reply({ sent, releases: announced.length });
   }
 
   if (body.action === 'test') {
@@ -130,7 +256,7 @@ Deno.serve(async (req) => {
     const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').eq('user_id', me);
     const sent = await send((data ?? []) as Sub[], () => ({
       title: 'Notifications activées',
-      body: 'Tu recevras une notification le vendredi matin pour les sorties de tes artistes.',
+      body: 'Tu seras prévenu des sorties de tes artistes, des demandes d’ami et des nouveautés du vendredi.',
       url: `${SITE}profil`,
       tag: 'test',
     }));
