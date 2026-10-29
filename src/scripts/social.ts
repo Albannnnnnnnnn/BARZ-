@@ -23,6 +23,7 @@ export type Profile = {
   lastfm_username?: string | null;
   share_listening?: boolean;
   avatar_path?: string | null;
+  deezer_user_id?: number | null;
 };
 export type ReleaseLite = {
   id: string;

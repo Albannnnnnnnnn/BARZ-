@@ -88,9 +88,10 @@ import InstallApp from '../components/InstallApp.astro';
 
           <section class="lastfm" id="p-spotify" hidden aria-labelledby="spotify-title">
             <div class="bz-section-head"><h2 id="spotify-title" class="bz-h2">Spotify</h2></div>
-            <p id="spotify-status">Relie ton compte Spotify pour montrer à tes amis ce que tu écoutes en ce moment.</p>
+            <p id="spotify-status">Relie ton compte Spotify : tes artistes préférés serviront à tes recommandations, et tu pourras montrer à tes amis ce que tu écoutes en ce moment.</p>
             <div class="spotify-actions">
               <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="spotify-connect">Connecter Spotify</button>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="spotify-import" hidden>Mettre à jour mes artistes</button>
               <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="spotify-disconnect" hidden>Déconnecter</button>
             </div>
             <label class="share-toggle" id="share-toggle" hidden>
@@ -98,6 +99,21 @@ import InstallApp from '../components/InstallApp.astro';
               <span>Partager mon écoute en direct avec mes amis</span>
             </label>
             <p class="bz-notice" id="spotify-notice" hidden></p>
+          </section>
+
+          <section class="lastfm" id="p-deezer" hidden aria-labelledby="deezer-title">
+            <div class="bz-section-head"><h2 id="deezer-title" class="bz-h2">Deezer</h2></div>
+            <p>Colle le lien de ton profil Deezer : tes artistes favoris serviront à tes recommandations. Dans Deezer : ton profil → Partager → Copier le lien. Tes favoris doivent être publics.</p>
+            <form id="deezer-form" class="lastfm-form">
+              <label class="sr-only" for="deezer-input">Lien du profil Deezer</label>
+              <input id="deezer-input" class="bz-input" name="deezer" maxlength="300" placeholder="https://www.deezer.com/fr/profile/…" autocomplete="off" />
+              <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" id="deezer-submit">Relier</button>
+            </form>
+            <div class="spotify-actions" id="deezer-linked" hidden>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="deezer-refresh">Mettre à jour mes artistes</button>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="deezer-unlink">Délier</button>
+            </div>
+            <p class="bz-notice" id="deezer-status" hidden></p>
           </section>
 
           <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
@@ -160,7 +176,8 @@ import InstallApp from '../components/InstallApp.astro';
   } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
   import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
-  import { nowPlaying, nowPlayingHtml, spotifyAvailable, spotifyDisconnect, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
+  import { nowPlaying, nowPlayingHtml, spotifyAvailable, spotifyDisconnect, spotifyImport, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
+  import { deezerLink, deezerRefresh, deezerUnlink, type DeezerImport } from '../scripts/deezer';
   import { disablePush, enablePush, pushState, testPush } from '../scripts/push';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -233,6 +250,7 @@ import InstallApp from '../components/InstallApp.astro';
     const iFollow = new Set(mine.map((a) => a.id));
 
     if (isMe) {
+      renderDeezer(profile).catch(() => {});
       $('p-lastfm').hidden = false;
       (document.getElementById('lastfm-input') as HTMLInputElement).value = profile.lastfm_username ?? '';
       if (profile.lastfm_username) {
@@ -424,7 +442,7 @@ import InstallApp from '../components/InstallApp.astro';
     if (!spotifyAvailable()) return;
     $('p-spotify').hidden = false;
     if (new URLSearchParams(location.search).get('spotify') === 'ok') showSpotify('Compte Spotify relié ! Active le partage pour que tes amis voient ce que tu écoutes.', 'ok');
-    let status: { connected: boolean; name: string | null };
+    let status: { connected: boolean; name: string | null; importedAt: string | null };
     try {
       status = await spotifyStatus();
     } catch {
@@ -436,9 +454,67 @@ import InstallApp from '../components/InstallApp.astro';
       ? `Relié au compte Spotify${status.name ? ` « ${status.name} »` : ''}.`
       : 'Relie ton compte Spotify pour montrer à tes amis ce que tu écoutes en ce moment.';
     $('spotify-connect').hidden = status.connected;
+    $('spotify-import').hidden = !status.connected;
     $('spotify-disconnect').hidden = !status.connected;
+    // Import de ses artistes : juste après la connexion, puis au plus une fois par semaine
+    const stale = !status.importedAt || Date.now() - Date.parse(status.importedAt) > 7 * 86400_000;
+    if (status.connected && stale) importSpotify(true);
     $('share-toggle').hidden = !status.connected;
     (document.getElementById('share-listening') as HTMLInputElement).checked = !!profile.share_listening;
+  }
+
+  async function importSpotify(silent = false) {
+    const button = $('spotify-import') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const { matched } = await spotifyImport();
+      if (!silent || new URLSearchParams(location.search).get('spotify') === 'ok')
+        showSpotify(matched ? `${matched} artistes importés depuis Spotify : ils servent maintenant à tes recommandations.` : 'Aucun de tes artistes Spotify n’est encore dans le catalogue.', 'ok');
+    } catch (err) {
+      // Compte relié avant l'import : une reconnexion ajoute l'autorisation qui manque
+      showSpotify(errorText(err), 'error');
+      if (/reconnecte/i.test(errorText(err))) $('spotify-connect').hidden = false;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  // Deezer : lien du profil, favoris importés (src/scripts/deezer.ts)
+  async function renderDeezer(profile: Profile) {
+    if (!supabase) return;
+    $('p-deezer').hidden = false;
+    const linked = !!profile.deezer_user_id;
+    $('deezer-linked').hidden = !linked;
+    (document.getElementById('deezer-input') as HTMLInputElement).value = linked ? `https://www.deezer.com/fr/profile/${profile.deezer_user_id}` : '';
+    if (linked) {
+      const { count } = await supabase.from('imported_artists').select('*', { count: 'exact', head: true }).eq('user_id', profile.id).eq('source', 'deezer');
+      showDeezer(`Profil relié : ${count ?? 0} de tes artistes favoris sont dans le catalogue et servent à tes recommandations.`, 'ok');
+    }
+  }
+
+  function showDeezer(text: string, kind: 'ok' | 'error') {
+    $('deezer-status').textContent = text;
+    $('deezer-status').className = `bz-notice bz-notice--${kind}`;
+    $('deezer-status').hidden = false;
+  }
+
+  async function runDeezer(button: HTMLButtonElement, action: () => Promise<DeezerImport>) {
+    button.disabled = true;
+    showDeezer('Import de tes favoris…', 'ok');
+    try {
+      const result = await action();
+      $('deezer-linked').hidden = !result.linked;
+      if (!result.linked) {
+        (document.getElementById('deezer-input') as HTMLInputElement).value = '';
+        showDeezer('Profil Deezer délié.', 'ok');
+      } else {
+        showDeezer(`${result.matched} artistes importés sur ${result.favorites} favoris (seuls ceux du catalogue BARZ¡ sont gardés).`, 'ok');
+      }
+    } catch (err) {
+      showDeezer(errorText(err), 'error');
+    } finally {
+      button.disabled = false;
+    }
   }
 
   function showSpotify(text: string, kind: 'ok' | 'error') {
@@ -449,6 +525,16 @@ import InstallApp from '../components/InstallApp.astro';
 
   function wireSpotify() {
     $('spotify-connect').addEventListener('click', () => startSpotifyLogin(`${BASE}profil`));
+    $('spotify-import').addEventListener('click', () => importSpotify());
+    $('deezer-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const value = (document.getElementById('deezer-input') as HTMLInputElement).value.trim();
+      if (value) runDeezer($('deezer-submit') as HTMLButtonElement, () => deezerLink(value));
+    });
+    $('deezer-refresh').addEventListener('click', (event) => runDeezer(event.currentTarget as HTMLButtonElement, deezerRefresh));
+    $('deezer-unlink').addEventListener('click', (event) => {
+      if (confirm('Délier ton profil Deezer ? Tes artistes importés ne serviront plus à tes recommandations.')) runDeezer(event.currentTarget as HTMLButtonElement, deezerUnlink);
+    });
     $('spotify-disconnect').addEventListener('click', async () => {
       if (!confirm('Déconnecter ton compte Spotify ? Tes amis ne verront plus ce que tu écoutes.')) return;
       try {

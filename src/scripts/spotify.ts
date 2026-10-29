@@ -4,7 +4,8 @@
 import { BASE, escapeHtml, supabase } from './social';
 
 const CLIENT_ID = import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID as string;
-const SCOPES = 'user-read-currently-playing user-read-playback-state';
+// Écoute en direct, puis import de ses artistes (les plus écoutés, ceux qu'il suit) pour les recommandations
+const SCOPES = 'user-read-currently-playing user-read-playback-state user-top-read user-follow-read';
 const PENDING_KEY = 'barz-spotify-pending';
 
 export type NowPlaying = { playing: boolean; title?: string; artists?: string; album?: string; image?: string | null; url?: string | null; progressMs?: number; durationMs?: number };
@@ -55,7 +56,8 @@ export async function finishSpotifyLogin(): Promise<{ next: string }> {
   return { next: pending.next };
 }
 
-export const spotifyStatus = () => call<{ connected: boolean; name: string | null }>({ action: 'status' });
+export const spotifyStatus = () => call<{ connected: boolean; name: string | null; importedAt: string | null }>({ action: 'status' });
+export const spotifyImport = () => call<{ found: number; matched: number }>({ action: 'import' });
 export const spotifyDisconnect = () => call<{ connected: false }>({ action: 'disconnect' });
 
 // Ce qu'écoutent ces membres (la fonction ne répond que pour soi-même et les amis qui partagent)

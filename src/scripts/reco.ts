@@ -74,13 +74,15 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   const ARTIST = 'artist:artists(id, name, genres)';
   const RELEASE = `release:releases(id, genres, artist:artists!artist_id(id, name, genres))`;
 
-  const [profile, follows, listened, spin, barz, lastfm] = await Promise.all([
+  const [profile, follows, listened, spin, barz, lastfm, imported] = await Promise.all([
     isMe ? getMyProfile() : supabase.from('profiles').select('favorite_genres').eq('id', uid).maybeSingle().then((r) => r.data as { favorite_genres?: string[] } | null),
     supabase.from('follows').select(ARTIST).eq('user_id', uid),
     supabase.from('listened').select(RELEASE).eq('user_id', uid),
     supabase.from('spin_list').select(RELEASE).eq('user_id', uid),
     supabase.from('barz').select(`score, ${RELEASE}`).eq('user_id', uid),
     isMe ? supabase.from('lastfm_artists').select(`playcount, ${ARTIST}`).eq('user_id', uid).not('artist_id', 'is', null) : Promise.resolve({ data: [] }),
+    // Artistes importés de Deezer et de Spotify (supabase/music-imports.sql), privés comme Last.fm
+    isMe ? supabase.from('imported_artists').select(`weight, ${ARTIST}`).eq('user_id', uid) : Promise.resolve({ data: [] }),
   ]);
 
   const taste: Taste = {
@@ -128,6 +130,10 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   for (const l of (lastfm.data ?? []) as any[]) {
     addArtist(l.artist, Math.min(3, Math.log10((l.playcount ?? 0) + 1)));
     addGenres(l.artist?.genres, 0.5);
+  }
+  for (const i of (imported.data ?? []) as any[]) {
+    addArtist(i.artist, Math.min(3, Number(i.weight) || 1));
+    addGenres(i.artist?.genres, 0.5);
   }
 
   // Genres : on ne garde que les poids positifs, normalisés

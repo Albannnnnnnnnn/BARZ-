@@ -6,6 +6,7 @@
 // - status      : le compte Spotify du membre est-il relié ?
 // - disconnect  : oublie les jetons et coupe le partage
 // - now-playing { userIds } : ce qu'écoutent ces membres (soi-même, ou des amis qui partagent leur écoute)
+// - import      : ses artistes les plus écoutés et ceux qu'il suit, rapprochés du catalogue (supabase/music-imports.sql)
 //
 // Déploiement (par Alban) : supabase functions deploy spotify
 // Secret : supabase secrets set SPOTIFY_CLIENT_ID=… (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis)
@@ -90,6 +91,53 @@ async function nowPlayingOf(row: TokenRow): Promise<NowPlaying | null> {
   return result;
 }
 
+// Nom réduit à ses lettres et chiffres, sans accents (même règle que barz_compact dans supabase/artist-search.sql)
+const compact = (name: string) => name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+
+// Artistes Spotify du membre → catalogue BARZ¡ (par nom), avec un poids : 3 pour le plus écouté, 2 pour un artiste suivi
+async function importArtists(row: TokenRow): Promise<{ found: number; matched: number } | { error: string; reconnect?: boolean }> {
+  const token = await accessTokenOf(row);
+  if (!token) return { error: 'Accès Spotify retiré : reconnecte ton compte.', reconnect: true };
+  const get = (url: string) => fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+  const weights = new Map<string, number>(); // nom réduit → poids
+  const add = (name: string, weight: number) => {
+    const key = compact(name);
+    if (key) weights.set(key, Math.max(weights.get(key) ?? 0, weight));
+  };
+  const top = await get('https://api.spotify.com/v1/me/top/artists?limit=50&time_range=medium_term');
+  // Compte relié avant l'ajout de ces autorisations : il faut se reconnecter une fois
+  if (top.status === 401 || top.status === 403) return { error: 'Reconnecte Spotify pour autoriser l’import de tes artistes.', reconnect: true };
+  const topItems = ((await top.json().catch(() => ({})))?.items ?? []) as { name: string }[];
+  topItems.forEach((a, i) => add(a.name, 3 - (i / Math.max(1, topItems.length)) * 1.5));
+  let next: string | null = 'https://api.spotify.com/v1/me/following?type=artist&limit=50';
+  for (let page = 0; next && page < 6; page++) {
+    const res = await get(next);
+    if (!res.ok) break;
+    const data = (await res.json().catch(() => ({})))?.artists;
+    for (const a of data?.items ?? []) add(a.name, 2);
+    next = data?.next ?? null;
+  }
+
+  // Rapprochement par nom réduit ; à nom égal, l'artiste le plus écouté du catalogue
+  const keys = [...weights.keys()];
+  const best = new Map<string, { id: string; audience: number }>();
+  for (let i = 0; i < keys.length; i += 100) {
+    const { data } = await admin.from('artists').select('id, search_name, audience').in('search_name', keys.slice(i, i + 100));
+    for (const a of (data ?? []) as { id: string; search_name: string; audience: number | null }[]) {
+      const current = best.get(a.search_name);
+      if (!current || (a.audience ?? 0) > current.audience) best.set(a.search_name, { id: a.id, audience: a.audience ?? 0 });
+    }
+  }
+  const rows = [...best.entries()].map(([key, a]) => ({ user_id: row.user_id, source: 'spotify', artist_id: a.id, weight: weights.get(key)! }));
+  await admin.from('imported_artists').delete().eq('user_id', row.user_id).eq('source', 'spotify');
+  if (rows.length) {
+    const { error } = await admin.from('imported_artists').insert(rows);
+    if (error) return { error: error.message };
+  }
+  return { found: weights.size, matched: rows.length };
+}
+
 Deno.serve(async (req) => {
   const headers = { ...cors(req), 'Content-Type': 'application/json' };
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
@@ -123,12 +171,23 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'status') {
-    const { data } = await admin.from('spotify_tokens').select('spotify_name').eq('user_id', me).maybeSingle();
-    return reply({ connected: !!data, name: data?.spotify_name ?? null });
+    const [{ data }, { data: last }] = await Promise.all([
+      admin.from('spotify_tokens').select('spotify_name').eq('user_id', me).maybeSingle(),
+      admin.from('imported_artists').select('imported_at').eq('user_id', me).eq('source', 'spotify').order('imported_at', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    return reply({ connected: !!data, name: data?.spotify_name ?? null, importedAt: last?.imported_at ?? null });
+  }
+
+  if (body.action === 'import') {
+    const { data: row } = await admin.from('spotify_tokens').select('*').eq('user_id', me).maybeSingle();
+    if (!row) return reply({ error: 'Connecte d’abord ton compte Spotify.', reconnect: true }, 400);
+    const result = await importArtists(row as TokenRow);
+    return 'error' in result ? reply(result, 400) : reply(result);
   }
 
   if (body.action === 'disconnect') {
     await admin.from('spotify_tokens').delete().eq('user_id', me);
+    await admin.from('imported_artists').delete().eq('user_id', me).eq('source', 'spotify');
     await admin.from('profiles').update({ share_listening: false }).eq('id', me);
     return reply({ connected: false });
   }
