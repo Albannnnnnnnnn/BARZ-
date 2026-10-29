@@ -176,6 +176,7 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
 
 <script>
   import { BASE, getSession, loginUrl } from '../scripts/social';
+  import { markGuideSeen } from '../scripts/guide-prompt';
 
   const steps = [...document.querySelectorAll<HTMLElement>('[data-step]')];
   const dots = [...document.querySelectorAll<HTMLButtonElement>('[data-go]')];
@@ -184,15 +185,18 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
   const done = document.getElementById('guide-done') as HTMLAnchorElement;
   const params = new URLSearchParams(location.search);
   const first = params.get('premiere') === '1';
+  // Membre déjà inscrit, envoyé ici à l'ouverture de l'appli (src/scripts/guide-prompt.ts)
+  const back = params.get('retour') === '1';
   const target = params.get('next');
-  const exit = first && target && target.startsWith(BASE) ? target : BASE;
+  const exit = (first || back) && target && target.startsWith(BASE) ? target : BASE;
   let current = 0;
 
   // Juste après l'inscription : « dernière étape » de l'accueil, puis on file vers la page demandée au départ
   if (first) document.getElementById('guide-eyebrow')!.textContent = 'Dernière étape de ton inscription';
+  if (back) document.getElementById('guide-eyebrow')!.textContent = 'Nouveau : le guide de BARZ¡';
   (document.getElementById('guide-skip') as HTMLAnchorElement).href = exit;
   done.href = exit;
-  done.textContent = first ? 'C’est parti →' : 'Terminer';
+  done.textContent = first || back ? 'C’est parti →' : 'Terminer';
 
   function show(index: number, focus = false) {
     current = Math.max(0, Math.min(steps.length - 1, index));
@@ -245,6 +249,9 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
 
   const fromHash = Number(location.hash.match(/^#etape-(\d+)$/)?.[1] ?? 1) - 1;
   show(Number.isFinite(fromHash) ? fromHash : 0);
+
+  // Vu : on ne le remontrera pas à l'ouverture de l'appli (src/scripts/guide-prompt.ts)
+  markGuideSeen().catch(() => {});
 
   // Sans compte, les réglages du profil passent d'abord par la connexion
   getSession().then((session) => {

@@ -101,6 +101,8 @@ const currentPath = Astro.url.pathname;
     <PushToast />
     <script>
       import '../scripts/listen';
+      import { promptGuide } from '../scripts/guide-prompt';
+      promptGuide().catch(() => {});
     </script>
   </body>
 </html>

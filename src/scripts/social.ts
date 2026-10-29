@@ -24,6 +24,7 @@ export type Profile = {
   share_listening?: boolean;
   avatar_path?: string | null;
   deezer_user_id?: number | null;
+  guide_version?: number;
 };
 export type ReleaseLite = {
   id: string;
