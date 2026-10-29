@@ -89,6 +89,18 @@ export function mapGenre(name: string): string | null {
 const DEEZER_MIN_INTERVAL_MS = 110;
 let nextDeezerSlot = 0;
 export const deezerStats = { calls: 0 };
+// DEEZER_VIA_PARIS=1 : appels relayés par la fonction Supabase deezer-proxy, exécutée à Paris, pour que Deezer
+// montre les sorties de minuit heure française (les serveurs GitHub sont aux États-Unis)
+const DEEZER_VIA_PARIS = process.env.DEEZER_VIA_PARIS === '1' && !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_KEY;
+
+function deezerRequest(endpoint: string): Promise<Response> {
+  const signal = AbortSignal.timeout(15_000);
+  if (!DEEZER_VIA_PARIS) return fetch(`https://api.deezer.com${endpoint}`, { signal });
+  return fetch(`${process.env.SUPABASE_URL}/functions/v1/deezer-proxy?path=${encodeURIComponent(endpoint)}`, {
+    headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`, 'x-region': 'eu-west-3' },
+    signal,
+  });
+}
 
 export async function deezerFetch(endpoint: string): Promise<any | null> {
   for (let attempt = 1; attempt <= 5; attempt++) {
@@ -98,10 +110,14 @@ export async function deezerFetch(endpoint: string): Promise<any | null> {
     deezerStats.calls++;
     let res: Response;
     try {
-      res = await fetch(`https://api.deezer.com${endpoint}`, { signal: AbortSignal.timeout(15_000) });
+      res = await deezerRequest(endpoint);
     } catch {
       await sleep(1000 * attempt); // coupure réseau ou délai dépassé
       continue;
+    }
+    // Fonction absente ou clé refusée : on s'arrête plutôt que d'enregistrer une synchro vide
+    if (DEEZER_VIA_PARIS && (res.status === 401 || res.status === 404)) {
+      throw new Error(`Relais Deezer (deezer-proxy) : HTTP ${res.status}. Fonction déployée ?`);
     }
     if (res.status >= 500) {
       await sleep(1000 * attempt);

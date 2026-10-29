@@ -56,8 +56,13 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || (github.event.schedule == '0 6 * * *' && (contains(fromJSON('["Mon","Fri"]'), steps.day.outputs.day)))
         run: npm run sync:artists
 
+      # Passage de minuit et lancements à la main : appels Deezer relayés depuis Paris (fonction deezer-proxy),
+      # sinon Deezer, qui voit un serveur aux États-Unis, cache encore les sorties du jour.
+      # Pas pour les autres passages : environ 9 000 appels par synchro, quota gratuit de 500 000 par mois.
       - name: Run sync script
         run: npm run sync:releases
+        env:
+          DEEZER_VIA_PARIS: ${{ (github.event.schedule == '15 23 * * *' || github.event_name == 'workflow_dispatch') && '1' || '0' }}
 
       # Auditeurs Last.fm (popularité toutes plateformes) : un lot d'artistes à chaque passage
       - name: Sync Last.fm listeners
