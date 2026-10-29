@@ -209,6 +209,8 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
       d.classList.toggle('is-current', i === current);
       d.setAttribute('aria-current', i === current ? 'step' : 'false');
     });
+    // Photo de cette étape et de la suivante chargées tout de suite : le médaillon n'apparaît jamais vide
+    for (const s of steps.slice(current, current + 2)) s.querySelector('img')?.setAttribute('loading', 'eager');
     prev.disabled = current === 0;
     const last = current === steps.length - 1;
     next.hidden = last;
@@ -363,16 +365,15 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
   }
 
   /* Illustration : un médaillon coloré par étape */
+  /* Médaillon : le fond coloré fait un liseré de largeur fixe autour d'une photo carrée.
+     Pas de hauteur en % : certains navigateurs (Safari) l'ignorent dans un bloc carré, la photo débordait */
   .visual {
-    position: relative;
-    display: grid;
-    place-items: center;
-    aspect-ratio: 1;
-    max-width: 340px;
+    box-sizing: border-box;
     width: 100%;
+    max-width: 340px;
     margin: 0 auto;
+    padding: 10px;
     border-radius: 32px;
-    overflow: hidden;
   }
 
   .tone-accent {
@@ -397,10 +398,13 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
 
   /* La photo de l'étape, cadrée dans le médaillon ; le fond coloré fait un liseré */
   .visual img {
-    width: calc(100% - 20px);
-    height: calc(100% - 20px);
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
     border-radius: 24px;
     object-fit: cover;
+    background: rgba(255, 255, 255, 0.25); /* pendant le chargement */
     box-shadow: 0 18px 40px rgba(20, 26, 46, 0.22);
   }
 
@@ -561,11 +565,10 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
     }
     .visual {
       max-width: 220px;
+      padding: 7px;
       border-radius: 26px;
     }
     .visual img {
-      width: calc(100% - 14px);
-      height: calc(100% - 14px);
       border-radius: 20px;
     }
     .points li {
