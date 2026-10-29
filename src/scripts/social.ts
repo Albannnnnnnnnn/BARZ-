@@ -347,7 +347,7 @@ export function releaseTileHtml(r: { title: string; slug: string; cover_url: str
 // ============================================================
 export type FriendStatus = 'none' | 'sent' | 'received' | 'friends';
 export type Friendship = { requester_id: string; addressee_id: string; status: 'pending' | 'accepted'; created_at: string };
-export type FriendEntry = { profile: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_path'>; status: FriendStatus; since: string };
+export type FriendEntry = { profile: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_path' | 'bio'>; status: FriendStatus; since: string };
 
 const pairFilter = (a: string, b: string) => `and(requester_id.eq.${a},addressee_id.eq.${b}),and(requester_id.eq.${b},addressee_id.eq.${a})`;
 
@@ -387,7 +387,7 @@ export async function myFriendships(): Promise<FriendEntry[]> {
   const rows = must(
     await supabase
       .from('friendships')
-      .select('requester_id, addressee_id, status, created_at, requester:profiles!friendships_requester_id_fkey(id, username, display_name, avatar_path), addressee:profiles!friendships_addressee_id_fkey(id, username, display_name, avatar_path)')
+      .select('requester_id, addressee_id, status, created_at, requester:profiles!friendships_requester_id_fkey(id, username, display_name, avatar_path, bio), addressee:profiles!friendships_addressee_id_fkey(id, username, display_name, avatar_path, bio)')
       .or(`requester_id.eq.${me},addressee_id.eq.${me}`)
       .order('created_at', { ascending: false })
   ) as any[];
@@ -401,11 +401,11 @@ export async function myFriendships(): Promise<FriendEntry[]> {
 }
 
 // Recherche d'un membre par pseudo ou nom affiché
-export async function searchMembers(query: string): Promise<Pick<Profile, 'id' | 'username' | 'display_name'>[]> {
+export async function searchMembers(query: string): Promise<Pick<Profile, 'id' | 'username' | 'display_name' | 'bio'>[]> {
   if (!supabase) return [];
   const q = query.trim().replace(/^@/, '').replace(/[%_,()]/g, '');
   if (q.length < 2) return [];
-  return must(await supabase.from('profiles').select('id, username, display_name').or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(8)) as any[];
+  return must(await supabase.from('profiles').select('id, username, display_name, bio').or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(8)) as any[];
 }
 
 // ============================================================

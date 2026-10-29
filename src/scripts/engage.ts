@@ -108,11 +108,11 @@ export async function newsSince(since: Date): Promise<VisitNews | null> {
 // ============================================================
 // DÉFI DE LA SEMAINE
 // ============================================================
-// Lundi de la semaine en cours
+// Vendredi de la semaine en cours : un nouveau défi chaque vendredi, avec les sorties (semaine du vendredi au jeudi)
 export function weekStart(d = new Date()): string {
-  const monday = new Date(d);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  return localDay(monday);
+  const friday = new Date(d);
+  friday.setDate(friday.getDate() - ((friday.getDay() + 2) % 7));
+  return localDay(friday);
 }
 
 export type Challenge = { week: string; release: RecentRelease; reason: string; done: boolean; doneCount: number };
@@ -161,9 +161,11 @@ export async function weeklyChallenge(): Promise<Challenge | null> {
   const uid = session.user.id;
   const week = weekStart();
 
-  // Le disque de la semaine est enregistré au premier affichage ; sans la table, il est recalculé à chaque fois
-  const existing = await supabase.from('challenges').select('release_id').eq('user_id', uid).eq('week_start', week).maybeSingle();
+  // Le disque de la semaine est enregistré au premier affichage ; sans la table, il est recalculé à chaque fois.
+  // gte : un défi enregistré à l'ancien découpage (semaine du lundi) reste valable jusqu'au vendredi suivant
+  const existing = await supabase.from('challenges').select('release_id, week_start').eq('user_id', uid).gte('week_start', week).order('week_start', { ascending: false }).limit(1).maybeSingle();
   const stored = !existing.error;
+  const key = (existing.data?.week_start as string | undefined) ?? week;
   let release = existing.data?.release_id ? await releaseById(existing.data.release_id) : null;
   if (!release) {
     release = await pickRelease(uid, week, taste);
@@ -172,9 +174,9 @@ export async function weeklyChallenge(): Promise<Challenge | null> {
   }
 
   const history = stored ? await challengesOf(uid) : [];
-  const done = history.find((c) => c.week === week)?.done ?? false;
+  const done = history.find((c) => c.week === key)?.done ?? false;
   return {
-    week,
+    week: key,
     release,
     reason: scoreRelease(release, taste, 0.85).reason,
     done,

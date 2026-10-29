@@ -422,6 +422,13 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     showVisit().catch((err) => console.warn('Nouveautés indisponibles :', err));
     showChallenge().catch((err) => console.warn('Défi indisponible :', err));
     showFollowed().catch(() => {});
+    // Retour sur l'accueil (bouton précédent, appli rouverte) : le défi a pu être relevé ou changer de semaine entre-temps
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) showChallenge().catch(() => {});
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') showChallenge().catch(() => {});
+    });
   }
   personalize().catch((err) => console.warn('Personnalisation indisponible :', err));
 </script>

@@ -517,6 +517,12 @@ import InstallApp from '../components/InstallApp.astro';
     friends: `<span class="friend-state">Amis ✓</span><button type="button" class="bz-btn bz-btn--outline" data-friend="remove" data-confirm="1">Retirer</button>`,
   };
 
+  // Nom, @pseudo et, en dessous, la bio : deux membres au même nom se distinguent
+  function memberLinkHtml(m: Pick<Profile, 'username' | 'display_name' | 'bio'>) {
+    const bio = m.bio?.trim();
+    return `<a href="${BASE}profil?u=${encodeURIComponent(m.username)}"><b>${escapeHtml(m.display_name)}</b> <span>@${escapeHtml(m.username)}</span>${bio ? `<small class="member-bio">${escapeHtml(bio)}</small>` : ''}</a>`;
+  }
+
   function friendRowHtml(f: Awaited<ReturnType<typeof myFriendships>>[number]) {
     const actions =
       f.status === 'received'
@@ -531,7 +537,7 @@ import InstallApp from '../components/InstallApp.astro';
       : escapeHtml(f.profile.display_name.slice(0, 1).toUpperCase());
     return `<li data-friend-id="${escapeHtml(f.profile.id)}">
       <span class="friend-face" aria-hidden="true">${face}</span>
-      <a href="${BASE}profil?u=${encodeURIComponent(f.profile.username)}"><b>${escapeHtml(f.profile.display_name)}</b> <span>@${escapeHtml(f.profile.username)}</span></a>
+      ${memberLinkHtml(f.profile)}
       ${actions}
     </li>`;
   }
@@ -584,7 +590,7 @@ import InstallApp from '../components/InstallApp.astro';
       try {
         const members = (await searchMembers(query)).filter((m) => m.id !== current?.id);
         results.innerHTML = members.length
-          ? members.map((m) => `<li><a href="${BASE}profil?u=${encodeURIComponent(m.username)}"><b>${escapeHtml(m.display_name)}</b> <span>@${escapeHtml(m.username)}</span></a><span class="friend-state">Voir le profil →</span></li>`).join('')
+          ? members.map((m) => `<li>${memberLinkHtml(m)}<span class="friend-state">Voir le profil →</span></li>`).join('')
           : '<li class="friend-empty">Aucun membre trouvé.</li>';
       } catch (err) {
         results.innerHTML = `<li class="friend-empty">${escapeHtml(errorText(err))}</li>`;
@@ -836,6 +842,16 @@ import InstallApp from '../components/InstallApp.astro';
   .friend-list :global(a span) {
     color: var(--color-text-muted);
     font-size: 15px;
+  }
+
+  .friend-list :global(.member-bio) {
+    display: block;
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .friend-list :global(.friend-empty) {
