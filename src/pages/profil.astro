@@ -77,7 +77,7 @@ import InstallApp from '../components/InstallApp.astro';
 
           <section class="lastfm" id="p-push" hidden aria-labelledby="push-title">
             <div class="bz-section-head"><h2 id="push-title" class="bz-h2">Notifications</h2></div>
-            <p id="push-status">Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, et le vendredi matin pour les nouveautés.</p>
+            <p id="push-status">Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, quand un ami publie un Barz, et le vendredi matin pour les nouveautés.</p>
             <div class="spotify-actions">
               <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="push-on" hidden>Activer sur cet appareil</button>
               <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-test" hidden>Envoyer un test</button>
@@ -383,8 +383,8 @@ import InstallApp from '../components/InstallApp.astro';
     'needs-install': 'Sur iPhone, les notifications marchent seulement dans l’appli installée : touche Partager dans Safari, puis « Sur l’écran d’accueil », et ouvre BARZ¡ depuis son icône.',
     unsupported: 'Ce navigateur ne gère pas les notifications.',
     denied: 'Les notifications sont bloquées pour BARZ¡ dans les réglages de ton navigateur.',
-    off: 'Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, et le vendredi matin pour les nouveautés.',
-    on: 'Activées sur cet appareil : sorties de tes artistes, demandes d’ami et nouveautés du vendredi.',
+    off: 'Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, quand un ami publie un Barz, et le vendredi matin pour les nouveautés.',
+    on: 'Activées sur cet appareil : sorties de tes artistes, demandes d’ami, Barz de tes amis et nouveautés du vendredi.',
   } as const;
 
   async function renderPush() {

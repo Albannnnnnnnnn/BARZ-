@@ -4,6 +4,7 @@
 // - test   : une notification de test vers ses propres appareils (appelée depuis le profil).
 // - feedback : prévient Alban d'un nouveau retour (appelée depuis la page Retours, même sans compte).
 // - friend   : demande d'ami reçue ou acceptée (appelée par un déclencheur de la base, supabase/notifications.sql).
+// - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
@@ -232,6 +233,33 @@ Deno.serve(async (req) => {
     return reply({ sent });
   }
 
+  if (body.action === 'barz') {
+    // Déclencheur de la table barz : prévient les amis de l'auteur
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { data: b } = await admin
+      .from('barz')
+      .select('user_id, score, body, author:profiles!barz_user_id_fkey(username, display_name), release:releases(slug, title)')
+      .eq('id', String(body.barz))
+      .maybeSingle();
+    const barz = b as unknown as { user_id: string; score: number; body: string; author: { username: string; display_name: string } | null; release: { slug: string; title: string } | null } | null;
+    if (!barz?.author || !barz.release) return reply({ sent: 0 });
+    const { data: links } = await admin
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${barz.user_id},addressee_id.eq.${barz.user_id}`);
+    const friends = (links ?? []).map((f) => (f.requester_id === barz.user_id ? f.addressee_id : f.requester_id));
+    if (!friends.length) return reply({ sent: 0 });
+    const text = barz.body.length > 110 ? `${barz.body.slice(0, 109)}…` : barz.body;
+    const sent = await send(await subsOf(friends), () => ({
+      title: `${barz.author!.display_name} a publié un Barz`,
+      body: `${barz.release!.title} · ${Number(barz.score).toFixed(1)}/10 — « ${text} »`,
+      url: `${SITE}releases/${barz.release!.slug}`,
+      tag: `barz-${String(body.barz)}`,
+    }));
+    return reply({ sent, friends: friends.length });
+  }
+
   if (body.action === 'releases') {
     // pg_cron toutes les 15 minutes (supabase/notifications.sql)
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
@@ -256,7 +284,7 @@ Deno.serve(async (req) => {
     const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').eq('user_id', me);
     const sent = await send((data ?? []) as Sub[], () => ({
       title: 'Notifications activées',
-      body: 'Tu seras prévenu des sorties de tes artistes, des demandes d’ami et des nouveautés du vendredi.',
+      body: 'Tu seras prévenu des sorties de tes artistes, des demandes d’ami, des Barz de tes amis et des nouveautés du vendredi.',
       url: `${SITE}profil`,
       tag: 'test',
     }));
