@@ -10,9 +10,22 @@ import { getSupabaseServerSafe } from '../../lib/supabase';
 import { GENRE_CHIPS, fetchReleasesBetween, type ReleaseRow } from '../../lib/releases';
 import { getReleaseTypeLabel, releaseSubtitle } from '../../lib/utils';
 import { listenMenuHtml } from '../../lib/listen';
+import { normName } from '../../lib/feat';
 
 export async function getStaticPaths() {
-  const all = await fetchReleasesBetween(getSupabaseServerSafe(), new Date('1900-01-01'), new Date('2100-01-01'));
+  const supabase = getSupabaseServerSafe();
+  const all = await fetchReleasesBetween(supabase, new Date('1900-01-01'), new Date('2100-01-01'));
+  // Artistes invités (feat.) retrouvés dans le catalogue par leur nom réduit (colonne search_name, supabase/artist-search.sql) :
+  // leur nom devient un lien vers leur fiche
+  const guests = [...new Set(all.flatMap((r) => r.metadata?.featuring ?? []).map(normName).filter(Boolean))];
+  const guestSlugs = new Map<string, { slug: string; audience: number }>();
+  for (let i = 0; supabase && i < guests.length; i += 200) {
+    const { data } = await supabase.from('artists').select('slug, search_name, audience').in('search_name', guests.slice(i, i + 200));
+    for (const a of (data ?? []) as { slug: string; search_name: string; audience: number | null }[]) {
+      const current = guestSlugs.get(a.search_name);
+      if (!current || (a.audience ?? 0) > current.audience) guestSlugs.set(a.search_name, { slug: a.slug, audience: a.audience ?? 0 });
+    }
+  }
   return all.map((release) => {
     // Sorties proches : genres en commun d'abord, puis dates voisines
     const shared = (r: ReleaseRow) => r.genres?.filter((g) => release.genres?.includes(g)).length ?? 0;
@@ -22,21 +35,22 @@ export async function getStaticPaths() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 6)
       .map(({ r }) => r);
-    return { params: { slug: release.slug }, props: { release, related } };
+    const featLinks = (release.metadata?.featuring ?? []).map((name) => ({ name, slug: guestSlugs.get(normName(name))?.slug ?? null }));
+    return { params: { slug: release.slug }, props: { release, related, featLinks } };
   });
 }
 
 interface Props {
   release: ReleaseRow;
   related: ReleaseRow[];
+  featLinks: { name: string; slug: string | null }[];
 }
 
-const { release, related } = Astro.props;
+const { release, related, featLinks } = Astro.props;
 const artistName = release.artist?.name ?? 'Artiste inconnu';
 const typeLabel = getReleaseTypeLabel(release.release_type);
 const dateLabel = format(parseISO(release.release_date), 'EEEE d MMMM yyyy', { locale: fr });
 const genreLabels = GENRE_CHIPS.filter((c) => c.genres.some((g) => release.genres?.includes(g))).map((c) => c.label);
-const featuring = release.metadata?.featuring ?? [];
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -71,7 +85,18 @@ const jsonLd = {
           {release.artist?.image_url && <img src={release.artist.image_url} alt="" />}
           <span>
             {release.artist ? <a href={`/BARZ-/artiste?a=${release.artist.slug}`}><b>{artistName}</b></a> : <b>{artistName}</b>}
-            {featuring.length > 0 && <> avec {featuring.join(', ')}</>}
+            {featLinks.length > 0 && (
+              <>
+                {' '}avec{' '}
+                {featLinks.map((f, i) => (
+                  <>
+                    {i > 0 && (i === featLinks.length - 1 ? ' et ' : ', ')}
+                    {/* Hors catalogue : une recherche de son nom */}
+                    <a class="feat-link" href={f.slug ? `/BARZ-/artiste?a=${f.slug}` : `/BARZ-/search?q=${encodeURIComponent(f.name)}`}>{f.name}</a>
+                  </>
+                ))}
+              </>
+            )}
           </span>
         </div>
         <dl class="facts">
@@ -385,6 +410,17 @@ const jsonLd = {
 
   .artist b {
     color: var(--color-text);
+  }
+
+  .artist a:hover b,
+  .feat-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .feat-link {
+    color: var(--color-text);
+    font-weight: 600;
   }
 
   .artist img {

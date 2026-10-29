@@ -71,6 +71,8 @@ type Release = {
   genres: Set<string>;
   watched: boolean;
   featuring: string[];
+  // Invités connus de Deezer : ajoutés au catalogue pour que leur nom mène à leur fiche
+  guests?: { name: string; deezerId: number; image: string | null }[];
   upc: string | null;
   artistImage: string | null;
   artistFans: number | null;
@@ -114,6 +116,9 @@ async function deezerAlbumDetail(id: number, watched: boolean, from: string, to:
     genres,
     watched,
     featuring: (a.contributors || []).map((c: any) => c.name).filter((n: string) => n !== a.artist.name),
+    guests: (a.contributors || [])
+      .filter((c: any) => c.id && c.name && c.id !== a.artist.id)
+      .map((c: any) => ({ name: c.name, deezerId: c.id, image: c.picture_xl ?? c.picture_big ?? null })),
     upc: a.upc ?? null,
     artistImage: a.artist.picture_xl ?? null,
     artistFans: null,
@@ -449,6 +454,7 @@ function merge(deezer: Release[], spotify: Release[], announced: Release[] = [])
     existing.watched ||= r.watched;
     for (const g of r.genres) existing.genres.add(g);
     if (!existing.featuring.length) existing.featuring = r.featuring;
+    if (!existing.guests?.length) existing.guests = r.guests;
   };
 
   deezer.forEach(add);
@@ -539,17 +545,19 @@ async function main() {
     must(await supabase.from('artists').delete().not('id', 'is', null), 'Suppression artists');
   }
 
-  // Artistes : une ligne par nom (slug), fusionnée avec ce que le catalogue connaît déjà
-  const artistIds = await saveArtists(
-    releases.map((r) => ({
+  // Artistes : une ligne par nom (slug), fusionnée avec ce que le catalogue connaît déjà.
+  // Les invités (feat.) aussi, sans genre (celui de la sortie n'est pas forcément le leur)
+  const artistIds = await saveArtists([
+    ...releases.map((r) => ({
       name: r.artistName,
       deezer_id: r.artistDeezerId,
       spotify_id: r.spotify?.artistId ?? null,
       image_url: r.artistImage,
       popularity: r.artistFans,
       genres: [...r.genres],
-    }))
-  );
+    })),
+    ...releases.flatMap((r) => (r.guests ?? []).map((g) => ({ name: g.name, deezer_id: g.deezerId, image_url: g.image, genres: [] as string[] }))),
+  ]);
 
   // Sorties : slug stable (artiste + titre + année) pour que Deezer et Spotify mettent à jour la même ligne
   const releaseRows = releases.map((r) => ({
