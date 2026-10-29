@@ -152,6 +152,10 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
           ))}
         </div>
         <p class="filter-empty" hidden>Aucune sortie ne correspond à ces filtres cette semaine.</p>
+        <p class="reco-note" hidden>
+          <span id="reco-count"></span>
+          <button type="button" class="reco-all">Voir toutes les sorties</button>
+        </p>
         {count > 24 && <button type="button" class="bz-btn bz-btn--outline more" id="show-all">Voir les {count} sorties</button>}
         <script type="application/json" id="week-data" set:html={JSON.stringify(weekData)} />
       </section>
@@ -166,7 +170,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
 <script>
   import { BASE, coverHtml, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
-  import { loadTaste, rank, type RecoRelease } from '../scripts/reco';
+  import { loadTaste, rank, scoreRelease, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
   import { normName } from '../lib/feat';
 
@@ -191,16 +195,24 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       b.setAttribute('aria-pressed', String(b.dataset.sort === sort));
     });
     currentSort = sort;
+    // « Pour toi » : seulement la sélection ; les autres sorties sont masquées et rangées après
+    const order = orders[sort] ?? [];
+    const picked = new Set(order);
+    tiles.forEach((tile, id) => tile.classList.toggle('is-out', sort === 'reco' && !picked.has(id)));
     // « Plus récentes » : un titre avant les sorties de chaque jour, comme dans « À venir »
     let day = '';
-    for (const id of orders[sort] ?? []) {
+    for (const id of sort === 'reco' ? [...order, ...orders.popular.filter((i) => !picked.has(i))] : order) {
       const tile = tiles.get(id);
       if (!tile) continue;
       const head = sort === 'date' && dateOfId.get(id) !== day ? heads.get((day = dateOfId.get(id)!)) : undefined;
       if (head) grid!.appendChild(head);
       grid!.appendChild(tile);
     }
-    updateHeads();
+    const note = document.querySelector<HTMLElement>('.reco-note');
+    if (note) note.hidden = sort !== 'reco';
+    const showAll = document.getElementById('show-all');
+    if (showAll) showAll.hidden = sort === 'reco';
+    applyFilters();
   }
 
   // Un titre de jour n'apparaît que si une sortie de ce jour est visible (filtres, liste limitée à 24)
@@ -226,13 +238,14 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     tiles.forEach((tile) => {
       const show = (!genre || tile.dataset.chips!.split(' ').includes(genre)) && (!type || tile.dataset.type === type);
       tile.hidden = !show;
-      if (show) visible++;
+      if (show && !tile.classList.contains('is-out')) visible++;
     });
     const empty = document.querySelector<HTMLElement>('.filter-empty');
     if (empty) empty.hidden = visible > 0;
     updateHeads();
   }
 
+  document.querySelector('.reco-all')?.addEventListener('click', () => applySort('popular'));
   document.querySelector('.sorts')?.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sort]');
     if (button) applySort(button.dataset.sort!);
@@ -295,15 +308,41 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   }
 
   // Connecté avec des goûts : tri « Pour toi » par défaut, avec la raison sous chaque sortie
+  const RECO_SIZE = 20;
+  const RECO_OUTSIDE = 3;
+  const OUTSIDE_MIN_AUDIENCE = 100_000;
   async function personalize() {
     const taste = await loadTaste();
     if (!taste || taste.empty || !grid) return;
-    const ranked = rank(week, taste, 0.15);
-    orders.reco = ranked.map((s) => s.item.id);
-    for (const s of ranked) {
+    // Une vraie sélection, pas un reclassement des centaines de sorties de la semaine : les mieux classées qui ont
+    // une raison (artiste suivi, aimé, proche, genre aimé), et quelques sorties hors de sa bulle glissées dedans
+    const familiar = rank(week, taste, 0.15).filter((s) => s.familiar && s.reason).slice(0, RECO_SIZE - RECO_OUTSIDE);
+    const taken = new Set(familiar.map((s) => s.item.id));
+    // Hors de sa bulle : des artistes assez écoutés pour être une vraie découverte, un par artiste et par genre
+    const outside: Scored<WeekRelease>[] = [];
+    const usedArtists = new Set<string>();
+    const usedReasons = new Set<string>();
+    const candidates = week
+      .filter((r) => !taken.has(r.id) && (r.fans ?? 0) >= OUTSIDE_MIN_AUDIENCE)
+      .map((r) => scoreRelease(r, taste, 0.6))
+      .filter((s) => !s.familiar && s.reason.startsWith('Hors de ta bulle'))
+      .sort((a, b) => b.score - a.score);
+    for (const s of candidates) {
+      if (outside.length >= RECO_OUTSIDE) break;
+      if (usedArtists.has(s.item.artistName) || usedReasons.has(s.reason)) continue;
+      usedArtists.add(s.item.artistName);
+      usedReasons.add(s.reason);
+      outside.push(s);
+    }
+    const picks: Scored<WeekRelease>[] = [...familiar];
+    outside.forEach((s, i) => picks.splice(Math.min(picks.length, 3 + i * 5), 0, s));
+    if (!picks.length) return;
+    orders.reco = picks.map((s) => s.item.id);
+    for (const s of picks) {
       const tile = tiles.get(s.item.id);
       if (s.reason && tile && !tile.querySelector('.bz-reason')) tile.insertAdjacentHTML('beforeend', `<span class="bz-reason">${escapeHtml(s.reason)}</span>`);
     }
+    document.getElementById('reco-count')!.textContent = `Ta sélection : ${picks.length} sorties sur ${week.length}.`;
     document.querySelector<HTMLElement>('[data-sort="reco"]')!.hidden = false;
     applySort('reco');
   }
@@ -388,8 +427,35 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 </script>
 
 <style>
-  .grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden]))) {
+  .grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden], .is-out))) {
     display: none;
+  }
+
+  .grid > :global(.is-out) {
+    display: none;
+  }
+
+  .reco-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 14px;
+    margin-top: 40px;
+    color: var(--color-text-muted);
+  }
+
+  .reco-note[hidden] {
+    display: none;
+  }
+
+  .reco-all {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-accent);
+    font: 600 15px/1.2 var(--font-sans);
+    cursor: pointer;
   }
 
   .day-head {
@@ -708,6 +774,10 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     margin: 44px auto 0;
     padding: 14px 26px;
     font-size: 15px;
+  }
+
+  .more[hidden] {
+    display: none;
   }
 
   @media (max-width: 900px) {
