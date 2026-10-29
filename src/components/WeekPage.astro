@@ -401,11 +401,11 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     const href = `${BASE}releases/${encodeURIComponent(c.release.slug)}`;
     const status = c.done
       ? `<p class="challenge-done">Défi relevé ✓</p>`
-      : `<p class="challenge-how">Écoute-le, puis marque-le comme écouté ou note-le pour relever le défi.</p>`;
+      : `${c.previous ? `<p class="challenge-done">« ${escapeHtml(c.previous)} » : défi relevé ✓ Voici le suivant.</p>` : ''}<p class="challenge-how">Écoute-le, puis marque-le comme écouté ou note-le pour relever le défi.</p>`;
     document.getElementById('challenge')!.innerHTML = `
       <a class="challenge-cover" href="${href}">${coverHtml(c.release.title, c.release.cover_url)}</a>
       <div class="challenge-body">
-        <span class="challenge-eyebrow">Défi de la semaine · Sors de ta bulle</span>
+        <span class="challenge-eyebrow">Défi · Sors de ta bulle</span>
         <h2><a href="${href}">${escapeHtml(c.release.title)}</a></h2>
         <p class="challenge-artist">${escapeHtml(c.release.artistName)}${c.reason ? ` · ${escapeHtml(c.reason)}` : ''}</p>
         ${status}

@@ -115,20 +115,25 @@ export function weekStart(d = new Date()): string {
   return localDay(friday);
 }
 
-export type Challenge = { week: string; release: RecentRelease; reason: string; done: boolean; doneCount: number };
+export type Challenge = { week: string; release: RecentRelease; reason: string; done: boolean; doneCount: number; previous: string | null };
 
 const hash = (text: string) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
-// Un disque déjà sorti, hors de la bulle : ni écouté, ni d'un artiste suivi ou aimé
-async function pickRelease(uid: string, week: string, taste: Taste): Promise<RecentRelease | null> {
+// Un disque déjà sorti, hors de la bulle : ni écouté, ni d'un artiste suivi ou aimé, ni déjà proposé en défi
+async function pickRelease(uid: string, seed: string, taste: Taste, excluded: Set<string>): Promise<RecentRelease | null> {
   const today = localDay(new Date());
   const pool = (await recentReleases()).filter(
-    (r) => r.release_date <= today && r.cover_url && !taste.listened.has(r.id) && !(r.artistId && (taste.followed.has(r.artistId) || (taste.artistWeights.get(r.artistId) ?? 0) > 0))
+    (r) =>
+      r.release_date <= today &&
+      r.cover_url &&
+      !taste.listened.has(r.id) &&
+      !excluded.has(r.id) &&
+      !(r.artistId && (taste.followed.has(r.artistId) || (taste.artistWeights.get(r.artistId) ?? 0) > 0))
   );
   const ranked = rank(pool, taste, 0.85).slice(0, 12);
   if (!ranked.length) return null;
-  // Parmi les meilleurs candidats, un choix qui varie d'un membre et d'une semaine à l'autre
-  return ranked[hash(uid + week) % ranked.length]!.item;
+  // Parmi les meilleurs candidats, un choix qui varie d'un membre et d'un défi à l'autre
+  return ranked[hash(uid + seed) % ranked.length]!.item;
 }
 
 async function releaseById(id: string): Promise<RecentRelease | null> {
@@ -142,7 +147,7 @@ async function releaseById(id: string): Promise<RecentRelease | null> {
 // Défis d'un membre (du plus récent au plus ancien), relevés ou non
 export async function challengesOf(uid: string): Promise<{ week: string; releaseId: string; done: boolean }[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from('challenges').select('week_start, release_id').eq('user_id', uid).order('week_start', { ascending: false });
+  const { data, error } = await supabase.from('challenges').select('week_start, release_id').eq('user_id', uid).order('created_at', { ascending: false });
   if (error || !data?.length) return [];
   const ids = data.map((c) => c.release_id as string);
   const [listened, barz] = await Promise.all([
@@ -153,6 +158,9 @@ export async function challengesOf(uid: string): Promise<{ week: string; release
   return data.map((c) => ({ week: c.week_start as string, releaseId: c.release_id as string, done: done.has(c.release_id as string) }));
 }
 
+// Le défi en cours : le dernier proposé, tant qu'il n'est pas relevé et date de la semaine.
+// Dès qu'il est relevé (écouté ou noté), ou le vendredi suivant, un nouveau disque est tiré et enregistré
+// (supabase/challenges-chain.sql permet plusieurs défis par semaine ; sans lui, le défi relevé reste affiché).
 export async function weeklyChallenge(): Promise<Challenge | null> {
   const session = await getSession();
   if (!session || !supabase) return null;
@@ -161,25 +169,31 @@ export async function weeklyChallenge(): Promise<Challenge | null> {
   const uid = session.user.id;
   const week = weekStart();
 
-  // Le disque de la semaine est enregistré au premier affichage ; sans la table, il est recalculé à chaque fois.
-  // gte : un défi enregistré à l'ancien découpage (semaine du lundi) reste valable jusqu'au vendredi suivant
-  const existing = await supabase.from('challenges').select('release_id, week_start').eq('user_id', uid).gte('week_start', week).order('week_start', { ascending: false }).limit(1).maybeSingle();
-  const stored = !existing.error;
-  const key = (existing.data?.week_start as string | undefined) ?? week;
-  let release = existing.data?.release_id ? await releaseById(existing.data.release_id) : null;
-  if (!release) {
-    release = await pickRelease(uid, week, taste);
-    if (!release) return null;
-    if (stored) await supabase.from('challenges').insert({ user_id: uid, week_start: week, release_id: release.id });
-  }
-
+  const probe = await supabase.from('challenges').select('release_id').eq('user_id', uid).limit(1);
+  const stored = !probe.error;
   const history = stored ? await challengesOf(uid) : [];
-  const done = history.find((c) => c.week === key)?.done ?? false;
-  return {
-    week: key,
+  const doneCount = history.filter((c) => c.done).length;
+  const last = history[0];
+  const current = (release: RecentRelease, weekKey: string, done: boolean, previous: string | null): Challenge => ({
+    week: weekKey,
     release,
     reason: scoreRelease(release, taste, 0.85).reason,
     done,
-    doneCount: history.filter((c) => c.done).length,
-  };
+    doneCount,
+    previous,
+  });
+
+  // gte : un défi enregistré à l'ancien découpage (semaine du lundi) reste valable jusqu'au vendredi suivant
+  const lastRelease = last && last.week >= week ? await releaseById(last.releaseId) : null;
+  if (last && lastRelease && !last.done) return current(lastRelease, last.week, false, null);
+
+  const release = await pickRelease(uid, `${week}:${history.length}`, taste, new Set(history.map((c) => c.releaseId)));
+  if (!release) return lastRelease ? current(lastRelease, last!.week, last!.done, null) : null;
+  if (stored) {
+    const { error } = await supabase.from('challenges').insert({ user_id: uid, week_start: week, release_id: release.id });
+    // Ancienne table (un seul défi par semaine) : on garde le défi relevé à l'écran
+    if (error && lastRelease) return current(lastRelease, last!.week, last!.done, null);
+  }
+  const previous = last?.done && lastRelease ? lastRelease.title : null;
+  return current(release, week, false, previous);
 }

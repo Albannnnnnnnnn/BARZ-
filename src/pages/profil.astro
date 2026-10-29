@@ -18,7 +18,8 @@ import InstallApp from '../components/InstallApp.astro';
         <span class="avatar" id="p-avatar"></span>
         <div class="identity">
           <h1 id="p-name"></h1>
-          <p id="p-bio"></p>
+          <p class="handle" id="p-handle"></p>
+          <p class="bio" id="p-bio"></p>
           <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan">Bilan du mois →</a>
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
@@ -250,7 +251,9 @@ import InstallApp from '../components/InstallApp.astro';
       $('profile-error').hidden = false;
     }
     $('p-name').textContent = profile.display_name;
-    $('p-bio').textContent = [`@${profile.username}`, profile.bio].filter(Boolean).join(' · ');
+    $('p-handle').textContent = `@${profile.username}`;
+    $('p-bio').textContent = profile.bio?.trim() ?? '';
+    $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
     ($('p-bilan') as HTMLAnchorElement).href = `${BASE}bilan?u=${encodeURIComponent(profile.username)}`;
     $('p-stats').innerHTML = [
@@ -729,10 +732,20 @@ import InstallApp from '../components/InstallApp.astro';
 
   .identity p {
     max-width: 380px;
-    margin-top: 14px;
+    margin-top: 6px;
     font-size: 18px;
     line-height: 1.5;
     color: var(--color-text-muted);
+  }
+
+  .identity .handle {
+    margin-top: 14px;
+    font-weight: 600;
+  }
+
+  .identity .bio {
+    color: var(--color-text);
+    white-space: pre-line;
   }
 
   .bilan-link {
