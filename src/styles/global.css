@@ -403,6 +403,13 @@ select.input { cursor: pointer; }
   overflow: hidden;
 }
 
+/* Sur mobile, l'ancien grand espacement des en-têtes laissait un vide au-dessus de la pochette ou de la photo */
+@media (max-width: 900px) {
+  .hero {
+    padding: var(--space-2) 0 var(--space-6);
+  }
+}
+
 .hero::before {
   content: '';
   position: absolute;

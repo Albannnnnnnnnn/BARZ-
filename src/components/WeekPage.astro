@@ -670,12 +670,13 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    margin-top: 16px;
+    margin-top: 6px;
     font-size: 15px;
     font-weight: 600;
   }
 
   .week-nav a {
+    padding: 10px 0; /* zone de clic confortable au doigt */
     color: var(--color-text-muted);
     text-decoration: none;
   }

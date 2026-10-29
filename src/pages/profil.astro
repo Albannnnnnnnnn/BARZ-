@@ -1347,13 +1347,23 @@ import InstallApp from '../components/InstallApp.astro';
     .identity p {
       margin-inline: auto;
     }
+    /* 4 compteurs en 4 colonnes égales : « Artistes » ne déborde plus du cadre */
     .stats {
-      gap: 18px;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px;
       width: 100%;
     }
+    .stats :global(div) {
+      padding: 8px 2px;
+    }
     .stats :global(dd) {
-      font-size: 30px;
+      font-size: 28px;
+    }
+    .stats :global(dt) {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-align: center;
     }
     .layout {
       margin-top: 40px;

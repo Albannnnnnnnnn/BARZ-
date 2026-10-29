@@ -227,7 +227,8 @@
   }
 
   .bz-tiles {
-    grid-template-columns: repeat(2, 1fr);
+    /* minmax(0, …) : un titre très long ne peut plus élargir la colonne (et la page) */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 22px 14px;
   }
 }
@@ -330,17 +331,30 @@
 
 .barz-card footer {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: -10px; /* le texte des boutons reste aligné sur le Barz malgré leur zone de clic */
 }
 
+/* Zone de clic de 40 px (au doigt), la capsule n'apparaît qu'au survol */
 .barz-like,
 .barz-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
   border: 0;
+  border-radius: 999px;
   background: transparent;
   color: var(--color-text-muted);
   font: 500 16px/1 var(--font-sans);
   cursor: pointer;
-  padding: 0;
+}
+
+.barz-like:hover,
+.barz-delete:hover {
+  background: var(--color-bg-hover);
 }
 
 .barz-like.is-liked {
@@ -378,7 +392,8 @@
 }
 
 .barz-replies .barz-delete {
-  margin-top: 4px;
+  min-height: 32px;
+  margin: 2px 0 0 -10px;
   font-size: 13px;
 }
 
@@ -590,5 +605,12 @@
   .bz-artists {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px 14px;
+  }
+}
+
+/* Liens « ← retour » : zone de clic confortable au doigt */
+@media (max-width: 900px) {
+  a.back {
+    padding: 10px 0;
   }
 }

@@ -254,11 +254,34 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     .layout {
       margin-top: 32px;
     }
+    /* Sur mobile : les deux champs sur toute la largeur, la note et « Publier » en dessous */
     .composer {
       flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 16px;
     }
     .me {
       display: none;
+    }
+    .composer-fields {
+      flex-basis: 100%;
+      gap: 0;
+    }
+    .composer-fields input {
+      padding: 10px 0;
+    }
+    .composer .composer-release {
+      border-bottom: 1px solid var(--color-border);
+    }
+    .composer-score {
+      align-items: center;
+    }
+    .composer-score input {
+      width: 64px;
+      padding: 10px 8px;
+    }
+    .composer .bz-btn {
+      margin-left: auto;
     }
   }
 </style>
