@@ -80,27 +80,34 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     {count > 0 ? (
       <section aria-label="Toutes les sorties de la semaine">
         <div class="toolbar">
-          <div class="sorts" role="group" aria-label="Trier">
-            <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
-            <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
-            <button type="button" class="bz-chip" data-sort="date" aria-pressed="false">Plus récentes</button>
-            <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
+          <div class="tool-group">
+            <span class="tool-label" id="sort-label">Trier</span>
+            <div class="sorts" role="group" aria-labelledby="sort-label">
+              <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
+              <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
+              <button type="button" class="bz-chip" data-sort="date" aria-pressed="false">Plus récentes</button>
+              <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
+            </div>
           </div>
-          <span class="sep" aria-hidden="true"></span>
-          <label class="sr-only" for="filter-genre">Genre</label>
-          <select id="filter-genre" class="select">
-            <option value="">Tous les genres</option>
-            {genres.map((c) => <option value={c.id}>{c.label}</option>)}
-          </select>
-          {types.length > 1 && (
-            <>
-              <label class="sr-only" for="filter-type">Type</label>
-              <select id="filter-type" class="select">
-                <option value="">Albums, EP et singles</option>
-                {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
+          <div class="tool-group">
+            <span class="tool-label" aria-hidden="true">Filtrer</span>
+            <div class="filters">
+              <label class="sr-only" for="filter-genre">Genre</label>
+              <select id="filter-genre" class="select">
+                <option value="">Tous les genres</option>
+                {genres.map((c) => <option value={c.id}>{c.label}</option>)}
               </select>
-            </>
-          )}
+              {types.length > 1 && (
+                <>
+                  <label class="sr-only" for="filter-type">Type</label>
+                  <select id="filter-type" class="select">
+                    <option value="">Albums, EP et singles</option>
+                    {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
+                  </select>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         <div id="all-grid" class="bz-tiles grid is-capped">
@@ -558,31 +565,68 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     color: var(--color-accent);
   }
 
+  /* Deux blocs : « Trier » (un seul choix, boutons groupés) à gauche, « Filtrer » (menus) à droite */
   .toolbar {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 32px;
     margin: 36px 0 28px;
-    padding: 12px 0;
+    padding: 16px 0;
     border-top: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
   }
 
-  .sorts {
+  .tool-group {
     display: flex;
+    flex-direction: column;
     gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tool-label {
+    font: 600 11px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+
+  .sorts {
+    display: inline-flex;
+    align-self: flex-start;
+    max-width: 100%;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--color-border-hover);
+    border-radius: 999px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .sorts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sorts .bz-chip {
+    flex-shrink: 0;
+    border-color: transparent;
+    white-space: nowrap;
+  }
+
+  .sorts .bz-chip:not(.is-active):hover {
+    border-color: transparent;
+    background: var(--color-bg-elevated);
   }
 
   .sorts [hidden] {
     display: none;
   }
 
-  .sep {
-    width: 1px;
-    height: 24px;
-    margin: 0 6px;
-    background: var(--color-border);
+  .filters {
+    display: flex;
+    gap: 8px;
   }
 
   .select {
@@ -631,11 +675,15 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       width: 60px;
       height: 60px;
     }
-    .sep {
-      display: none;
-    }
     .toolbar {
+      flex-direction: column;
+      align-items: stretch;
       margin: 24px 0 20px;
+    }
+    .filters .select {
+      flex: 1;
+      min-width: 0;
+      text-overflow: ellipsis;
     }
   }
 </style>
