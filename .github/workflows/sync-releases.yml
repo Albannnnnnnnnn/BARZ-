@@ -1,14 +1,19 @@
 name: Sync Releases
 
 on:
+  # Synchro de minuit (heure de Paris) : lancée à l'heure par Supabase (pg_cron → fonction sync-fresh, mode minuit),
+  # car les tâches programmées de GitHub partent avec des heures de retard. Dans la journée, la veille de sync-fresh
+  # (toutes les 15 min) prend les nouvelles sorties des artistes les plus suivis.
   schedule:
-    # Tous les jours à 23h15 UTC (0h15 en hiver, 1h15 en été) : les sorties de minuit, dès leur mise en ligne
-    - cron: '15 23 * * *'
-    # Tous les jours à 6h UTC (7h/8h en France) : les sorties de minuit que Deezer a ajoutées en retard
-    - cron: '0 6 * * *'
-    # Tous les jours à 18h UTC (19h/20h en France) : les sorties surprises de la journée
-    - cron: '0 18 * * *'
-  workflow_dispatch: # Permet lancement manuel (reconstruit aussi le catalogue)
+    # Lundi et vendredi à 6h UTC (7h/8h en France) : catalogue d'artistes, puis sorties ajoutées en retard par Deezer
+    - cron: '0 6 * * 1,5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'manuel : reconstruit aussi le catalogue ; minuit : sorties seulement (lancé par Supabase)'
+        type: choice
+        options: [manuel, minuit]
+        default: manuel
 
 permissions:
   contents: read
@@ -53,16 +58,16 @@ jobs:
       # Catalogue d'artistes, artistes similaires et import Last.fm (base des recommandations) :
       # plus long et plus stable, reconstruit le lundi et le vendredi matin, ou à la demande
       - name: Sync artist catalog
-        if: github.event_name == 'workflow_dispatch' || (github.event.schedule == '0 6 * * *' && (contains(fromJSON('["Mon","Fri"]'), steps.day.outputs.day)))
+        if: github.event_name == 'schedule' || inputs.mode == 'manuel'
         run: npm run sync:artists
 
-      # Passage de minuit et lancements à la main : appels Deezer relayés depuis Paris (fonction deezer-proxy),
-      # sinon Deezer, qui voit un serveur aux États-Unis, cache encore les sorties du jour.
-      # Pas pour les autres passages : environ 9 000 appels par synchro, quota gratuit de 500 000 par mois.
+      # Appels Deezer relayés depuis Paris (fonction deezer-proxy) : sinon Deezer, qui voit un serveur aux États-Unis,
+      # cache encore les sorties du jour. Sauf le lundi, où l'heure ne compte pas : environ 9 000 appels par synchro,
+      # quota gratuit de 500 000 par mois.
       - name: Run sync script
         run: npm run sync:releases
         env:
-          DEEZER_VIA_PARIS: ${{ (github.event.schedule == '15 23 * * *' || github.event_name == 'workflow_dispatch') && '1' || '0' }}
+          DEEZER_VIA_PARIS: ${{ (github.event_name == 'schedule' && steps.day.outputs.day == 'Mon') && '0' || '1' }}
 
       # Auditeurs Last.fm (popularité toutes plateformes) : un lot d'artistes à chaque passage
       - name: Sync Last.fm listeners

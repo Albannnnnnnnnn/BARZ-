@@ -4,8 +4,9 @@ on:
   push:
     branches: ['main']
   # Le site est statique : il faut le reconstruire pour afficher les sorties qui viennent d'être synchronisées
-  # Après chaque sync (2 fois par jour) : nouvelles sorties + actus fraîches (lues au build).
+  # Après chaque synchro complète : nouvelles sorties + actus fraîches (lues au build).
   # Même si le sync échoue : les sorties déjà en base restent valables et les actus se rafraîchissent.
+  # La veille de Supabase (fonction sync-fresh) lance aussi ce workflow (workflow_dispatch) quand elle trouve du nouveau.
   workflow_run:
     workflows: ['Sync Releases']
     types: [completed]
@@ -79,7 +80,9 @@ jobs:
     steps:
       - name: Envoyer la notification (vendredi matin seulement)
         run: |
-          if [ "$(TZ=Europe/Paris date +%u)" = "5" ] && [ "$(TZ=Europe/Paris date +%H)" -lt 12 ]; then
+          # Entre 7h et 12h : pas après la synchro de minuit, au milieu de la nuit
+          H=$(TZ=Europe/Paris date +%-H)
+          if [ "$(TZ=Europe/Paris date +%u)" = "5" ] && [ "$H" -ge 7 ] && [ "$H" -lt 12 ]; then
             curl -sS -f -X POST "$SUPABASE_URL/functions/v1/notify" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" -H "apikey: $SUPABASE_SERVICE_KEY" \
               -H "Content-Type: application/json" -d '{"action":"friday"}' \

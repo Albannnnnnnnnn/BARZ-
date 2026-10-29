@@ -141,9 +141,13 @@ La clé ne part jamais dans le navigateur.
 
 ### 3. Sync automatique
 
-Le workflow `sync-releases.yml` s'exécute **tous les jours à 6h et 18h UTC** (les sorties ne tombent pas toujours le vendredi) ;
-le catalogue d'artistes est reconstruit le lundi et le vendredi matin. Après chaque sync, `deploy.yml` reconstruit le site
-(même si le sync a échoué, pour rafraîchir les actus) : le site étant statique, c'est ce qui fait apparaître les nouveautés.
+- **Synchro complète** (`sync-releases.yml`) : **tous les jours à minuit heure de Paris**, lancée à l'heure par Supabase
+  (pg_cron → fonction `sync-fresh`, mode `minuit`) ; plus le lundi et le vendredi à 6h UTC, avec la reconstruction du
+  catalogue d'artistes. Les appels Deezer passent par Paris (fonction `deezer-proxy`) pour voir les sorties françaises de minuit.
+- **Veille** (fonction `sync-fresh`, toutes les 15 min) : les sorties du jour de la watchlist, des artistes suivis par les
+  membres, des 300 plus écoutés et des nouveautés Deezer, enregistrées tout de suite. Mise en place : `supabase/fresh.sql`.
+- Après chaque synchro complète, et quand la veille trouve du nouveau (au plus toutes les 30 min), `deploy.yml` reconstruit
+  le site : le site étant statique, c'est ce qui fait apparaître les nouveautés.
 
 Déclencher manuellement : Actions > Sync Releases > Run workflow
 
