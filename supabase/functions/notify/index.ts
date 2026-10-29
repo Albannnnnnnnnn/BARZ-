@@ -74,6 +74,16 @@ function parisNow() {
   return { hour: Number(parts.hour), weekday: parts.weekday, today: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date()) };
 }
 
+// Boîte de notifications de l'appli (la cloche, supabase/inbox.sql) : écrite pour chaque destinataire,
+// qu'il ait activé ou non les notifications du téléphone. On en profite pour oublier celles de plus de 60 jours.
+type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback';
+async function toInbox(kind: Kind, entries: [string, Message][]) {
+  if (!entries.length) return;
+  const rows = entries.map(([user_id, m]) => ({ user_id, kind, title: m.title, body: m.body, url: m.url }));
+  for (let i = 0; i < rows.length; i += 500) await admin.from('notifications').insert(rows.slice(i, i + 500));
+  await admin.from('notifications').delete().lt('created_at', new Date(Date.now() - 60 * 86400_000).toISOString());
+}
+
 const subsOf = async (userIds: string[]) =>
   ((await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').in('user_id', userIds)).data ?? []) as Sub[];
 
@@ -213,6 +223,8 @@ Deno.serve(async (req) => {
     const { messages, announced } = await fridayMessages([...new Set(subs.map((s) => s.user_id))]);
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
     await markNotified(announced); // la vérification des sorties ne les annoncera pas une deuxième fois
+    const withArtists = new Set(announced.map((a) => a.user_id)); // dans la cloche : seulement les sorties de ses artistes
+    await toInbox('friday', [...messages].filter(([userId]) => withArtists.has(userId)));
     return reply({ sent, subscribers: subs.length });
   }
 
@@ -224,12 +236,14 @@ Deno.serve(async (req) => {
     const to = String(accepted ? body.requester : body.addressee); // celui qu'on prévient
     const { data: who } = await admin.from('profiles').select('username, display_name').eq('id', from).maybeSingle();
     if (!who) return reply({ sent: 0 });
-    const sent = await send(await subsOf([to]), () => ({
+    const message: Message = {
       title: accepted ? 'Demande acceptée' : 'Nouvelle demande d’ami',
       body: accepted ? `${who.display_name} (@${who.username}) a accepté ta demande d’ami.` : `${who.display_name} (@${who.username}) veut être ton ami sur BARZ¡.`,
       url: accepted ? `${SITE}profil?u=${encodeURIComponent(who.username)}` : `${SITE}profil`,
       tag: `friend-${from}`,
-    }));
+    };
+    const sent = await send(await subsOf([to]), () => message);
+    await toInbox('friend', [[to, message]]);
     return reply({ sent });
   }
 
@@ -251,12 +265,14 @@ Deno.serve(async (req) => {
     const friends = (links ?? []).map((f) => (f.requester_id === barz.user_id ? f.addressee_id : f.requester_id));
     if (!friends.length) return reply({ sent: 0 });
     const text = barz.body.length > 110 ? `${barz.body.slice(0, 109)}…` : barz.body;
-    const sent = await send(await subsOf(friends), () => ({
+    const message: Message = {
       title: `${barz.author!.display_name} a publié un Barz`,
       body: `${barz.release!.title} · ${Number(barz.score).toFixed(1)}/10 — « ${text} »`,
       url: `${SITE}releases/${barz.release!.slug}`,
       tag: `barz-${String(body.barz)}`,
-    }));
+    };
+    const sent = await send(await subsOf(friends), () => message);
+    await toInbox('barz', friends.map((f) => [f, message] as [string, Message]));
     return reply({ sent, friends: friends.length });
   }
 
@@ -267,13 +283,19 @@ Deno.serve(async (req) => {
     // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi matin, la notification du vendredi s'en charge
     if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit' });
     if (weekday === 'Fri' && hour < 12) return reply({ skipped: 'vendredi matin' });
-    const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth');
+    // Tous les membres qui suivent des artistes : la cloche pour tous, le téléphone pour ceux qui l'ont activé
+    const [{ data }, { data: followers }] = await Promise.all([
+      admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),
+      admin.from('follows').select('user_id').limit(20000),
+    ]);
     const subs = (data ?? []) as Sub[];
-    if (!subs.length) return reply({ sent: 0 });
-    const { messages, announced } = await releaseMessages([...new Set(subs.map((s) => s.user_id))], today);
+    const userIds = [...new Set((followers ?? []).map((f) => f.user_id as string))];
+    if (!userIds.length) return reply({ sent: 0 });
+    const { messages, announced } = await releaseMessages(userIds, today);
     if (!announced.length) return reply({ sent: 0 });
     await markNotified(announced); // avant l'envoi : deux passages rapprochés n'enverront pas deux fois
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
+    await toInbox('release', [...messages]);
     return reply({ sent, releases: announced.length });
   }
 
@@ -308,12 +330,9 @@ Deno.serve(async (req) => {
     const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').eq('user_id', ADMIN_ID);
     const label = { bug: 'Bug signalé', idee: 'Nouvelle idée', remarque: 'Nouvelle remarque' }[claimed.kind as string] ?? 'Nouveau retour';
     const text = String(claimed.body);
-    const sent = await send((data ?? []) as Sub[], () => ({
-      title: label,
-      body: text.length > 140 ? `${text.slice(0, 139)}…` : text,
-      url: `${SITE}retours`,
-      tag: `feedback-${id}`,
-    }));
+    const message: Message = { title: label, body: text.length > 140 ? `${text.slice(0, 139)}…` : text, url: `${SITE}retours`, tag: `feedback-${id}` };
+    const sent = await send((data ?? []) as Sub[], () => message);
+    await toInbox('feedback', [[ADMIN_ID, message]]);
     return reply({ sent });
   }
 
