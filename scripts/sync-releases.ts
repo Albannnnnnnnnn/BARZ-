@@ -58,6 +58,15 @@ const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
 const JUNK_TITLE = /slowed|sped up|reverb|vocals only|instrumental|karaoke|8d audio|nightcore/i;
 
+// Enregistrements live (concert, Tiny Desk, session…) : classés « live », même si Deezer les donne en album ou EP.
+// Le titre du disque le dit, ou chacun de ses morceaux porte la mention « (Live…) ».
+const LIVE_TITLE = /\blive (at|from|in|on|à|au|aux|@|las|symphonique|acoustique|acoustic|\d)|[(\[]\s*live\b|\blive\s*[)\]]|\blive$|tiny desk|unplugged|\ben concert\b|\blive sessions?\b|colors show/i;
+const LIVE_TRACK = /[(\[-]\s*live\b/i;
+function isLive(album: any): boolean {
+  const tracks: any[] = album.tracks?.data ?? [];
+  return LIVE_TITLE.test(album.title ?? '') || (tracks.length >= 2 && tracks.every((t) => LIVE_TRACK.test(t.title ?? '')));
+}
+
 // ============================================================
 // SORTIE COMMUNE AUX DEUX SOURCES
 // ============================================================
@@ -109,7 +118,7 @@ async function deezerAlbumDetail(id: number, watched: boolean, from: string, to:
     title: a.title,
     artistName: a.artist.name,
     date: a.release_date,
-    type,
+    type: isLive(a) ? 'live' : type,
     // Pré-sorties : Deezer laisse cover_xl vide mais donne l'identifiant de l'image, déjà en ligne sur son CDN
     cover: a.cover_xl ?? a.cover_big ?? (a.md5_image ? `https://cdn-images.dzcdn.net/images/cover/${a.md5_image}/1000x1000-000000-80-0-0.jpg` : null),
     tracks: a.nb_tracks ?? 0,

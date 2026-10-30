@@ -24,6 +24,15 @@ const DAYS_BACK = 3;
 const DEPLOY_EVERY_MS = 30 * 60_000;
 const JUNK_TITLE = /slowed|sped up|reverb|vocals only|instrumental|karaoke|8d audio|nightcore/i;
 
+// Enregistrements live (concert, Tiny Desk, session…) : classés « live », même si Deezer les donne en album ou EP.
+// Le titre du disque le dit, ou chacun de ses morceaux porte la mention « (Live…) ».
+const LIVE_TITLE = /\blive (at|from|in|on|à|au|aux|@|las|symphonique|acoustique|acoustic|\d)|[(\[]\s*live\b|\blive\s*[)\]]|\blive$|tiny desk|unplugged|\ben concert\b|\blive sessions?\b|colors show/i;
+const LIVE_TRACK = /[(\[-]\s*live\b/i;
+function isLive(album: any): boolean {
+  const tracks: any[] = album.tracks?.data ?? [];
+  return LIVE_TITLE.test(album.title ?? '') || (tracks.length >= 2 && tracks.every((t) => LIVE_TRACK.test(t.title ?? '')));
+}
+
 // Mêmes règles que scripts/lib/common.ts (slugify, stableSlug, mapGenre) : les lignes doivent avoir le même slug
 // que celles de la synchro complète, qui les met à jour ensuite
 function slugify(text: string): string {
@@ -168,7 +177,7 @@ async function veille() {
           slug: await stableSlug(`${a.artist.name} ${a.title}`, a.release_date.slice(0, 4)),
           artist_id: artist.id,
           release_date: a.release_date,
-          release_type: type,
+          release_type: isLive(a) ? 'live' : type,
           cover_url: a.cover_xl ?? a.cover_big ?? (a.md5_image ? `https://cdn-images.dzcdn.net/images/cover/${a.md5_image}/1000x1000-000000-80-0-0.jpg` : null),
           genres,
           track_count: a.nb_tracks ?? 0,

@@ -125,7 +125,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
                 <>
                   <label class="sr-only" for="filter-type">Type</label>
                   <select id="filter-type" class="select">
-                    <option value="">Albums, EP et singles</option>
+                    <option value="">Tous les formats</option>
                     {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
                   </select>
                 </>
