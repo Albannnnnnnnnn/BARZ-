@@ -115,6 +115,11 @@ function matchFollowed(all: ReleaseRow[], u: { ids: Set<string>; names: Map<stri
   return { mine, shownName };
 }
 
+// Plusieurs sorties : la page qui n'affiche qu'elles (src/pages/selection.astro)
+function selectionUrl(rows: ReleaseRow[]): string {
+  return `${SITE}selection?ids=${rows.slice(0, 100).map((r) => r.id).join(',')}`;
+}
+
 // Sorties déjà annoncées, pour ne jamais notifier deux fois
 async function markNotified(rows: { user_id: string; release_id: string }[]) {
   for (let i = 0; i < rows.length; i += 500) await admin.from('notified_releases').upsert(rows.slice(i, i + 500), { onConflict: 'user_id,release_id', ignoreDuplicates: true });
@@ -142,7 +147,7 @@ async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string
       messages.set(userId, {
         title: `${mine.length} sortie${mine.length > 1 ? 's' : ''} de tes artistes aujourd’hui`,
         body: `${listNames(rest > 0 ? [...shown, `${rest} autre${rest > 1 ? 's' : ''}`] : shown)}. Et ${all.length} nouveautés en tout sur BARZ¡.`,
-        url: mine.length === 1 ? `${SITE}releases/${mine[0].slug}` : SITE,
+        url: mine.length === 1 ? `${SITE}releases/${mine[0].slug}` : selectionUrl(mine),
         tag: `friday-${today}`,
       });
     } else if (all.length) {
@@ -199,7 +204,7 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
       messages.set(userId, {
         title: `${fresh.length} nouvelles sorties de tes artistes`,
         body: `${listNames(rest > 0 ? [...shown, `${rest} autre${rest > 1 ? 's' : ''}`] : shown)}.`,
-        url: SITE,
+        url: selectionUrl(fresh),
         tag: `releases-${today}`,
       });
     }

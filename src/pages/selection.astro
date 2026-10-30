@@ -1,0 +1,65 @@
+---
+// SÉLECTION : seulement les sorties d'une notification (« 3 sorties de tes artistes »)
+// Le lien porte leurs identifiants : selection?ids=uuid,uuid,… (écrit par supabase/functions/notify)
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Tes sorties" description="Les sorties de tes artistes annoncées dans ta notification.">
+  <div class="bz-page">
+    <span class="bz-eyebrow">Pour toi</span>
+    <h1 class="bz-display" id="sel-title">Tes <em>artistes.</em></h1>
+    <p class="sel-status" id="sel-status">Chargement…</p>
+    <div class="bz-tiles" id="sel-tiles"></div>
+    <a class="bz-btn bz-btn--outline sel-all" href="/BARZ-/">Voir toutes les sorties de la semaine</a>
+  </div>
+</Layout>
+
+<script>
+  import { errorText, releaseTileHtml, supabase } from '../scripts/social';
+
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const ids = [...new Set((new URLSearchParams(location.search).get('ids') ?? '').split(',').filter((id) => UUID.test(id)))].slice(0, 100);
+  const status = document.getElementById('sel-status')!;
+  const tiles = document.getElementById('sel-tiles')!;
+
+  type Row = { id: string; title: string; slug: string; cover_url: string | null; release_type: string; metadata: { featuring?: string[] } | null; artist: { name: string } | null };
+
+  if (!ids.length || !supabase) {
+    status.textContent = 'Cette sélection est vide.';
+  } else {
+    supabase
+      .from('releases')
+      .select('id, title, slug, cover_url, release_type, metadata, artist:artists!artist_id(name)')
+      .in('id', ids)
+      .then(({ data, error }) => {
+        if (error) {
+          status.textContent = errorText(error);
+          return;
+        }
+        // Dans l'ordre de la notification
+        const rows = ((data ?? []) as unknown as Row[]).sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+        if (!rows.length) {
+          status.textContent = 'Ces sorties ne sont plus au catalogue.';
+          return;
+        }
+        document.getElementById('sel-title')!.innerHTML = `${rows.length} sortie${rows.length > 1 ? 's' : ''} de <em>tes artistes.</em>`;
+        status.hidden = true;
+        tiles.innerHTML = rows.map((r) => releaseTileHtml({ ...r, featuring: r.metadata?.featuring })).join('');
+      });
+  }
+</script>
+
+<style>
+  .sel-status {
+    color: var(--color-text-muted);
+  }
+
+  .bz-tiles {
+    margin-top: 24px;
+  }
+
+  .sel-all {
+    display: inline-flex;
+    margin-top: 32px;
+  }
+</style>
