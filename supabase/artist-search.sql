@@ -24,7 +24,6 @@ CREATE OR REPLACE FUNCTION search_artists(q TEXT, genre_filter TEXT[] DEFAULT NU
 RETURNS SETOF artists
 LANGUAGE sql STABLE
 SET search_path = public, extensions
-SET pg_trgm.word_similarity_threshold = 0.45
 AS $$
   WITH needle AS (SELECT barz_compact(q) AS v),
   exact AS (
@@ -34,7 +33,8 @@ AS $$
   ),
   close AS (
     SELECT a.id, a.audience, (1 - word_similarity(needle.v, a.search_name))::REAL AS distance FROM artists a, needle
-    WHERE length(needle.v) >= 4 AND needle.v <% a.search_name
+    -- Seuil écrit ici : Supabase refuse que la fonction règle pg_trgm.word_similarity_threshold
+    WHERE length(needle.v) >= 4 AND word_similarity(needle.v, a.search_name) >= 0.45
       AND (genre_filter IS NULL OR a.genres && genre_filter)
       AND NOT EXISTS (SELECT 1 FROM exact)
   ),
