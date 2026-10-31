@@ -87,6 +87,17 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
     <section class="challenge" id="challenge" hidden aria-label="Défi de la semaine"></section>
 
+    {current && (
+      <a class="daily-game" href="/BARZ-/jeux/pochette" id="daily-game">
+        <span class="daily-game-icon" aria-hidden="true">🎲</span>
+        <span class="daily-game-text">
+          <b>Jeu du jour · Pochette floue</b>
+          <span id="daily-game-sub">Retrouve l’album derrière la pochette floue, en 6 essais.</span>
+        </span>
+        <span class="daily-game-go" id="daily-game-go">Jouer →</span>
+      </a>
+    )}
+
     <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
       <h2 id="artists-title" class="label">{current ? 'Ils ont sorti cette semaine' : 'Ils ont sorti cette semaine-là'}</h2>
       <ul class="stories" id="stories">
@@ -417,6 +428,21 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     document.getElementById('challenge')!.hidden = false;
   }
 
+  // Jeu du jour déjà joué sur cet appareil (partie gardée par src/pages/jeux/pochette.astro)
+  const gameCard = document.getElementById('daily-game');
+  if (gameCard) {
+    try {
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+      const game = JSON.parse(localStorage.getItem(`barz-pochette-${day}`) ?? 'null');
+      if (game?.done) {
+        document.getElementById('daily-game-sub')!.textContent = game.won ? `Trouvé en ${game.tries.length} essai${game.tries.length > 1 ? 's' : ''}. Nouvelle pochette demain.` : 'Raté aujourd’hui. Nouvelle pochette demain.';
+        document.getElementById('daily-game-go')!.textContent = 'Voir →';
+      }
+    } catch {
+      // stockage bloqué : la carte reste telle quelle
+    }
+  }
+
   // Nouveautés, défi et artistes suivis : seulement sur la semaine en cours
   if (document.querySelector('[data-current-week]')) {
     showVisit().catch((err) => console.warn('Nouveautés indisponibles :', err));
@@ -530,6 +556,47 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
   .visit-items :global(a:hover) {
     text-decoration-color: var(--color-accent);
+  }
+
+  .daily-game {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    padding: 14px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: var(--color-paper);
+    color: var(--color-text);
+  }
+
+  .daily-game:hover {
+    border-color: var(--color-accent-line);
+  }
+
+  .daily-game-icon {
+    font-size: 26px;
+  }
+
+  .daily-game-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .daily-game-text b {
+    font-size: 15px;
+    color: var(--color-text);
+  }
+
+  .daily-game-go {
+    margin-left: auto;
+    flex-shrink: 0;
+    font: 600 14px/1 var(--font-sans);
+    color: var(--color-accent);
   }
 
   .challenge {
