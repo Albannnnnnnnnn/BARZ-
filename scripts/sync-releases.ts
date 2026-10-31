@@ -617,6 +617,8 @@ async function main() {
     row.genres = [...new Set([...row.genres, ...(old.genres ?? [])])];
     row.metadata.upc ??= old.metadata?.upc ?? null;
     row.metadata.watched ||= !!old.metadata?.watched;
+    // Liens Spotify / Apple Music déjà cherchés par la fonction supabase/functions/links
+    if (old.metadata?.links_checked_at) Object.assign(row.metadata, { links_checked_at: old.metadata.links_checked_at });
   }
 
   // Apple Music : recherche par code-barres (API iTunes, gratuite et sans clé ; ~20 requêtes/min)

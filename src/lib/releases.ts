@@ -18,7 +18,7 @@ export type ReleaseRow = {
   spotify_url: string | null;
   deezer_url: string | null;
   apple_music_url: string | null;
-  metadata: { watched?: boolean; featuring?: string[]; fans?: number | null; label?: string | null } | null;
+  metadata: { watched?: boolean; featuring?: string[]; fans?: number | null; label?: string | null; upc?: string | null } | null;
   artist: { id: string; name: string; slug: string; image_url: string | null; popularity?: number | null; lastfm_listeners?: number | null } | null;
 };
 

@@ -16,8 +16,10 @@ const compact = (text: string) => text.replace(/ /g, '');
 // Fautes tolérées selon la longueur du mot cherché
 const tolerance = (length: number) => (length < 4 ? 0 : length < 8 ? 1 : 2);
 
-// Plus petit nombre de fautes (lettre en trop, en moins ou différente) pour trouver needle quelque part dans haystack
+// Plus petit nombre de fautes (lettre en trop, en moins, différente, ou deux lettres inversées comme « dmaso » pour
+// « damso ») pour trouver needle quelque part dans haystack
 function fuzzyDistance(needle: string, haystack: string, max: number): number {
+  let before: number[] = [];
   let prev = Array.from({ length: haystack.length + 1 }, () => 0);
   for (let i = 1; i <= needle.length; i++) {
     const row = [i];
@@ -25,9 +27,11 @@ function fuzzyDistance(needle: string, haystack: string, max: number): number {
     for (let j = 1; j <= haystack.length; j++) {
       const cost = needle[i - 1] === haystack[j - 1] ? 0 : 1;
       row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
+      if (i > 1 && j > 1 && needle[i - 1] === haystack[j - 2] && needle[i - 2] === haystack[j - 1]) row[j] = Math.min(row[j], before[j - 2] + 1);
       if (row[j] < rowMin) rowMin = row[j];
     }
     if (rowMin > max) return max + 1; // inutile d'aller plus loin
+    before = prev;
     prev = row;
   }
   return Math.min(...prev);

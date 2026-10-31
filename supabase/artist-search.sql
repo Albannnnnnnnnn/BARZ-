@@ -2,7 +2,8 @@
 -- À exécuter UNE fois dans Supabase : SQL Editor → New query → coller → Run (après supabase/audience.sql).
 -- Le script peut être relancé sans risque (IF NOT EXISTS / CREATE OR REPLACE).
 -- Ignore majuscules, accents, espaces et ponctuation, et accepte des fautes de frappe :
--- « HJEUNECRACK » ou « h jeune crack » trouvent « H JeuneCrack ». Même logique que src/lib/fuzzy.ts.
+-- « HJEUNECRACK » ou « h jeune crack » trouvent « H JeuneCrack », « dmaso » trouve « Damso » (deux lettres
+-- inversées). Même logique que src/lib/fuzzy.ts.
 -- search_name est une colonne calculée : toujours à jour, rien à remplir.
 
 CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA extensions;
@@ -37,7 +38,22 @@ AS $$
       AND (genre_filter IS NULL OR a.genres && genre_filter)
       AND NOT EXISTS (SELECT 1 FROM exact)
   ),
-  found AS (SELECT * FROM exact UNION ALL SELECT * FROM close)
+  -- Deux lettres voisines inversées (« dmaso » → « damso ») : la recherche avec chaque paire remise dans l'ordre
+  swaps AS (
+    SELECT substr(v, 1, i - 1) || substr(v, i + 1, 1) || substr(v, i, 1) || substr(v, i + 2) AS s
+    FROM needle, generate_series(1, length(v) - 1) AS i
+    WHERE length(v) >= 4 AND substr(v, i, 1) <> substr(v, i + 1, 1)
+  ),
+  swapped AS (
+    SELECT DISTINCT a.id, a.audience, 0.3::REAL AS distance FROM artists a JOIN swaps ON a.search_name LIKE '%' || swaps.s || '%'
+    WHERE (genre_filter IS NULL OR a.genres && genre_filter)
+      AND NOT EXISTS (SELECT 1 FROM exact)
+  ),
+  found AS (
+    SELECT id, audience, min(distance) AS distance
+    FROM (SELECT * FROM exact UNION ALL SELECT * FROM close UNION ALL SELECT * FROM swapped) all_found
+    GROUP BY id, audience
+  )
   SELECT a.* FROM found f JOIN artists a ON a.id = f.id
   ORDER BY f.distance, f.audience DESC NULLS LAST
   LIMIT lim

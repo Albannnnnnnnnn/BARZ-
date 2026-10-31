@@ -220,12 +220,20 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
 
   if (body.action === 'friday') {
-    // Réservé à GitHub Actions (clé service_role)
+    // pg_cron le vendredi à 7h et 8h UTC (supabase/friday-cron.sql) : seul le passage de 9h à Paris envoie,
+    // ce qui suit le changement d'heure. Sans « hour », envoi immédiat (test à la main).
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
-    const { data } = await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth');
+    const { hour, weekday } = parisNow();
+    if (typeof body.hour === 'number' && (weekday !== 'Fri' || hour !== body.hour)) return reply({ skipped: `${weekday} ${hour}h à Paris` });
+    // Abonnés au téléphone, et tous les membres qui suivent des artistes (pour la cloche)
+    const [{ data }, { data: followers }] = await Promise.all([
+      admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),
+      admin.from('follows').select('user_id').limit(20000),
+    ]);
     const subs = (data ?? []) as Sub[];
-    if (!subs.length) return reply({ sent: 0, subscribers: 0 });
-    const { messages, announced } = await fridayMessages([...new Set(subs.map((s) => s.user_id))]);
+    const userIds = [...new Set([...subs.map((s) => s.user_id), ...(followers ?? []).map((f) => f.user_id as string)])];
+    if (!userIds.length) return reply({ sent: 0, subscribers: 0 });
+    const { messages, announced } = await fridayMessages(userIds);
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
     await markNotified(announced); // la vérification des sorties ne les annoncera pas une deuxième fois
     const withArtists = new Set(announced.map((a) => a.user_id)); // dans la cloche : seulement les sorties de ses artistes
@@ -285,9 +293,9 @@ Deno.serve(async (req) => {
     // pg_cron toutes les 15 minutes (supabase/notifications.sql)
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { hour, weekday, today } = parisNow();
-    // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi matin, la notification du vendredi s'en charge
+    // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi, la notification de 9h annonce d'abord les sorties de la nuit
     if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit' });
-    if (weekday === 'Fri' && hour < 12) return reply({ skipped: 'vendredi matin' });
+    if (weekday === 'Fri' && hour < 10) return reply({ skipped: 'vendredi matin' });
     // Tous les membres qui suivent des artistes : la cloche pour tous, le téléphone pour ceux qui l'ont activé
     const [{ data }, { data: followers }] = await Promise.all([
       admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),

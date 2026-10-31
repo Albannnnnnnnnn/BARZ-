@@ -111,7 +111,7 @@ const jsonLd = {
             <div><dt>Label</dt><dd>{release.metadata.label}</dd></div>
           )}
         </dl>
-        <div class="actions">
+        <div class="actions" data-links-missing={!(release.spotify_url && release.apple_music_url) && release.metadata?.upc ? "" : undefined}>
           <Fragment set:html={listenMenuHtml({ artist: artistName, title: release.title, deezerUrl: release.deezer_url, spotifyUrl: release.spotify_url, appleUrl: release.apple_music_url })} />
         </div>
         <div class="shelves" data-release-id={release.id}>
@@ -180,9 +180,27 @@ const jsonLd = {
     }
   }
 
+  import { applyListenPreference } from '../../scripts/listen';
   import { BASE, avatarUrl, barzCardHtml, barzFeed, escapeHtml, formatScore, getSession, isOnShelf, loginUrl, myFriendships, saveBarz, setOnShelf, supabase, wireBarzActions, authErrorMessage, errorText, type Barz, type FriendEntry, type Shelf } from '../../scripts/social';
 
   const releaseId = document.querySelector<HTMLElement>('.shelves')!.dataset.releaseId!;
+
+  // Liens exacts Spotify / Apple Music pas encore connus : cherchés une fois par la fonction links (par code-barres),
+  // puis mis à la place de la recherche dans le menu « Écouter »
+  const listenBox = document.querySelector<HTMLElement>('[data-links-missing]');
+  if (listenBox && supabase) {
+    supabase.functions.invoke('links', { body: { release: releaseId } }).then(({ data }) => {
+      const found: Record<string, string | null | undefined> = { Spotify: data?.spotify, 'Apple Music': data?.apple };
+      const main = listenBox.querySelector<HTMLAnchorElement>('.bz-listen-main');
+      for (const [platform, url] of Object.entries(found)) {
+        if (!url) continue;
+        const item = listenBox.querySelector<HTMLAnchorElement>(`[data-platform="${platform}"]`);
+        if (item) item.href = url;
+        if (main?.querySelector('b')?.textContent === platform) main.href = url;
+      }
+      applyListenPreference(listenBox);
+    });
+  }
 
   // Spin list / Écouté
   const shelfButtons = document.querySelectorAll<HTMLButtonElement>('[data-shelf]');
