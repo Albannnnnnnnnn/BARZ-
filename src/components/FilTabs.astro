@@ -1,0 +1,59 @@
+---
+// Onglets de la rubrique Fil : les Barz de la communauté et les actus musicales (même style que SortiesTabs)
+interface Props {
+  active: 'barz' | 'actus';
+}
+
+const { active } = Astro.props;
+const tabs = [
+  { id: 'barz', href: '/BARZ-/commu', label: 'Barz de la commu' },
+  { id: 'actus', href: '/BARZ-/actus', label: 'Actus' },
+];
+---
+
+<nav class="fil-tabs" aria-label="Fil">
+  {tabs.map((t) => (
+    <a href={t.href} class:list={{ 'is-active': t.id === active }} aria-current={t.id === active ? 'page' : undefined}>
+      {t.label}
+    </a>
+  ))}
+</nav>
+
+<style>
+  .fil-tabs {
+    display: flex;
+    gap: 28px;
+    margin: 28px 0 8px;
+    border-bottom: 1px solid var(--color-border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  a {
+    flex-shrink: 0;
+    padding: 14px 0;
+    border-bottom: 2px solid transparent;
+    font: 600 15px/1 var(--font-sans);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  a:hover {
+    color: var(--color-text);
+  }
+
+  a.is-active {
+    border-color: var(--color-accent);
+    color: var(--color-text);
+  }
+
+  @media (max-width: 900px) {
+    .fil-tabs {
+      gap: 22px;
+      margin-top: 20px;
+    }
+    a {
+      font-size: 14px;
+    }
+  }
+</style>

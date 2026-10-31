@@ -14,7 +14,7 @@ const active = activeNav(Astro.props.currentPath);
   {NAV_ITEMS.map((item) => (
     <a href={item.href} class:list={{ 'is-active': item.id === active }} aria-current={item.id === active ? 'page' : undefined}>
       <NavIcon name={item.icon} size={22} />
-      <span>{item.id === 'commu' ? 'Commu' : item.label}</span>
+      <span>{item.label}</span>
     </a>
   ))}
 </nav>
@@ -27,7 +27,7 @@ const active = activeNav(Astro.props.currentPath);
     bottom: max(12px, env(safe-area-inset-bottom));
     z-index: 60;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 6px;
     border: 1px solid var(--color-border);

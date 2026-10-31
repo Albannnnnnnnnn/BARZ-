@@ -49,11 +49,11 @@ const exploreData = recent.map((r) => ({
 const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.name ?? ''} ${(r.metadata?.featuring ?? []).join(' ')} ${(r.genres ?? []).join(' ')}`);
 ---
 
-<Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
+<Layout title="Découvrir" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
   <div class="bz-page">
     <div class="head">
       <div>
-        <span class="bz-eyebrow">Explorer</span>
+        <span class="bz-eyebrow">Découvrir</span>
         <h1 class="bz-display">Sors de <em>ta bulle.</em></h1>
       </div>
       <nav class="tabs" aria-label="Modes d’exploration">

@@ -2,6 +2,7 @@
 // PAGE COMMUNAUTÉ : vrais Barz (lus par le navigateur), écriture d'un Barz, top contributeurs.
 import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
+import FilTabs from '../components/FilTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday } from '../lib/releases';
 
@@ -10,10 +11,11 @@ const recent = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today
 const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist?.name ?? 'Artiste inconnu'}` }));
 ---
 
-<Layout title="Communauté" description="Les Barz du jour : les avis de la communauté sur les sorties de la semaine.">
+<Layout title="Fil" description="Les Barz du jour : les avis de la communauté sur les sorties de la semaine.">
   <div class="bz-page">
-    <span class="bz-eyebrow">Communauté</span>
+    <span class="bz-eyebrow">Fil</span>
     <h1 class="bz-display">Les <em>Barz</em> du jour.</h1>
+    <FilTabs active="barz" />
 
     <div class="layout">
       <div class="feed">

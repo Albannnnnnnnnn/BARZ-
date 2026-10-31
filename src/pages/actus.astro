@@ -3,6 +3,7 @@
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
+import FilTabs from '../components/FilTabs.astro';
 import Scene from '../components/Scene.astro';
 import { getNews, type NewsItem } from '../lib/news';
 import { CONCERTS_CITY, getConcerts } from '../lib/concerts';
@@ -25,8 +26,9 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
 
 <Layout title="Actus" description="L’actualité musicale de la semaine, sélectionnée dans les médias musicaux.">
   <div class="bz-page">
-    <span class="bz-eyebrow">Actus</span>
+    <span class="bz-eyebrow">Fil</span>
     <h1 class="bz-display">Ce qui bouge <em>cette semaine.</em></h1>
+    <FilTabs active="actus" />
 
     {feature ? (
       <>
