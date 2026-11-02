@@ -13,6 +13,7 @@
 // Secret : GITHUB_DISPATCH_TOKEN (jeton GitHub limité au dépôt BARZ-, droit Actions en écriture)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import watchlistFile from '../../../scripts/artist-watchlist.json' with { type: 'json' };
+import { appleReleases, normTitle, type AppleAlbum } from './apple.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const REPO = 'Albannnnnnnnnn/BARZ-';
@@ -116,6 +117,32 @@ async function dispatch(workflow: string, inputs?: Record<string, string>): Prom
 
 type Artist = { id: string; name: string; deezer_id: number; watched: boolean };
 
+// Table release_seen : une ligne par sortie (artiste + titre réduit), avec la première vue chez Deezer et chez Apple.
+// Sans la table (SQL pas encore lancé), rien n'est noté.
+async function recordSeen(deezerSeen: Map<string, { artist_id: string; title: string; release_date: string }>, apple: AppleAlbum[]) {
+  const now = new Date().toISOString();
+  const appleSeen = new Map(apple.map((a) => [`${a.artistId}|${normTitle(a.title)}`, { artist_id: a.artistId, title: a.title, release_date: a.releaseDate }]));
+  const keys = [...new Set([...deezerSeen.keys(), ...appleSeen.keys()])];
+  if (!keys.length) return;
+  const existing = new Map<string, any>();
+  for (let i = 0; i < keys.length; i += 200) {
+    const { data, error } = await admin.from('release_seen').select('key, deezer_seen_at, apple_seen_at').in('key', keys.slice(i, i + 200));
+    if (error) return;
+    for (const row of data ?? []) existing.set(row.key, row);
+  }
+  const rows = keys
+    .map((key) => {
+      const old = existing.get(key);
+      const info = deezerSeen.get(key) ?? appleSeen.get(key)!;
+      const deezer_seen_at = old?.deezer_seen_at ?? (deezerSeen.has(key) ? now : null);
+      const apple_seen_at = old?.apple_seen_at ?? (appleSeen.has(key) ? now : null);
+      if (old && old.deezer_seen_at === deezer_seen_at && old.apple_seen_at === apple_seen_at) return null;
+      return { key, ...info, deezer_seen_at, apple_seen_at };
+    })
+    .filter((row): row is NonNullable<typeof row> => !!row);
+  for (let i = 0; i < rows.length; i += 500) await admin.from('release_seen').upsert(rows.slice(i, i + 500), { onConflict: 'key' });
+}
+
 async function veille() {
   const from = parisDate(-DAYS_BACK);
   const today = parisDate();
@@ -136,15 +163,26 @@ async function veille() {
   add(((await admin.from('follows').select('artist:artists(id, name, deezer_id)')).data ?? []).map((f: any) => f.artist), true);
   add((await admin.from('artists').select('id, name, deezer_id').not('deezer_id', 'is', null).order('audience', { ascending: false }).limit(TOP_ARTISTS)).data, false);
 
+  // Apple Music en parallèle (sa propre limite de débit) : artistes de la watchlist et suivis par les membres
+  const applePromise = appleReleases(admin, [...artists.values()].filter((a) => a.watched).map((a) => a.id), from, today).catch((err) => {
+    console.error('Apple :', err);
+    return null;
+  });
+
   // Albums candidats : sortis dans la fenêtre, d'un type gardé par la synchro complète
   const candidates = new Map<number, Artist>();
+  // Sorties vues chez Deezer pendant ce passage (artiste BARZ¡ + titre réduit), pour la mesure Deezer / Apple
+  const seenOnDeezer = new Map<string, { artist_id: string; title: string; release_date: string }>();
   const queue = [...artists.values()];
   await Promise.all(
     Array.from({ length: 6 }, async () => {
       for (let a = queue.shift(); a; a = queue.shift()) {
         const list = await deezer(`/artist/${a.deezer_id}/albums?limit=100`);
         for (const album of list?.data ?? []) {
-          if (album.release_date >= from && album.release_date <= today && deezerType(album.record_type)) candidates.set(album.id, a);
+          if (album.release_date >= from && album.release_date <= today && deezerType(album.record_type)) {
+            candidates.set(album.id, a);
+            seenOnDeezer.set(`${a.id}|${normTitle(album.title)}`, { artist_id: a.id, title: album.title, release_date: album.release_date });
+          }
         }
       }
     })
@@ -195,9 +233,38 @@ async function veille() {
       }
     })
   );
+  // Apple : seulement ce que Deezer n'a pas (encore) ; Deezer garde la priorité, ses fiches sont plus complètes
+  const apple: AppleAlbum[] = (await applePromise) ?? [];
+  for (const al of apple) {
+    if (seenOnDeezer.has(`${al.artistId}|${normTitle(al.title)}`) || JUNK_TITLE.test(al.title)) continue;
+    rows.push({
+      title: al.title,
+      slug: await stableSlug(`${al.artistName} ${al.title}`, al.releaseDate.slice(0, 4)),
+      artist_id: al.artistId,
+      release_date: al.releaseDate,
+      release_type: LIVE_TITLE.test(al.title) ? 'live' : al.type,
+      cover_url: al.cover,
+      genres: [mapGenre(al.genre ?? '')].filter(Boolean),
+      track_count: al.trackCount,
+      deezer_url: null,
+      apple_music_url: al.url,
+      metadata: { featuring: [], watched: true, fans: null, label: null, upc: null, sources: ['apple'] },
+    });
+  }
+
+  // Déjà en base : même slug, ou même artiste et même titre réduit (la même sortie vue par l'autre source)
   const unique = [...new Map(rows.map((r) => [r.slug, r])).values()];
   const known = new Set(((await admin.from('releases').select('slug').in('slug', unique.map((r) => r.slug))).data ?? []).map((r: any) => r.slug));
-  const fresh = unique.filter((r) => !known.has(r.slug));
+  const artistIds = [...new Set(unique.map((r) => r.artist_id))];
+  const sameTitle = new Set(
+    ((await admin.from('releases').select('artist_id, title').in('artist_id', artistIds).gte('release_date', parisDate(-DAYS_BACK - 7))).data ?? []).map(
+      (r: any) => `${r.artist_id}|${normTitle(r.title)}`
+    )
+  );
+  const fresh = unique.filter((r) => !known.has(r.slug) && !sameTitle.has(`${r.artist_id}|${normTitle(r.title)}`));
+
+  // Mesure Deezer / Apple (supabase/apple-source.sql) : première heure où chaque sortie est vue sur chaque plateforme
+  await recordSeen(seenOnDeezer, apple).catch((err) => console.error('Mesure :', err));
   let notified: unknown = null;
   if (fresh.length) {
     const { error } = await admin.from('releases').upsert(fresh, { onConflict: 'slug', ignoreDuplicates: true });
@@ -222,7 +289,14 @@ async function veille() {
   }
   await admin.from('sync_state').upsert({ id: 1, pending: pending && !deployed, ...(deployed ? { last_deploy: new Date().toISOString() } : {}) });
 
-  return { artistes: artists.size, candidats: candidates.size, nouvelles: fresh.map((r) => r.title), notifications: notified, site_reconstruit: deployed };
+  return {
+    artistes: artists.size,
+    candidats: candidates.size,
+    apple: apple.length,
+    nouvelles: fresh.map((r) => (r.metadata.sources[0] === 'apple' ? `${r.title} (Apple)` : r.title)),
+    notifications: notified,
+    site_reconstruit: deployed,
+  };
 }
 
 // Rôle du jeton : sa signature est déjà vérifiée par la passerelle Supabase (verify_jwt, actif par défaut)

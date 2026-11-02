@@ -34,6 +34,18 @@ import {
 const DAYS_BACK = Number(process.env.SYNC_DAYS_BACK ?? 14);
 // 4 mois devant : les albums en pré-sortie et les annonces alimentent le calendrier "À venir"
 const DAYS_AHEAD = Number(process.env.SYNC_DAYS_AHEAD ?? 120);
+
+// Titre réduit pour reconnaître la même sortie d'une source à l'autre (même règle que normTitle dans
+// supabase/functions/sync-fresh/apple.ts)
+function normTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+-\s+(single|ep)$/, '')
+    .replace(/[([](feat|ft|with|avec)\b[^)\]]*[)\]]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
 // Annonces MusicBrainz : seulement pour les artistes du catalogue au moins aussi suivis (filtre le bruit)
 const UPCOMING_MIN_FANS = Number(process.env.SYNC_UPCOMING_MIN_FANS ?? 50_000);
 const MB_USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'BARZ/1.0 (https://albannnnnnnnnn.github.io/BARZ-/)';
@@ -593,6 +605,20 @@ async function main() {
     updated_at: new Date().toISOString(),
   }));
 
+  // Sortie déjà enregistrée par la veille depuis Apple Music (supabase/functions/sync-fresh/apple.ts), sous un titre
+  // un peu différent (« petal - EP » / « petal ») : même artiste et même titre réduit → on met à jour cette ligne-là
+  const titleKey = (artistId: string | null, title: string) => `${artistId}|${normTitle(title)}`;
+  const appleSlugs = new Map<string, string>();
+  const releaseArtists = [...new Set(releaseRows.map((r) => r.artist_id).filter((id): id is string => !!id))];
+  for (const part of chunk(releaseArtists, 200)) {
+    const { data } = await supabase.from('releases').select('slug, artist_id, title, metadata').in('artist_id', part).gte('release_date', from).contains('metadata', { sources: ['apple'] });
+    for (const row of (data ?? []) as any[]) appleSlugs.set(titleKey(row.artist_id, row.title), row.slug);
+  }
+  for (const row of releaseRows) {
+    const slug = appleSlugs.get(titleKey(row.artist_id, row.title));
+    if (slug) row.slug = slug;
+  }
+
   // Deux sorties différentes peuvent produire le même slug : on garde la première
   const uniqueRows: (typeof releaseRows[number] & { apple_music_url?: string | null })[] = [...new Map(releaseRows.map((r) => [r.slug, r])).values()];
 
@@ -617,6 +643,8 @@ async function main() {
     row.genres = [...new Set([...row.genres, ...(old.genres ?? [])])];
     row.metadata.upc ??= old.metadata?.upc ?? null;
     row.metadata.watched ||= !!old.metadata?.watched;
+    // Sources cumulées (une ligne trouvée d'abord par Apple garde la trace d'Apple)
+    row.metadata.sources = [...new Set([...row.metadata.sources, ...(old.metadata?.sources ?? [])])];
     // Liens Spotify / Apple Music déjà cherchés par la fonction supabase/functions/links
     if (old.metadata?.links_checked_at) Object.assign(row.metadata, { links_checked_at: old.metadata.links_checked_at });
   }
