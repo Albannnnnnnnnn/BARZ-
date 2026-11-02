@@ -482,14 +482,42 @@
 }
 
 @media (max-width: 900px) {
+  /* Carte de Barz compacte : pochette à droite, texte à taille de lecture */
+  .barz-list {
+    gap: 12px;
+  }
   .barz-card {
-    grid-template-columns: minmax(0, 1fr) 96px;
-    gap: 16px;
-    padding: 20px;
+    grid-template-columns: minmax(0, 1fr) 72px;
+    gap: 12px;
+    padding: 14px 14px 8px;
+  }
+  .barz-card header {
+    gap: 4px 8px;
+    font-size: 15px;
+  }
+  .barz-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .barz-handle {
+    flex-basis: 100%;
+    font-size: 12px;
   }
   .barz-text {
-    font-size: 24px;
-    margin: 14px 0;
+    font-size: 16px;
+    line-height: 1.4;
+    margin: 8px 0 4px;
+  }
+  .barz-album-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .barz-album-row b {
+    max-width: 100%;
   }
   .bz-cover span {
     font-size: 15px;

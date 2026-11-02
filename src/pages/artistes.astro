@@ -12,10 +12,7 @@ import { GENRE_CHIPS } from '../lib/genres';
         <h1 class="bz-display">Tous <em>les artistes.</em></h1>
         <p class="count" id="catalog-count">&nbsp;</p>
       </div>
-      <nav class="tabs" aria-label="Modes d’exploration">
-        <a class="bz-chip" href="/BARZ-/search">Découverte</a>
-        <a class="bz-chip is-active" href="/BARZ-/artistes" aria-current="page">Artistes</a>
-      </nav>
+      <a class="bz-link back-discover" href="/BARZ-/search">← Découvrir</a>
     </div>
 
     <div class="controls">
@@ -47,7 +44,8 @@ import { GENRE_CHIPS } from '../lib/genres';
   import { GENRE_CHIPS } from '../lib/genres';
   import { audience } from '../lib/audience';
 
-  const PAGE = 48;
+  // Sur mobile, moins d'artistes à la fois : la page reste courte, « Voir plus » charge la suite
+  const PAGE = matchMedia('(max-width: 900px)').matches ? 24 : 48;
   // « Les moins connus » : sous MIN_LISTENERS auditeurs, surtout de faux artistes de playlists, sauf ceux que
   // Deezer confirme (artistes réels peu présents sur Last.fm, souvent africains ou francophones)
   const MIN_LISTENERS = 1000;
@@ -178,12 +176,6 @@ import { GENRE_CHIPS } from '../lib/genres';
     flex-wrap: wrap;
   }
 
-  .tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 12px;
-  }
 
   .count {
     margin-top: 18px;
@@ -221,5 +213,30 @@ import { GENRE_CHIPS } from '../lib/genres';
 
   .deezer-hint[hidden] {
     display: none;
+  }
+
+  .back-discover {
+    padding-bottom: 12px;
+  }
+
+  /* Sur mobile, genres et tri tiennent chacun sur une ligne qui défile sur le côté */
+  @media (max-width: 900px) {
+    #artist-genres,
+    #artist-sort {
+      flex-wrap: nowrap;
+      margin-inline: -16px;
+      padding-inline: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #artist-genres::-webkit-scrollbar,
+    #artist-sort::-webkit-scrollbar {
+      display: none;
+    }
+    #artist-genres .bz-chip,
+    #artist-sort .bz-chip {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
   }
 </style>
