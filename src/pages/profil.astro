@@ -42,6 +42,30 @@ import Layout from '../layouts/Layout.astro';
 
       <div id="p-np" hidden></div>
 
+      <!-- Top 5 albums (supabase/top-albums.sql) : choisis par le membre, dans l'ordre -->
+      <section class="block top5" id="p-top5" hidden aria-labelledby="top5-title">
+        <div class="bz-section-head">
+          <h2 id="top5-title" class="bz-h2">Top <em>5</em></h2>
+          <button type="button" class="bz-link" id="p-top5-edit" hidden>Modifier</button>
+        </div>
+        <ol class="top5-list bz-rail" id="p-top5-list"></ol>
+      </section>
+
+      <dialog class="top5-dialog" id="top5-dialog" aria-labelledby="top5-dialog-title">
+        <form method="dialog" class="top5-box" id="top5-form">
+          <h2 class="bz-h2" id="top5-dialog-title">Ton top <em>5</em> albums</h2>
+          <ol class="top5-current" id="top5-current"></ol>
+          <label class="sr-only" for="top5-q">Chercher un album</label>
+          <input class="bz-input" id="top5-q" type="search" placeholder="Chercher un album ou un artiste…" autocomplete="off" />
+          <ul class="top5-results" id="top5-results"></ul>
+          <p class="bz-notice" id="top5-message" hidden></p>
+          <div class="top5-actions">
+            <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="top5-save">Enregistrer</button>
+            <button type="submit" class="bz-btn bz-btn--outline bz-btn--small" value="cancel">Annuler</button>
+          </div>
+        </form>
+      </dialog>
+
       <section class="block" id="p-picks" hidden aria-labelledby="picks-title">
         <div class="bz-section-head"><h2 id="picks-title" class="bz-h2">Ses coups de cœur</h2></div>
         <div class="bz-tiles bz-rail" id="p-picks-releases"></div>
@@ -130,8 +154,11 @@ import Layout from '../layouts/Layout.astro';
     type FriendStatus,
     type Profile,
     type ReleaseLite,
+    updateMyProfile,
+    type TopAlbum,
   } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
+  import { deezerJsonp } from '../scripts/deezer-jsonp';
   import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
   import { nowPlaying, nowPlayingHtml, spotifyAvailable } from '../scripts/spotify';
 
@@ -293,6 +320,7 @@ import Layout from '../layouts/Layout.astro';
 
     const theirTaste = loadTasteOf(profile.id);
     renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
+    renderTop5(profile, isMe);
     renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
     watchNowPlaying(profile, isMe, !!session);
 
@@ -497,6 +525,120 @@ import Layout from '../layouts/Layout.astro';
     );
     const byId = new Map(parts.flatMap((p) => (p.data ?? []) as ArtistLite[]).map((a) => [a.id, a]));
     return ids.map((id) => byId.get(id)).filter((a): a is ArtistLite => !!a);
+  }
+
+  // ============================================================
+  // TOP 5 ALBUMS : affichage, puis éditeur (recherche Deezer, ordre, retrait)
+  // ============================================================
+  const TOP_MAX = 5;
+  const topCover = (a: TopAlbum) => coverHtml(a.title, a.cover);
+  function renderTop5(profile: Profile, isMe: boolean) {
+    const albums = (profile.top_albums ?? []).slice(0, TOP_MAX);
+    $('p-top5-list').innerHTML = albums.length
+      ? albums
+          .map(
+            (a, i) => `<li><a class="top5-item" href="${BASE}album?d=${a.id}">
+              <span class="top5-rank">${i + 1}</span>${topCover(a)}
+              <b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span>
+            </a></li>`
+          )
+          .join('')
+      : `<li class="bz-empty top5-empty">Pas encore de top 5. Choisis les cinq albums qui comptent le plus pour toi.</li>`;
+    $('p-top5-edit').hidden = !isMe;
+    $('p-top5-edit').textContent = albums.length ? 'Modifier' : 'Choisir mes albums';
+    $('p-top5').hidden = !albums.length && !isMe;
+    if (isMe) {
+      ($('p-top5-edit') as HTMLButtonElement).onclick = () => openTop5Editor(profile);
+    }
+  }
+
+  function openTop5Editor(profile: Profile) {
+    const dialog = $('top5-dialog') as HTMLDialogElement;
+    let picked: TopAlbum[] = [...(profile.top_albums ?? [])].slice(0, TOP_MAX);
+    let found: TopAlbum[] = [];
+    const input = $('top5-q') as HTMLInputElement;
+    const message = $('top5-message');
+    const paint = () => {
+      $('top5-current').innerHTML = picked.length
+        ? picked
+            .map(
+              (a, i) => `<li class="top5-row">
+                <span class="top5-rank">${i + 1}</span>${topCover(a)}
+                <span class="top5-text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span>
+                <span class="top5-moves">
+                  <button type="button" data-move="${i}" data-dir="-1" aria-label="Monter" ${i === 0 ? 'disabled' : ''}>↑</button>
+                  <button type="button" data-move="${i}" data-dir="1" aria-label="Descendre" ${i === picked.length - 1 ? 'disabled' : ''}>↓</button>
+                  <button type="button" data-remove="${i}" aria-label="Retirer">×</button>
+                </span>
+              </li>`
+            )
+            .join('')
+        : '<li class="top5-hint">Cherche un album ci-dessous pour l’ajouter.</li>';
+      $('top5-results').innerHTML = found
+        .map((a, i) => {
+          const already = picked.some((p) => p.id === a.id);
+          return `<li><button type="button" class="top5-result" data-add="${i}" ${already || picked.length >= TOP_MAX ? 'disabled' : ''}>
+            ${topCover(a)}<span class="top5-text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span>
+            <span class="top5-plus">${already ? '✓' : '+'}</span>
+          </button></li>`;
+        })
+        .join('');
+      input.disabled = picked.length >= TOP_MAX;
+      input.placeholder = picked.length >= TOP_MAX ? 'Top 5 complet : retire un album pour en ajouter un autre' : 'Chercher un album ou un artiste…';
+    };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    input.oninput = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const q = input.value.trim();
+        if (q.length < 2) return void ((found = []), paint());
+        const res = await deezerJsonp<{ data?: any[] }>(`/search/album?q=${encodeURIComponent(q)}&limit=12`).catch(() => ({ data: [] }));
+        if (input.value.trim() !== q) return;
+        // Albums et EP d'abord ; une seule version par titre et artiste (explicite / censurée)
+        const seen = new Set<string>();
+        found = (res.data ?? [])
+          .filter((a) => a.record_type !== 'single' || (res.data ?? []).length < 4)
+          .map((a) => ({ id: a.id, title: a.title, artist: a.artist?.name ?? '', artistId: a.artist?.id ?? null, cover: a.cover_big ?? a.cover_medium ?? null }))
+          .filter((a) => !seen.has(`${a.artist}|${a.title}`.toLowerCase()) && !!seen.add(`${a.artist}|${a.title}`.toLowerCase()));
+        paint();
+      }, 250);
+    };
+    $('top5-current').onclick = (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
+      if (!button) return;
+      if (button.dataset.remove) picked.splice(Number(button.dataset.remove), 1);
+      if (button.dataset.move) {
+        const i = Number(button.dataset.move);
+        const j = i + Number(button.dataset.dir);
+        [picked[i], picked[j]] = [picked[j], picked[i]];
+      }
+      paint();
+    };
+    $('top5-results').onclick = (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-add]');
+      if (!button || picked.length >= TOP_MAX) return;
+      picked.push(found[Number(button.dataset.add)]);
+      paint();
+      if (picked.length < TOP_MAX) input.focus();
+    };
+    ($('top5-save') as HTMLButtonElement).onclick = async () => {
+      try {
+        await updateMyProfile({ top_albums: picked });
+        profile.top_albums = picked;
+        renderTop5(profile, true);
+        dialog.close();
+      } catch (err) {
+        message.textContent = /top_albums/.test(errorText(err)) ? 'Le top 5 n’est pas encore activé : il manque une mise à jour de la base.' : errorText(err);
+        message.className = 'bz-notice bz-notice--error';
+        message.hidden = false;
+      }
+    };
+    input.value = '';
+    found = [];
+    message.hidden = true;
+    paint();
+    dialog.showModal();
+    if (picked.length < TOP_MAX) input.focus();
   }
 
   async function renderPicks(profile: Profile, isMe: boolean, barz: Awaited<ReturnType<typeof barzFeed>>, tastePromise: Promise<Taste | null>, iFollow: Set<string>) {
@@ -1221,6 +1363,194 @@ import Layout from '../layouts/Layout.astro';
     }
     .spin {
       grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Top 5 : grands numéros, pochettes à la suite (rangée qui défile sur mobile) */
+  .top5-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 18px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .top5-list :global(.top5-item) {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--color-text);
+  }
+
+  .top5-list :global(.top5-item b),
+  .top5-list :global(.top5-item > span:last-child) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .top5-list :global(.top5-item b) {
+    margin-top: 8px;
+    font-size: 15px;
+  }
+
+  .top5-list :global(.top5-item > span:last-child) {
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+
+  .top5-list :global(.top5-item .top5-rank) {
+    position: absolute;
+    top: -10px;
+    left: -6px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: var(--line);
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font: 800 16px/1 var(--font-display);
+  }
+
+  .top5-list :global(.top5-empty) {
+    grid-column: 1 / -1;
+  }
+
+  .top5-dialog {
+    width: min(560px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    padding: 0;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .top5-dialog::backdrop {
+    background: rgba(10, 10, 10, 0.5);
+  }
+
+  .top5-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px;
+  }
+
+  .top5-current,
+  .top5-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .top5-results {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .top5-current :global(.top5-row),
+  .top5-results :global(.top5-result) {
+    display: grid;
+    grid-template-columns: auto 48px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 8px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper);
+    text-align: left;
+    color: var(--color-text);
+  }
+
+  .top5-results :global(.top5-result) {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    cursor: pointer;
+  }
+
+  .top5-results :global(.top5-result:disabled) {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .top5-box :global(.cover) {
+    width: 48px;
+  }
+
+  .top5-box :global(.top5-rank) {
+    width: 22px;
+    font: 800 16px/1 var(--font-display);
+    color: var(--color-accent);
+    text-align: center;
+  }
+
+  .top5-box :global(.top5-text) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .top5-box :global(.top5-text b),
+  .top5-box :global(.top5-text span) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .top5-box :global(.top5-text span) {
+    color: var(--color-text-muted);
+    font-size: 13px;
+  }
+
+  .top5-box :global(.top5-moves) {
+    display: flex;
+    gap: 4px;
+  }
+
+  .top5-box :global(.top5-moves button) {
+    width: 30px;
+    height: 30px;
+    border: var(--line);
+    border-radius: 8px;
+    background: var(--color-paper);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .top5-box :global(.top5-moves button:disabled) {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .top5-box :global(.top5-plus) {
+    font: 800 20px/1 var(--font-display);
+    color: var(--color-accent);
+    padding-right: 6px;
+  }
+
+  .top5-box :global(.top5-hint) {
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  .top5-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  @media (max-width: 900px) {
+    body .top5-list.bz-rail.bz-rail {
+      grid-auto-columns: 40%;
+      padding-top: 12px;
     }
   }
 </style>

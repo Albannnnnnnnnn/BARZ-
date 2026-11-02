@@ -4,6 +4,7 @@
 //    artistes suivis (fort), genres choisis à l'inscription, écoutés, spin list,
 //    notes de ses Barz (un 9/10 compte en positif, un 3/10 en négatif) et import Last.fm.
 //    Écoutés, spin list et Barz perdent la moitié de leur poids tous les 6 mois ; « Pas pour moi » compte en négatif.
+//    Les artistes du top 5 albums du profil comptent aussi.
 // 2. Voisins : les artistes similaires (Deezer) de ce qu'il aime, pondérés.
 // 3. Score de chaque sortie, réglé par le curseur d'exploration :
 //    0 = mes habitudes (proximité), 1 = inconnu total (genres éloignés, artistes moins connus).
@@ -130,7 +131,7 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   const RELEASE = `release:releases(id, genres, artist:artists!artist_id(id, name, genres))`;
 
   const [profile, follows, listened, spin, barz, lastfm, imported, dismissed] = await Promise.all([
-    isMe ? getMyProfile() : supabase.from('profiles').select('favorite_genres').eq('id', uid).maybeSingle().then((r) => r.data as { favorite_genres?: string[] } | null),
+    isMe ? getMyProfile() : supabase.from('profiles').select('*').eq('id', uid).maybeSingle().then((r) => r.data as { favorite_genres?: string[]; top_albums?: { artistId: number | null }[] } | null),
     supabase.from('follows').select(ARTIST).eq('user_id', uid),
     supabase.from('listened').select(`created_at, ${RELEASE}`).eq('user_id', uid),
     supabase.from('spin_list').select(`created_at, ${RELEASE}`).eq('user_id', uid),
@@ -164,6 +165,15 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   };
 
   for (const g of profile?.favorite_genres ?? []) genreRaw.set(g, (genreRaw.get(g) ?? 0) + 2);
+  // Top 5 albums du profil : leurs artistes comptent presque autant qu'un artiste suivi
+  const topDeezerIds = [...new Set(((profile as { top_albums?: { artistId: number | null }[] } | null)?.top_albums ?? []).map((a) => a.artistId).filter((id): id is number => !!id))];
+  if (topDeezerIds.length) {
+    const { data } = await supabase.from('artists').select('id, name, genres').in('deezer_id', topDeezerIds);
+    for (const a of (data ?? []) as any[]) {
+      addArtist(a, 2.5);
+      addGenres(a.genres, 1);
+    }
+  }
   for (const f of (follows.data ?? []) as any[]) {
     taste.followed.add(f.artist?.id);
     if (f.artist?.name) taste.followedNames.set(normName(f.artist.name), f.artist.name);
