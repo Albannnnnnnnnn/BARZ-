@@ -514,7 +514,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     border-radius: 6px;
     background: var(--color-ink);
     color: #ffffff;
-    font: 900 12px/1 var(--font-sans);
+    font: 700 12px/1 var(--font-display);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     transform: rotate(6deg);
@@ -523,8 +523,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   .day-head {
     grid-column: 1 / -1;
     margin-top: 20px;
-    font: 900 24px/1 var(--font-display);
-    font-stretch: 110%;
+    font: 800 20px/1 var(--font-display);
     text-transform: uppercase;
     color: var(--color-text);
   }
@@ -630,7 +629,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   .daily-game-go {
     margin-left: auto;
     flex-shrink: 0;
-    font: 900 13px/1 var(--font-sans);
+    font: 700 13px/1 var(--font-display);
     text-transform: uppercase;
     color: var(--color-accent);
   }
@@ -660,8 +659,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
   .challenge :global(h2) {
     margin: 12px 0 6px;
-    font: 900 clamp(24px, 2.6vw, 34px) / 1 var(--font-display);
-    font-stretch: 110%;
+    font: 800 clamp(20px, 2.6vw, 28px) / 1 var(--font-display);
     text-transform: uppercase;
     color: var(--color-text);
   }
@@ -740,7 +738,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     display: grid;
     place-items: center;
     background: var(--color-bg-hover);
-    font: 900 26px/1 var(--font-display);
+    font: 800 21px/1 var(--font-display);
   }
 
   .stories :global(.story.is-new img),
