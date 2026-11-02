@@ -833,7 +833,13 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       color: #fff;
     }
     .group + .group {
-      margin-top: 36px;
+      margin-top: 32px;
+    }
+    /* Sous une rangée qui défile : un bouton discret, pas un gros bloc */
+    .group-more {
+      margin: 12px 0 0;
+      padding: 9px 14px;
+      font-size: 12px;
     }
     .group-title {
       font-size: 18px;

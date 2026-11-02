@@ -653,7 +653,7 @@
   body .bz-artists.bz-rail.bz-rail {
     grid-auto-columns: 30%;
   }
-  body .bz-rail--compact.bz-rail--compact {
+  body .bz-artists.bz-rail.bz-rail--compact.bz-rail--compact {
     grid-auto-columns: 22%;
     gap: 12px;
   }
