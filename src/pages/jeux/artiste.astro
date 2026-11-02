@@ -1,0 +1,577 @@
+---
+// JEU DU JOUR « L'ARTISTE MYSTÈRE » : on propose des artistes, et chaque caractéristique (genre, pays, solo ou groupe,
+// premier album, auditeurs) dit si c'est juste, proche ou non, avec ↑↓ pour les nombres.
+// Le même artiste pour tout le monde chaque jour (fonction supabase/functions/artist-game) ; résultats dans
+// game_results (supabase/daily-games-artiste.sql) pour la série de jours et les amis du jour.
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="L’artiste mystère" description="Le jeu du jour de BARZ¡ : devine l’artiste mystère grâce à son genre, son pays, son premier album…">
+  <div class="bz-page agame">
+    <a class="back" href="/BARZ-/jeux">← Jeux</a>
+    <span class="bz-eyebrow">Jeu du jour <span id="a-number"></span></span>
+    <h1 class="bz-display">L’artiste <em>mystère.</em></h1>
+    <p class="intro">Propose un artiste : chaque case te dit si tu chauffes. 🟩 juste · 🟧 proche · 🟥 non · ↑↓ plus haut ou plus bas.</p>
+
+    <p class="status" id="a-status">Chargement…</p>
+
+    <div id="a-game" hidden>
+      <form class="guess" id="a-form" autocomplete="off">
+        <label class="sr-only" for="a-input">Ton artiste</label>
+        <input id="a-input" type="search" placeholder="Nom d’un artiste…" maxlength="60" />
+        <ul class="suggestions" id="a-suggestions" role="listbox" hidden></ul>
+      </form>
+
+      <div class="end" id="a-end" hidden>
+        <img class="end-photo" id="a-photo" alt="" referrerpolicy="no-referrer" />
+        <div>
+          <p class="verdict" id="a-verdict"></p>
+          <div class="end-actions">
+            <button type="button" class="bz-btn bz-btn--lime" id="a-share">Partager mon résultat</button>
+            <a class="bz-btn bz-btn--outline" id="a-listen" target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
+          </div>
+          <p class="streak" id="a-streak" hidden></p>
+          <p class="login" id="a-login" hidden><a href="/BARZ-/connexion">Connecte-toi</a> pour garder ta série de jours et te comparer à tes amis.</p>
+          <p class="next">Nouvel artiste demain à minuit.</p>
+        </div>
+      </div>
+
+      <div class="grid-wrap">
+        <table class="guesses">
+          <thead>
+            <tr><th>Artiste</th><th>Genre</th><th>Pays</th><th>Solo / groupe</th><th>1er album</th><th>Auditeurs</th></tr>
+          </thead>
+          <tbody id="a-rows"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="a-empty">Tes propositions s’afficheront ici. Commence par un artiste que tu connais bien !</p>
+      <button type="button" class="give-up" id="a-giveup" hidden>Abandonner et voir la réponse</button>
+    </div>
+
+    <section class="friends" id="a-friends" hidden>
+      <h2 class="bz-h2">Tes amis <em>aujourd’hui</em></h2>
+      <ul id="a-friends-list"></ul>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { escapeHtml, getSession, myFriendships, supabase } from '../../scripts/social';
+  import { normalizeSearch, searchScore } from '../../lib/fuzzy';
+
+  const MAX = 50;
+  const SITE = 'https://albannnnnnnnnn.github.io/BARZ-/jeux/artiste';
+
+  type Status = 'ok' | 'near' | 'no' | 'unknown';
+  type Cell = { key: string; label: string; status: Status; arrow: 'up' | 'down' | null };
+  type Row = { id: number; name: string; image: string | null; correct: boolean; cells: Cell[] };
+  type State = { key: string; rows: Row[]; done: boolean; won: boolean; saved?: boolean };
+  type Today = { day: string; number: number; key: string };
+  type Name = { id: number; name: string; image: string | null; search: string };
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const status = $('a-status');
+  const input = $<HTMLInputElement>('a-input');
+  const suggestions = $('a-suggestions');
+
+  let today: Today;
+  let names: Name[] = [];
+  let state: State;
+  let busy = false;
+
+  const call = async <T,>(body: Record<string, unknown>): Promise<T> => {
+    const { data, error } = await supabase!.functions.invoke('artist-game', { body });
+    if (error || data?.error) throw new Error(data?.error ?? 'Le jeu ne répond pas. Réessaie dans un moment.');
+    return data as T;
+  };
+
+  // Partie gardée sur l'appareil ; ignorée si l'artiste du jour a changé (clé différente)
+  const storeKey = () => `barz-artiste-${today.day}`;
+  const load = (): State | null => {
+    try {
+      const raw = localStorage.getItem(storeKey());
+      const kept = raw ? (JSON.parse(raw) as State) : null;
+      return kept?.key === today.key ? kept : null;
+    } catch {
+      return null;
+    }
+  };
+  const store = () => {
+    try {
+      localStorage.setItem(storeKey(), JSON.stringify(state));
+    } catch {
+      // stockage bloqué : la partie reste valable tant que la page est ouverte
+    }
+  };
+
+  const SQUARE: Record<Status, string> = { ok: '🟩', near: '🟧', no: '🟥', unknown: '⬜' };
+  const ARROW = { up: '↑', down: '↓' } as const;
+
+  // Pays : drapeau et nom séparés, pour ne garder que le drapeau sur téléphone
+  const cellLabel = (c: Cell) => {
+    if (c.key !== 'country' || c.label === '?') return escapeHtml(c.label);
+    const [flag, ...name] = c.label.split(' ');
+    return `<span class="flag">${flag}</span> <span class="country-name">${escapeHtml(name.join(' '))}</span>`;
+  };
+
+  function render() {
+    $('a-rows').innerHTML = [...state.rows]
+      .reverse()
+      .map(
+        (r) => `<tr class="${r.correct ? 'is-found' : ''}">
+          <th scope="row" title="${escapeHtml(r.name)}"><span class="who">${r.image ? `<img src="${escapeHtml(r.image)}" alt="" referrerpolicy="no-referrer" />` : ''}<span class="who-name">${escapeHtml(r.name)}</span></span></th>
+          ${r.cells.map((c) => `<td class="cell is-${c.status}" title="${escapeHtml(c.label)}">${cellLabel(c)}${c.arrow ? ` <b aria-label="${c.arrow === 'up' ? 'plus haut' : 'plus bas'}">${ARROW[c.arrow]}</b>` : ''}</td>`).join('')}
+        </tr>`
+      )
+      .join('');
+    $('a-empty').hidden = state.rows.length > 0;
+    $('a-form').hidden = state.done;
+    $('a-giveup').hidden = state.done || state.rows.length < 3;
+    $('a-end').hidden = !state.done;
+  }
+
+  async function finish() {
+    const answer = await call<{ name: string; image: string | null; link: string }>({ action: 'answer' });
+    const n = state.rows.length;
+    $('a-verdict').innerHTML = state.won
+      ? `${n === 1 ? 'Du premier coup !' : `Trouvé en ${n} essais !`} C’était <b>${escapeHtml(answer.name)}</b>.`
+      : `C’était <b>${escapeHtml(answer.name)}</b>. Revanche demain !`;
+    if (answer.image) $<HTMLImageElement>('a-photo').src = answer.image;
+    $<HTMLAnchorElement>('a-listen').href = answer.link;
+    render();
+    await saveResult();
+    showSocial();
+  }
+
+  async function saveResult() {
+    const session = await getSession();
+    if (!session) {
+      $('a-login').hidden = false;
+      return;
+    }
+    if (state.saved) return;
+    await supabase!.from('game_results').insert({ user_id: session.user.id, game: 'artiste', day: today.day, solved: state.won, attempts: Math.min(Math.max(state.rows.length, 1), MAX) });
+    state.saved = true;
+    store();
+  }
+
+  async function showSocial() {
+    const session = await getSession();
+    if (!session) return;
+    const { data: mine } = await supabase!.from('game_results').select('day').eq('user_id', session.user.id).eq('game', 'artiste').order('day', { ascending: false }).limit(400);
+    const days = new Set((mine ?? []).map((r) => r.day as string));
+    let streak = 0;
+    for (let d = new Date(`${today.day}T12:00:00`); days.has(d.toISOString().slice(0, 10)); d.setDate(d.getDate() - 1)) streak++;
+    if (streak > 0) {
+      $('a-streak').textContent = streak === 1 ? '🔥 Premier jour de ta série. Reviens demain !' : `🔥 ${streak} jours d’affilée`;
+      $('a-streak').hidden = false;
+    }
+    const friends = (await myFriendships()).filter((f) => f.status === 'friends').map((f) => f.profile);
+    if (!friends.length) return;
+    const { data: results } = await supabase!.from('game_results').select('user_id, solved, attempts').eq('game', 'artiste').eq('day', today.day).in('user_id', friends.map((f) => f.id));
+    const byId = new Map((results ?? []).map((r) => [r.user_id as string, r]));
+    const rank = (r?: { solved: boolean; attempts: number }) => (r ? (r.solved ? r.attempts : 100) : 200);
+    $('a-friends-list').innerHTML = friends
+      .map((f) => ({ f, r: byId.get(f.id) }))
+      .sort((a, b) => rank(a.r) - rank(b.r))
+      .map(({ f, r }) => {
+        const score = !r ? '<span class="muted">Pas encore joué</span>' : r.solved ? `<b>${r.attempts} essai${r.attempts > 1 ? 's' : ''}</b>` : '<b>Abandon</b>';
+        return `<li><a href="/BARZ-/profil?u=${encodeURIComponent(f.username)}">${escapeHtml(f.display_name || f.username)}</a>${score}</li>`;
+      })
+      .join('');
+    $('a-friends').hidden = false;
+  }
+
+  async function guess(id: number) {
+    if (busy || state.done || state.rows.some((r) => r.id === id)) return;
+    busy = true;
+    suggestions.hidden = true;
+    input.value = '';
+    try {
+      const row = await call<Row>({ action: 'guess', id });
+      state.rows.push(row);
+      state.won = row.correct;
+      state.done = row.correct || state.rows.length >= MAX;
+      store();
+      render();
+      if (state.done) await finish();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      busy = false;
+      if (!state.done) input.focus();
+    }
+  }
+
+  // Propositions : les artistes du jeu, recherche tolérante aux fautes (src/lib/fuzzy.ts), sans ceux déjà proposés
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (!q) {
+      suggestions.hidden = true;
+      return;
+    }
+    const tried = new Set(state.rows.map((r) => r.id));
+    const found = names
+      .filter((n) => !tried.has(n.id))
+      .map((n) => ({ n, score: searchScore(q, n.search) }))
+      .filter((x): x is { n: Name; score: number } => x.score !== null)
+      .sort((a, b) => a.score - b.score || a.n.name.localeCompare(b.n.name, 'fr'))
+      .slice(0, 8);
+    suggestions.innerHTML = found.length
+      ? found
+          .map(({ n }) => `<li><button type="button" role="option" data-id="${n.id}">${n.image ? `<img src="${escapeHtml(n.image)}" alt="" referrerpolicy="no-referrer" />` : ''}<span>${escapeHtml(n.name)}</span></button></li>`)
+          .join('')
+      : '<li class="none">Cet artiste ne fait pas partie du jeu.</li>';
+    suggestions.hidden = false;
+  });
+  suggestions.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-id]');
+    if (b) guess(Number(b.dataset.id));
+  });
+  $('a-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    suggestions.querySelector<HTMLButtonElement>('button[data-id]')?.click();
+  });
+  $('a-giveup').addEventListener('click', async () => {
+    if (!confirm('Abandonner ? La réponse va s’afficher.')) return;
+    state.done = true;
+    state.won = false;
+    store();
+    await finish();
+  });
+
+  $('a-share').addEventListener('click', async () => {
+    const lines = state.rows.slice(-6).map((r) => r.cells.map((c) => SQUARE[c.status]).join(''));
+    const more = state.rows.length > 6 ? `(+${state.rows.length - 6} essais avant)\n` : '';
+    const text = `BARZ¡ · L’artiste mystère n° ${today.number}\n${state.won ? `Trouvé en ${state.rows.length} essai${state.rows.length > 1 ? 's' : ''}` : 'Abandon'}\n${more}${lines.join('\n')}\n${SITE}`;
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        $('a-share').textContent = 'Copié !';
+      }
+    } catch {
+      // partage annulé
+    }
+  });
+
+  if (!supabase) {
+    status.textContent = 'Le jeu n’est pas disponible pour le moment.';
+  } else {
+    Promise.all([call<Today>({ action: 'today' }), call<{ artists: Omit<Name, 'search'>[] }>({ action: 'names' })])
+      .then(async ([t, list]) => {
+        today = t;
+        names = list.artists.map((a) => ({ ...a, search: normalizeSearch(a.name) }));
+        state = load() ?? { key: t.key, rows: [], done: false, won: false };
+        $('a-number').textContent = `· n° ${t.number}`;
+        status.hidden = true;
+        $('a-game').hidden = false;
+        render();
+        if (state.done) await finish();
+      })
+      .catch((err) => {
+        status.textContent = err instanceof Error ? err.message : String(err);
+      });
+  }
+</script>
+
+<style is:global>
+  /* Global, mais limité au jeu : le script ajoute les lignes et les propositions après coup */
+  .agame .back {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .agame .intro,
+  .agame .status {
+    margin-top: 8px;
+    color: var(--color-text-muted);
+  }
+
+  .agame #a-game[hidden],
+  .agame .guess[hidden],
+  .agame .end[hidden],
+  .agame .suggestions[hidden] {
+    display: none;
+  }
+
+  .agame .guess {
+    position: relative;
+    max-width: 520px;
+    margin-top: 24px;
+  }
+
+  .agame .guess input {
+    width: 100%;
+    height: 50px;
+    padding: 0 16px;
+    border: 1px solid var(--color-border-hover);
+    border-radius: var(--radius-full);
+    background: var(--color-paper);
+    color: var(--color-text);
+    font: 500 16px var(--font-sans);
+  }
+
+  .agame .suggestions {
+    position: absolute;
+    z-index: 5;
+    top: 56px;
+    left: 0;
+    right: 0;
+    max-height: 340px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+    box-shadow: 0 14px 40px rgba(20, 26, 46, 0.16);
+  }
+
+  .agame .suggestions button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-text);
+    font: 600 15px var(--font-sans);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .agame .suggestions button:hover,
+  .agame .suggestions button:focus-visible {
+    background: var(--color-bg-hover);
+  }
+
+  .agame .suggestions img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+
+  .agame .suggestions .none {
+    padding: 10px;
+    color: var(--color-text-muted);
+  }
+
+  .agame .guesses-wrap {
+    overflow-x: auto;
+    margin-top: 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .agame .guesses {
+    min-width: 640px;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px;
+  }
+
+  .agame .guesses thead th {
+    padding: 0 6px 4px;
+    font: 700 11px/1.2 var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-align: center;
+  }
+
+  .agame .guesses thead th:first-child {
+    text-align: left;
+  }
+
+  .agame .guesses tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--color-paper);
+    text-align: left;
+  }
+
+  .agame .who {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: 600 14px/1.2 var(--font-sans);
+  }
+
+  .agame .who img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .agame .cell {
+    height: 52px;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font: 600 14px/1.2 var(--font-sans);
+    text-align: center;
+    animation: agame-flip 0.35s ease both;
+  }
+
+  .agame .cell.is-ok {
+    background: #3f9a5b;
+    color: #fff;
+  }
+
+  .agame .cell.is-near {
+    background: #e8a33d;
+    color: #141a2e;
+  }
+
+  .agame .cell.is-no {
+    background: #c8553d;
+    color: #fff;
+  }
+
+  .agame .cell.is-unknown {
+    background: var(--color-bg-surface);
+    color: var(--color-text-muted);
+  }
+
+  .agame .cell b {
+    font-size: 17px;
+  }
+
+  @keyframes agame-flip {
+    from {
+      transform: rotateX(90deg);
+      opacity: 0;
+    }
+  }
+
+  .agame .empty {
+    margin-top: 6px;
+    color: var(--color-text-muted);
+  }
+
+  .agame .give-up {
+    margin-top: 14px;
+    padding: 6px 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font: 500 14px var(--font-sans);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .agame .end {
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 22px;
+    background: var(--color-bg-elevated);
+  }
+
+  .agame .end-photo {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .agame .verdict {
+    font: 400 28px/1.15 var(--font-display);
+  }
+
+  .agame .end-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .agame .streak {
+    margin-top: 14px;
+    font-weight: 600;
+  }
+
+  .agame .login,
+  .agame .next {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .agame .friends {
+    margin-top: 48px;
+  }
+
+  .agame .friends ul {
+    display: grid;
+    gap: 6px;
+    max-width: 520px;
+    margin-top: 14px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .agame .friends li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+  }
+
+  .agame .muted {
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .agame .guesses {
+      min-width: 0;
+      table-layout: fixed;
+      border-spacing: 3px;
+    }
+    .agame .guesses thead th {
+      padding: 0 2px 4px;
+      font-size: 9px;
+      letter-spacing: 0.02em;
+    }
+    .agame .guesses thead th:first-child {
+      width: 44px;
+    }
+    .agame .guesses tbody th {
+      padding: 4px;
+    }
+    .agame .who-name,
+    .agame .country-name {
+      display: none;
+    }
+    .agame .flag {
+      font-size: 20px;
+    }
+    .agame .cell {
+      height: 48px;
+      padding: 2px;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .agame .end {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .agame .end-photo {
+      width: 84px;
+      height: 84px;
+    }
+  }
+</style>

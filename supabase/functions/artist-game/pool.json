@@ -1,0 +1,3211 @@
+[
+ {
+  "deezerId": 867,
+  "name": "-M-",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f62385c89d9ea32a2b8fe165eaba5219/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 1997,
+  "listeners": 344734
+ },
+ {
+  "deezerId": 6853403,
+  "name": "21 Savage",
+  "image": "https://cdn-images.dzcdn.net/images/artist/76b4cd56c7e94e8d2bdc3e2157e1080f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1925295
+ },
+ {
+  "deezerId": 4103408,
+  "name": "5 Seconds Of Summer",
+  "image": "https://cdn-images.dzcdn.net/images/artist/18649acf58b5af865c76af0f0b443e2c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "AU",
+  "kind": "groupe",
+  "firstAlbum": 2014,
+  "listeners": 2181478
+ },
+ {
+  "deezerId": 66,
+  "name": "50 Cent",
+  "image": "https://cdn-images.dzcdn.net/images/artist/58da3cca2d598e43c7a7823cf75277e5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1999,
+  "listeners": 6334619
+ },
+ {
+  "deezerId": 1518490,
+  "name": "A$AP Rocky",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5eebb137c5f4d0eb8fb5f9227e1b6288/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 2770771
+ },
+ {
+  "deezerId": 115,
+  "name": "AC/DC",
+  "image": "https://cdn-images.dzcdn.net/images/artist/7dbc950be70f997ba0cd2b39de7f2aa7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "AU",
+  "kind": "groupe",
+  "firstAlbum": 1975,
+  "listeners": 6840455
+ },
+ {
+  "deezerId": 75798,
+  "name": "Adele",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e5fc443d2abc03b487234ba4de65a001/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2008,
+  "listeners": 9470780
+ },
+ {
+  "deezerId": 1017,
+  "name": "Alain Bashung",
+  "image": "https://cdn-images.dzcdn.net/images/artist/52dc22345d192486a544ac537ab8560f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 1977,
+  "listeners": 284688
+ },
+ {
+  "deezerId": 110746,
+  "name": "Alceu Valença",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6811cc1c5264d7821fd81aaaa6e1c1c8/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "BR",
+  "kind": "solo",
+  "firstAlbum": 1972,
+  "listeners": 676614
+ },
+ {
+  "deezerId": 228,
+  "name": "Alicia Keys",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a93317808f3d049e5abe7cf72ffe786f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2001,
+  "listeners": 5032113
+ },
+ {
+  "deezerId": 259729,
+  "name": "Alonzo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6135b5af00e064cc9582748d3c51612a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 439692
+ },
+ {
+  "deezerId": 9052,
+  "name": "Amy Winehouse",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0cacb43a576b031eb169cca27171c1f5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2003,
+  "listeners": 4302486
+ },
+ {
+  "deezerId": 1042268,
+  "name": "Angèle",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0f94e17cc0c77cc18c2751fd0e269a32/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "BE",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 938796
+ },
+ {
+  "deezerId": 4390053,
+  "name": "Anitta",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e874033338b645f174694ba024a14557/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "BR",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 3108542
+ },
+ {
+  "deezerId": 1182,
+  "name": "Arctic Monkeys",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6c03e4c7c36800897fd468633286db24/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2005,
+  "listeners": 6047853
+ },
+ {
+  "deezerId": 1562681,
+  "name": "Ariana Grande",
+  "image": "https://cdn-images.dzcdn.net/images/artist/721d8fab84b315502de422b8d0901509/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 7982926
+ },
+ {
+  "deezerId": 843,
+  "name": "Audioslave",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8def6b7696e114a5d059f2a1d5230c1c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2002,
+  "listeners": 2195983
+ },
+ {
+  "deezerId": 406,
+  "name": "Avenged Sevenfold",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6577dccc570c0c95fbcf09c7bf66cbbe/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "metal"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2001,
+  "listeners": 2398487
+ },
+ {
+  "deezerId": 293585,
+  "name": "Avicii",
+  "image": "https://cdn-images.dzcdn.net/images/artist/82e214b0cb39316f4a12a082fded54f6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "SE",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 5403754
+ },
+ {
+  "deezerId": 8909272,
+  "name": "Aya Nakamura",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c8bca3e6aed3da8de8cbe0edd91bc156/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1284729
+ },
+ {
+  "deezerId": 10583405,
+  "name": "Bad Bunny",
+  "image": "https://cdn-images.dzcdn.net/images/artist/044a3f315b041864887a8dd8709e6926/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae",
+   "world"
+  ],
+  "country": "PR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 4716459
+ },
+ {
+  "deezerId": 1352097,
+  "name": "Bastille",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6b76e1f7a7bda7e7e41950d12c77702f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2012,
+  "listeners": 2366155
+ },
+ {
+  "deezerId": 145,
+  "name": "Beyoncé",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0aa9d669be4e7310b8647afae37ffaab/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2003,
+  "listeners": 9204407
+ },
+ {
+  "deezerId": 5497121,
+  "name": "Bigflo & Oli",
+  "image": "https://cdn-images.dzcdn.net/images/artist/07408e0ffeeae4b388e5b35c22c3ede3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 394615
+ },
+ {
+  "deezerId": 9635624,
+  "name": "Billie Eilish",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8eab1a9a644889aabaca1e193e05f984/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2019,
+  "listeners": 6421415
+ },
+ {
+  "deezerId": 107666,
+  "name": "Birdy",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8c1a7eaf1b7ffee11c36ffcef4aa0992/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2011,
+  "listeners": 1594632
+ },
+ {
+  "deezerId": 1020109,
+  "name": "Black Eyed Peas",
+  "image": "https://cdn-images.dzcdn.net/images/artist/4230c9807b45b78df8ce1255ca5ca594/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1998,
+  "listeners": 6034587
+ },
+ {
+  "deezerId": 4494623,
+  "name": "Black M",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6e0b71ccdb52762590d0ab09c373762b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2005,
+  "listeners": 588264
+ },
+ {
+  "deezerId": 390,
+  "name": "Booba",
+  "image": "https://cdn-images.dzcdn.net/images/artist/38b687e97c6874e744d305ef2ca8d0d0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2002,
+  "listeners": 1133267
+ },
+ {
+  "deezerId": 83110,
+  "name": "Brigitte",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0749066a183e0fb4957c0008e04911f4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2011,
+  "listeners": 212707
+ },
+ {
+  "deezerId": 12874,
+  "name": "Bring Me the Horizon",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d159e783c1f419ae27fd2deca5b89b54/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "metal"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2006,
+  "listeners": 1970460
+ },
+ {
+  "deezerId": 483,
+  "name": "Britney Spears",
+  "image": "https://cdn-images.dzcdn.net/images/artist/caea45732bb52679494602c60430435a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1999,
+  "listeners": 6042511
+ },
+ {
+  "deezerId": 429675,
+  "name": "Bruno Mars",
+  "image": "https://cdn-images.dzcdn.net/images/artist/90f0b5b11df4f87ee878f38569b5995b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1990,
+  "listeners": 8393244
+ },
+ {
+  "deezerId": 6982223,
+  "name": "BTS",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b5c64fa8216ca158e52b4d88bd9388ff/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "KR",
+  "kind": "groupe",
+  "firstAlbum": 2014,
+  "listeners": 3168740
+ },
+ {
+  "deezerId": 12178,
+  "name": "Calvin Harris",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a53031d02dc2f8a8eb15d117c015d5eb/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 8035725
+ },
+ {
+  "deezerId": 9236850,
+  "name": "Camila Cabello",
+  "image": "https://cdn-images.dzcdn.net/images/artist/4591e8a49868c2494652767f47695a90/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 3161885
+ },
+ {
+  "deezerId": 9064930,
+  "name": "Cardi B",
+  "image": "https://cdn-images.dzcdn.net/images/artist/af776cd99efbc010c3782030df0e7e1e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 2585391
+ },
+ {
+  "deezerId": 4944278,
+  "name": "Casseurs Flowters",
+  "image": "https://cdn-images.dzcdn.net/images/artist/4b94579b476cd8ae100c2bb9a871e586/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2013,
+  "listeners": 185890
+ },
+ {
+  "deezerId": 198,
+  "name": "Céline Dion",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e3ae78e5c49ed42342513d5a248b9c4c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "CA",
+  "kind": "solo",
+  "firstAlbum": 1981,
+  "listeners": 2896996
+ },
+ {
+  "deezerId": 1362735,
+  "name": "Charlie Puth",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c355b366638e0c5f20f4b265f0f12646/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 2476625
+ },
+ {
+  "deezerId": 15355,
+  "name": "Chitãozinho & Xororó",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f5a772dfac58a007ee90e13bdf56f36a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "BR",
+  "kind": "groupe",
+  "firstAlbum": 1972,
+  "listeners": 629481
+ },
+ {
+  "deezerId": 102,
+  "name": "Chris Brown",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0ace078361ed30f1179e3fdba22932af/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2005,
+  "listeners": 6686295
+ },
+ {
+  "deezerId": 11907,
+  "name": "Christophe Maé",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f371ce72486a624fd17f7860fb3d7c6f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2006,
+  "listeners": 342128
+ },
+ {
+  "deezerId": 4889156,
+  "name": "Clara Luciani",
+  "image": "https://cdn-images.dzcdn.net/images/artist/496bf6ea74ccb0c597e3e6e8fc58aa7b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 407290
+ },
+ {
+  "deezerId": 892,
+  "name": "Coldplay",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3087954bca22f306324912e5ac8375c3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2000,
+  "listeners": 13119986
+ },
+ {
+  "deezerId": 7042927,
+  "name": "Columbine",
+  "image": "https://cdn-images.dzcdn.net/images/artist/edb317972de2527eacf88c4d7510c532/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2016,
+  "listeners": 139720
+ },
+ {
+  "deezerId": 11884111,
+  "name": "Da Uzi",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a03b90939750c2613092e243d993c567/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2020,
+  "listeners": 196625
+ },
+ {
+  "deezerId": 4803754,
+  "name": "Dadju",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cc3b1efce691fc86644748dba8affa21/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 763254
+ },
+ {
+  "deezerId": 27,
+  "name": "Daft Punk",
+  "image": "https://cdn-images.dzcdn.net/images/artist/638e69b9caaf9f9f3f8826febea7b543/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 1997,
+  "listeners": 5824340
+ },
+ {
+  "deezerId": 254,
+  "name": "Damian Marley",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d27261447e867f19e1c148421d3784f6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae"
+  ],
+  "country": "JM",
+  "kind": "solo",
+  "firstAlbum": 1996,
+  "listeners": 1735887
+ },
+ {
+  "deezerId": 9197980,
+  "name": "Damso",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f1a596b126611260994271ce4cb54bb0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "BE",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 957282
+ },
+ {
+  "deezerId": 997,
+  "name": "David Bowie",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8301a6a09a24f4bb35950c59717defa0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 1967,
+  "listeners": 3771030
+ },
+ {
+  "deezerId": 542,
+  "name": "David Guetta",
+  "image": "https://cdn-images.dzcdn.net/images/artist/2d527fa03e106ed82a28f161694278d3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2002,
+  "listeners": 10456405
+ },
+ {
+  "deezerId": 193875,
+  "name": "Demi Lovato",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ed77e3a8268b3ae1e0b73183da3896e7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2008,
+  "listeners": 5045659
+ },
+ {
+  "deezerId": 292949,
+  "name": "Dinos",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ea884540eefa9e2d66b1dfe219b8f79c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 235985
+ },
+ {
+  "deezerId": 1846,
+  "name": "Diplo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e26fa83b67df45f262ce0181c3b86463/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic",
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2002,
+  "listeners": 1694512
+ },
+ {
+  "deezerId": 176,
+  "name": "Dire Straits",
+  "image": "https://cdn-images.dzcdn.net/images/artist/400d3ece017a3482e9aae5d0c0a951f6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1978,
+  "listeners": 2894863
+ },
+ {
+  "deezerId": 5828,
+  "name": "DJ Khaled",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c9157de87a18015b5a898cf4d0d867d8/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2006,
+  "listeners": 2245915
+ },
+ {
+  "deezerId": 9930130,
+  "name": "Djadja & Dinaz",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b7c945a7b8143161b5e112d6dac78e24/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2016,
+  "listeners": 434984
+ },
+ {
+  "deezerId": 974,
+  "name": "Doc Gynéco",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b36d9a149ec8eb147bc2afec95cbb01b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 1996,
+  "listeners": 67567
+ },
+ {
+  "deezerId": 5578942,
+  "name": "Doja Cat",
+  "image": "https://cdn-images.dzcdn.net/images/artist/9e3a3b8792a04c4578da7b905ffeaf2b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 3109529
+ },
+ {
+  "deezerId": 158083,
+  "name": "Dosseh",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b4af9bb9ba857e3e5c198e487d9f3dbc/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 262131
+ },
+ {
+  "deezerId": 763,
+  "name": "Dr. Dre",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5af98b093efb7b818e4e084621c76b85/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1992,
+  "listeners": 4277629
+ },
+ {
+  "deezerId": 246791,
+  "name": "Drake",
+  "image": "https://cdn-images.dzcdn.net/images/artist/eb0ed5b21d1ea5af021fc074ded0e91f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "CA",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 12954783
+ },
+ {
+  "deezerId": 9884966,
+  "name": "DTF",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ce7bc543fd6b3125556185148001c40e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2016,
+  "listeners": 225326
+ },
+ {
+  "deezerId": 8706544,
+  "name": "Dua Lipa",
+  "image": "https://cdn-images.dzcdn.net/images/artist/877872aaf75694f11d53c318700ab2b5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 5518587
+ },
+ {
+  "deezerId": 384236,
+  "name": "Ed Sheeran",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d6bb84390641d8ae9118228d9544e53d/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2011,
+  "listeners": 9564765
+ },
+ {
+  "deezerId": 9030084,
+  "name": "Eddy de Pretto",
+  "image": "https://cdn-images.dzcdn.net/images/artist/426443c9ac95712b03243aed6a0c18b7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 187414
+ },
+ {
+  "deezerId": 15853,
+  "name": "Elba Ramalho",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ae048e35cfef6eb57309438563f501b5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "BR",
+  "kind": "solo",
+  "firstAlbum": 1979,
+  "listeners": 303099
+ },
+ {
+  "deezerId": 311820,
+  "name": "Ellie Goulding",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e3611824a11b28e07bc5a363c629dcb4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 5101705
+ },
+ {
+  "deezerId": 13,
+  "name": "Eminem",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0f30bbd33a680030054af004d698d6ac/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1996,
+  "listeners": 12368347
+ },
+ {
+  "deezerId": 53345732,
+  "name": "Eva",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e4e712275eb3559231374288530d2625/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2019,
+  "listeners": 238301
+ },
+ {
+  "deezerId": 98,
+  "name": "Evanescence",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0c993f8104879b99b1a952005a8c2426/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2003,
+  "listeners": 4233413
+ },
+ {
+  "deezerId": 404,
+  "name": "Fall Out Boy",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f53434390dd76ef724cdc26df7a0b64d/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2003,
+  "listeners": 3701054
+ },
+ {
+  "deezerId": 4397349,
+  "name": "Ferrugem",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0d463f3d9dc486148645717b1cafa214/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "BR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 1104410
+ },
+ {
+  "deezerId": 4974921,
+  "name": "Fifth Harmony",
+  "image": "https://cdn-images.dzcdn.net/images/artist/77c245632646ec9245f6233e61d78da2/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 2195007
+ },
+ {
+  "deezerId": 169,
+  "name": "Fleetwood Mac",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ef23278cf3a67a3ca8404ddaa38699d4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1968,
+  "listeners": 2926531
+ },
+ {
+  "deezerId": 183716,
+  "name": "Florence + The Machine",
+  "image": "https://cdn-images.dzcdn.net/images/artist/03380466e2b2c6c681357f0de682b320/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2009,
+  "listeners": 2609926
+ },
+ {
+  "deezerId": 13755123,
+  "name": "Freeze Corleone",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cdac7dd9008bcce4c12809c93989e348/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 233788
+ },
+ {
+  "deezerId": 4539853,
+  "name": "Fréro Delavega",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cd9f9957e89a8569638ebadd3fd4bb99/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2014,
+  "listeners": 246494
+ },
+ {
+  "deezerId": 165930,
+  "name": "Future",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1a695ee9c2cb49fab81d408836100ff3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2012,
+  "listeners": 3675928
+ },
+ {
+  "deezerId": 8873540,
+  "name": "Gazo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/54c1dc208f92240e9d56b595708ed284/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2022,
+  "listeners": 554675
+ },
+ {
+  "deezerId": 12407,
+  "name": "Geraldo Azevedo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3056113efd537c32ccd6065ebd007285/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "BR",
+  "kind": "solo",
+  "firstAlbum": 1972,
+  "listeners": 292718
+ },
+ {
+  "deezerId": 4429712,
+  "name": "GIMS",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ba02785ee0a58180ca0e8dd37190d107/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 1797280
+ },
+ {
+  "deezerId": 14,
+  "name": "Gorillaz",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ebbb1c133ed0220c714b9ed5d254561f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2000,
+  "listeners": 4629256
+ },
+ {
+  "deezerId": 5876247,
+  "name": "Gradur",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bcdc5604c1e8a8c3f212be3082b980c3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 343589
+ },
+ {
+  "deezerId": 52,
+  "name": "Green Day",
+  "image": "https://cdn-images.dzcdn.net/images/artist/690381cc69a21802b5d95b0460afb6a3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1990,
+  "listeners": 5972425
+ },
+ {
+  "deezerId": 663,
+  "name": "Guns N' Roses",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c62989722e38d7a2ab18afde3c19bc5c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1987,
+  "listeners": 6806566
+ },
+ {
+  "deezerId": 5292512,
+  "name": "Halsey",
+  "image": "https://cdn-images.dzcdn.net/images/artist/dbfcb38ac398f2c09d18b16868426f41/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 2500086
+ },
+ {
+  "deezerId": 171998,
+  "name": "Hamza",
+  "image": "https://cdn-images.dzcdn.net/images/artist/943814c7c1558fd0afd0aafbc2ebef03/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "BE",
+  "kind": "solo",
+  "firstAlbum": 2019,
+  "listeners": 440030
+ },
+ {
+  "deezerId": 5313805,
+  "name": "Harry Styles",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1151dba9b3edc0633adf35b64c21713f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 2791845
+ },
+ {
+  "deezerId": 2845031,
+  "name": "Hayce Lemsi",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0d3561dee8dd5cf2b1536ef241615663/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2012,
+  "listeners": 105516
+ },
+ {
+  "deezerId": 13645509,
+  "name": "Heuss L'enfoiré",
+  "image": "https://cdn-images.dzcdn.net/images/artist/af51b1402b32aed423c0fefcaea21be7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2019,
+  "listeners": 393720
+ },
+ {
+  "deezerId": 6545727,
+  "name": "Hornet la Frappe",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ec87c1c4fde9410871b483eac2159fee/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 236438
+ },
+ {
+  "deezerId": 13814197,
+  "name": "Huncho Jack",
+  "image": "https://cdn-images.dzcdn.net/images/artist/dcbaef1d3a07c8fa233a7c9017b14553/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2017,
+  "listeners": 237144
+ },
+ {
+  "deezerId": 48,
+  "name": "IAM",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b9c2f09d7fd9dc2fd0030048b897cdeb/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 1990,
+  "listeners": 404954
+ },
+ {
+  "deezerId": 416239,
+  "name": "Imagine Dragons",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1ba025c23cae3dee14b51152990285fc/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2012,
+  "listeners": 6342059
+ },
+ {
+  "deezerId": 4437965,
+  "name": "Indila",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d24d498af970c6feda6c2069cfdff56b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2014,
+  "listeners": 1208497
+ },
+ {
+  "deezerId": 4860761,
+  "name": "J Balvin",
+  "image": "https://cdn-images.dzcdn.net/images/artist/325eaa46bc25052d0e3d549d60cc8225/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae",
+   "world"
+  ],
+  "country": "CO",
+  "kind": "solo",
+  "firstAlbum": 2009,
+  "listeners": 4499104
+ },
+ {
+  "deezerId": 339209,
+  "name": "J. Cole",
+  "image": "https://cdn-images.dzcdn.net/images/artist/dc8d97f19855c8ea3f15ee6db784198e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2011,
+  "listeners": 3316802
+ },
+ {
+  "deezerId": 6699381,
+  "name": "Jack Ü",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c47e6233f8c06c4fa0015b588fd38a95/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 676546
+ },
+ {
+  "deezerId": 249619382,
+  "name": "Jackboys",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d41d8cd98f00b204e9800998ecf8427e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2025,
+  "listeners": 217221
+ },
+ {
+  "deezerId": 5951582,
+  "name": "Jain",
+  "image": "https://cdn-images.dzcdn.net/images/artist/4081ad8f96b9b8215a1a42e45ae7d17b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 477813
+ },
+ {
+  "deezerId": 1364450,
+  "name": "Jake Bugg",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6d86284420b8fdfe914a5c5b84f1c5b2/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "folk"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2012,
+  "listeners": 523120
+ },
+ {
+  "deezerId": 287,
+  "name": "James Blunt",
+  "image": "https://cdn-images.dzcdn.net/images/artist/7be2c6b39aa3bd15315d310fea099caf/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2004,
+  "listeners": 2115416
+ },
+ {
+  "deezerId": 249599,
+  "name": "Jason Derulo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/955a40075bfd5d5501f266bd0cc79381/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 4279244
+ },
+ {
+  "deezerId": 313,
+  "name": "John Legend",
+  "image": "https://cdn-images.dzcdn.net/images/artist/4ce9071cd0da497e8bd75337a5a21294/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2004,
+  "listeners": 3409886
+ },
+ {
+  "deezerId": 1060,
+  "name": "Johnny Hallyday",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a8cbf6cc9d2808237b23b1159b56afba/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rock"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 1960,
+  "listeners": 506914
+ },
+ {
+  "deezerId": 4907510,
+  "name": "Jok'air",
+  "image": "https://cdn-images.dzcdn.net/images/artist/29eef003799e0df703e3d89559f34e7a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 270665
+ },
+ {
+  "deezerId": 14456487,
+  "name": "Juice WRLD",
+  "image": "https://cdn-images.dzcdn.net/images/artist/2ecf2968fbbc8eb042b241b8e60e5d7e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 2573660
+ },
+ {
+  "deezerId": 1191615,
+  "name": "Jul",
+  "image": "https://cdn-images.dzcdn.net/images/artist/16eb681d72934d4db17088dfc216669d/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2014,
+  "listeners": 1574528
+ },
+ {
+  "deezerId": 15887,
+  "name": "Julien Doré",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5babc2cbae6487ea9fe87899801a92eb/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2008,
+  "listeners": 484106
+ },
+ {
+  "deezerId": 288166,
+  "name": "Justin Bieber",
+  "image": "https://cdn-images.dzcdn.net/images/artist/fe097f693cebf1f882e3da79e99e3bf9/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rnb"
+  ],
+  "country": "CA",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 7542138
+ },
+ {
+  "deezerId": 1147,
+  "name": "Justin Timberlake",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c2b04e4f1d4036e896b67ad306008d66/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2002,
+  "listeners": 6235537
+ },
+ {
+  "deezerId": 388973,
+  "name": "Kaaris",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8a9a1bab807db8050351e3278ef56483/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 505172
+ },
+ {
+  "deezerId": 73018,
+  "name": "Kalash",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b3f5e700735ab156511ec65e9c164fe0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae"
+  ],
+  "country": null,
+  "kind": null,
+  "firstAlbum": null,
+  "listeners": 219752
+ },
+ {
+  "deezerId": 10452069,
+  "name": "Kalash Criminel",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0c04d18674e1b9a6bbe8f14c1fc8e320/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 241127
+ },
+ {
+  "deezerId": 230,
+  "name": "Kanye West",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bb76c2ee3b068726ab4c37b0aabdb57a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2002,
+  "listeners": 6102990
+ },
+ {
+  "deezerId": 144227,
+  "name": "Katy Perry",
+  "image": "https://cdn-images.dzcdn.net/images/artist/9c144bd1ed91b2a59c826cf1d1cde633/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2001,
+  "listeners": 8542126
+ },
+ {
+  "deezerId": 13358,
+  "name": "Kavinsky",
+  "image": "https://cdn-images.dzcdn.net/images/artist/109f6a90627dbcf043def392d50b0c72/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 941750
+ },
+ {
+  "deezerId": 7459268,
+  "name": "KeBlack",
+  "image": "https://cdn-images.dzcdn.net/images/artist/7478b5c1c63a039103ec52f9eb99b17c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 348467
+ },
+ {
+  "deezerId": 5947658,
+  "name": "Kendji Girac",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8937abf847aeabbaa7b8ec908c1509d4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2014,
+  "listeners": 510461
+ },
+ {
+  "deezerId": 525046,
+  "name": "Kendrick Lamar",
+  "image": "https://cdn-images.dzcdn.net/images/artist/be0a7c550567f4af0ed202d7235b74d6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2011,
+  "listeners": 5738863
+ },
+ {
+  "deezerId": 362326,
+  "name": "Khalid",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e6237058662af2e9d4815e57071353cd/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 2075312
+ },
+ {
+  "deezerId": 148129,
+  "name": "Kids United",
+  "image": "https://cdn-images.dzcdn.net/images/artist/58e8fb2e765aa91619b8809d2f18a3ae/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 122375
+ },
+ {
+  "deezerId": 14621667,
+  "name": "Koba LaD",
+  "image": "https://cdn-images.dzcdn.net/images/artist/93372c1fdc04dba60644e7d6b4e238e3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 458792
+ },
+ {
+  "deezerId": 4768753,
+  "name": "Kygo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c3e15399350755674d0462ddf51e0008/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic",
+   "pop"
+  ],
+  "country": "NO",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 3805498
+ },
+ {
+  "deezerId": 12778,
+  "name": "La Fouine",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d9347b8837fa512b438fd83cfb44a0bf/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2005,
+  "listeners": 479705
+ },
+ {
+  "deezerId": 4087782,
+  "name": "Lacrim",
+  "image": "https://cdn-images.dzcdn.net/images/artist/69f34d0c06dd1393ed2fc981bd75391f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 660955
+ },
+ {
+  "deezerId": 75491,
+  "name": "Lady Gaga",
+  "image": "https://cdn-images.dzcdn.net/images/artist/7565262f7661b0d762621a8d69ba6f49/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2008,
+  "listeners": 8626966
+ },
+ {
+  "deezerId": 1424821,
+  "name": "Lana Del Rey",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8994d3be1a59a72f887f1f8afd2d4c6c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2008,
+  "listeners": 5657071
+ },
+ {
+  "deezerId": 14447309,
+  "name": "Landy",
+  "image": "https://cdn-images.dzcdn.net/images/artist/821d7de384a7d54485ebe5be2fb0ffe2/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2019,
+  "listeners": 185553
+ },
+ {
+  "deezerId": 1670355,
+  "name": "Lartiste",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bebf28cdc0e98b16049580bd08423144/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 417414
+ },
+ {
+  "deezerId": 4510044,
+  "name": "Laylow",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bbcb2b1a7a1500d7fce0705a7769e93e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 235535
+ },
+ {
+  "deezerId": 848,
+  "name": "Led Zeppelin",
+  "image": "https://cdn-images.dzcdn.net/images/artist/2cf138b96a63da677ac6fb79846607c8/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1969,
+  "listeners": 5299422
+ },
+ {
+  "deezerId": 1473902,
+  "name": "Lefa",
+  "image": "https://cdn-images.dzcdn.net/images/artist/2b2b72497a831dcdc795cc04386fc1e4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 167474
+ },
+ {
+  "deezerId": 455796,
+  "name": "Leto",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d6d1c045440db75b5db7109474afe4de/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2020,
+  "listeners": 325786
+ },
+ {
+  "deezerId": 15166511,
+  "name": "Lil Nas X",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1ca412353f85efec0825c88cc1a5f24c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2021,
+  "listeners": 2197337
+ },
+ {
+  "deezerId": 11420468,
+  "name": "Lil Peep",
+  "image": "https://cdn-images.dzcdn.net/images/artist/9c3749d65aa59626a0a876ca9381e10e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1730175
+ },
+ {
+  "deezerId": 10668131,
+  "name": "Lil Pump",
+  "image": "https://cdn-images.dzcdn.net/images/artist/eba502bbc2aa1df50ecc7b914664f92c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 720637
+ },
+ {
+  "deezerId": 74309,
+  "name": "Lil Wayne",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3ced6f5ba94b771cf704fec83c58c798/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1999,
+  "listeners": 4678454
+ },
+ {
+  "deezerId": 92,
+  "name": "Linkin Park",
+  "image": "https://cdn-images.dzcdn.net/images/artist/4886905210739af3438990897bad3a98/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2000,
+  "listeners": 9368103
+ },
+ {
+  "deezerId": 167225,
+  "name": "LMFAO",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d639f46bfe29ec47d3f1bbf50d705a61/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2009,
+  "listeners": 3419024
+ },
+ {
+  "deezerId": 4448485,
+  "name": "Lorde",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a0d7a8d43d6d5736529374fabd9336a2/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "pop"
+  ],
+  "country": "NZ",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 2843448
+ },
+ {
+  "deezerId": 123503,
+  "name": "Lorenzo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5e5b6cba2c143e9b809d0815bf67dd73/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 266894
+ },
+ {
+  "deezerId": 633,
+  "name": "Louise Attaque",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e2231a43ce3e3fe4ee054d7a422d1b4c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 1997,
+  "listeners": 514621
+ },
+ {
+  "deezerId": 632926,
+  "name": "Mac Miller",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d868d87e47d0597e6ba36d49eadec848/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2011,
+  "listeners": 2196936
+ },
+ {
+  "deezerId": 152291,
+  "name": "Macklemore",
+  "image": "https://cdn-images.dzcdn.net/images/artist/05f641adbfea9526116737ee6fb751b9/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2005,
+  "listeners": 3030518
+ },
+ {
+  "deezerId": 893222,
+  "name": "Macklemore & Ryan Lewis",
+  "image": "https://cdn-images.dzcdn.net/images/artist/7b626fd854d98dc1d98b7062ff8b4b0b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2012,
+  "listeners": 1752359
+ },
+ {
+  "deezerId": 290,
+  "name": "Madonna",
+  "image": "https://cdn-images.dzcdn.net/images/artist/62896581ffe80588d00fdf89667adb02/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1983,
+  "listeners": 5394635
+ },
+ {
+  "deezerId": 4448630,
+  "name": "Maes",
+  "image": "https://cdn-images.dzcdn.net/images/artist/14c919011b4dc5575aa64bcf7311aa5d/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 515286
+ },
+ {
+  "deezerId": 1424602,
+  "name": "Maluma",
+  "image": "https://cdn-images.dzcdn.net/images/artist/69defce1be19bb2abf80cb7b1d936cdc/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae",
+   "world"
+  ],
+  "country": "CO",
+  "kind": "solo",
+  "firstAlbum": 2012,
+  "listeners": 2951701
+ },
+ {
+  "deezerId": 6,
+  "name": "Manu Chao",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8761b9e8ef9dfd200775d1458ea6446e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 1998,
+  "listeners": 1798012
+ },
+ {
+  "deezerId": 112,
+  "name": "Marc Anthony",
+  "image": "https://cdn-images.dzcdn.net/images/artist/fc838a70027abfd9b9d0f8906f2a1421/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1991,
+  "listeners": 1572506
+ },
+ {
+  "deezerId": 1188,
+  "name": "Maroon 5",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bbb526b9666c7e31dee295bcabbbdd8e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1994,
+  "listeners": 8863949
+ },
+ {
+  "deezerId": 9134960,
+  "name": "Marwa Loud",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d18615c1a50c0f92fdeac5f83df7dd18/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rap"
+  ],
+  "country": null,
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 409614
+ },
+ {
+  "deezerId": 612,
+  "name": "Massive Attack",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3bfbf74ea27b926ba5376ea381f51d0b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1991,
+  "listeners": 2190194
+ },
+ {
+  "deezerId": 1181430,
+  "name": "Meghan Trainor",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cce89f3297e257613eea9c090bab6b02/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2009,
+  "listeners": 1952962
+ },
+ {
+  "deezerId": 5518450,
+  "name": "Melanie Martinez",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f093ca110598a29d39dfffdaabdcdf54/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 2175907
+ },
+ {
+  "deezerId": 119,
+  "name": "Metallica",
+  "image": "https://cdn-images.dzcdn.net/images/artist/056578a9c2007f69ce198c81875eca41/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "metal"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1983,
+  "listeners": 6605097
+ },
+ {
+  "deezerId": 4968870,
+  "name": "Metro Boomin",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bc031b73f958987fa103031070be5c16/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1413849
+ },
+ {
+  "deezerId": 13570,
+  "name": "Metronomy",
+  "image": "https://cdn-images.dzcdn.net/images/artist/77066c79ea71f2ace48af8c59deb5785/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "electronic"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2006,
+  "listeners": 905233
+ },
+ {
+  "deezerId": 69627,
+  "name": "MGMT",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0260c3e6e76812d73f50719292985f01/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2007,
+  "listeners": 2555929
+ },
+ {
+  "deezerId": 881751,
+  "name": "MHD",
+  "image": "https://cdn-images.dzcdn.net/images/artist/af0378d7b69daf3c1ef39a2f1dded73e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 589310
+ },
+ {
+  "deezerId": 259,
+  "name": "Michael Jackson",
+  "image": "https://cdn-images.dzcdn.net/images/artist/97fae13b2b30e4aec2e8c9e0c7839d92/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1972,
+  "listeners": 9793486
+ },
+ {
+  "deezerId": 4962010,
+  "name": "Migos",
+  "image": "https://cdn-images.dzcdn.net/images/artist/dc75c88ae1982a4187a3b806899e17ab/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 2404960
+ },
+ {
+  "deezerId": 6603,
+  "name": "MIKA",
+  "image": "https://cdn-images.dzcdn.net/images/artist/411304c08d869b93327388d4c4e6bf38/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 1703365
+ },
+ {
+  "deezerId": 12436,
+  "name": "Miley Cyrus",
+  "image": "https://cdn-images.dzcdn.net/images/artist/fbf2cc06f54eb5d925983be756289836/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 6029442
+ },
+ {
+  "deezerId": 3638541,
+  "name": "Mister V",
+  "image": "https://cdn-images.dzcdn.net/images/artist/be5c9487954a446a1b70212883fea9b0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 134164
+ },
+ {
+  "deezerId": 1002485,
+  "name": "MMZ",
+  "image": "https://cdn-images.dzcdn.net/images/artist/aaabd7f3c29b5e669db7575cefb5f7dd/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2016,
+  "listeners": 118910
+ },
+ {
+  "deezerId": 1117,
+  "name": "Ms. Lauryn Hill",
+  "image": "https://cdn-images.dzcdn.net/images/artist/9990ded54545c1489dfa7e393bc7ed26/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1998,
+  "listeners": 912815
+ },
+ {
+  "deezerId": 705,
+  "name": "Muse",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cd7c5861be0009d3b75d4d3c069317a7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1999,
+  "listeners": 5769964
+ },
+ {
+  "deezerId": 599,
+  "name": "My Chemical Romance",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8c78e78c01bbdc0c80fb4556c762d3bb/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2002,
+  "listeners": 3039564
+ },
+ {
+  "deezerId": 57423,
+  "name": "MZ",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1be3670b568d06b042720a49616568f0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 172482
+ },
+ {
+  "deezerId": 7459270,
+  "name": "Naza",
+  "image": "https://cdn-images.dzcdn.net/images/artist/151dee5608b02df4b5b36190c1b74df6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 333680
+ },
+ {
+  "deezerId": 1379,
+  "name": "Neil Young",
+  "image": "https://cdn-images.dzcdn.net/images/artist/bdcc1dcee778e55db22c7d0ab011f964/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "CA",
+  "kind": "solo",
+  "firstAlbum": 1968,
+  "listeners": 1537963
+ },
+ {
+  "deezerId": 1412564,
+  "name": "Nekfeu",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0c093e137a288db8d08133ecf092c213/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 638491
+ },
+ {
+  "deezerId": 308440,
+  "name": "Népal",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d985eaeb702a8ddf8ca83f928ed36c0b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2020,
+  "listeners": 182171
+ },
+ {
+  "deezerId": 382937,
+  "name": "Nicki Minaj",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cf30ba4b709168aee196dcf16f259f22/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 6022170
+ },
+ {
+  "deezerId": 5542343,
+  "name": "Ninho",
+  "image": "https://cdn-images.dzcdn.net/images/artist/7601c5c0e2bd16cb585898316fd0dfec/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1316164
+ },
+ {
+  "deezerId": 58624,
+  "name": "Niro",
+  "image": "https://cdn-images.dzcdn.net/images/artist/572831844e25b714cab8a26059831a20/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2012,
+  "listeners": 344535
+ },
+ {
+  "deezerId": 415,
+  "name": "Nirvana",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3ec5542ff520ee74e2befdaba32ef2ef/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1989,
+  "listeners": 8843104
+ },
+ {
+  "deezerId": 5288900,
+  "name": "Niska",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f03af182a46b9f16be9c3a16d0771286/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 808868
+ },
+ {
+  "deezerId": 1581786,
+  "name": "Of Monsters And Men",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f801a55c43f024e37040d7a6acd9c319/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "IS",
+  "kind": "groupe",
+  "firstAlbum": 2011,
+  "listeners": 1156414
+ },
+ {
+  "deezerId": 68334,
+  "name": "Offset",
+  "image": "https://cdn-images.dzcdn.net/images/artist/976f6f16492eb34ba3119f5db93839e6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1150941
+ },
+ {
+  "deezerId": 11152580,
+  "name": "Olivia Rodrigo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/2c9e480317183c037eaebcd7ba96daf4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2021,
+  "listeners": 2509467
+ },
+ {
+  "deezerId": 1007876,
+  "name": "One Direction",
+  "image": "https://cdn-images.dzcdn.net/images/artist/6760dba71ba14145eec5478d8b135c55/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2011,
+  "listeners": 4750481
+ },
+ {
+  "deezerId": 74398,
+  "name": "OneRepublic",
+  "image": "https://cdn-images.dzcdn.net/images/artist/36556d769dc4052d915eb78c8daf98fb/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2007,
+  "listeners": 4411180
+ },
+ {
+  "deezerId": 259467,
+  "name": "Orelsan",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cb21b6617783e6050240ba76ca9b3034/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2009,
+  "listeners": 780127
+ },
+ {
+  "deezerId": 4937383,
+  "name": "Ozuna",
+  "image": "https://cdn-images.dzcdn.net/images/artist/df2030b9e796f55f58d2c4b68aecb18f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "reggae",
+   "rap"
+  ],
+  "country": "PR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 2187609
+ },
+ {
+  "deezerId": 69925,
+  "name": "P!nk",
+  "image": "https://cdn-images.dzcdn.net/images/artist/429e67544862ed2b4c820a02acc24ad1/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2000,
+  "listeners": 4271561
+ },
+ {
+  "deezerId": 402,
+  "name": "Panic! At The Disco",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c601aa8551d9e0bc345d2d75934db733/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2005,
+  "listeners": 2810249
+ },
+ {
+  "deezerId": 10977,
+  "name": "Paramore",
+  "image": "https://cdn-images.dzcdn.net/images/artist/60dc1956a36a5e552384b4a32b0cbf9b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2005,
+  "listeners": 4307403
+ },
+ {
+  "deezerId": 1319,
+  "name": "Pearl Jam",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3e279f4e0269fdb2733474ddfa074a91/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1991,
+  "listeners": 3994596
+ },
+ {
+  "deezerId": 860,
+  "name": "Pink Floyd",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d62a818a5de6455f17b6a992cf22b32f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1967,
+  "listeners": 6245009
+ },
+ {
+  "deezerId": 1479842,
+  "name": "PLK",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f57f9dca944e55afdd99802491c49823/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 621689
+ },
+ {
+  "deezerId": 1519461,
+  "name": "PNL",
+  "image": "https://cdn-images.dzcdn.net/images/artist/9277fdce45b79945918c24f69cb6e8e3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2015,
+  "listeners": 1085432
+ },
+ {
+  "deezerId": 1069,
+  "name": "Portishead",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a78ec8e6fa844b473c4cea87b8ebfcf5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1994,
+  "listeners": 1418898
+ },
+ {
+  "deezerId": 7543848,
+  "name": "Post Malone",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a5a8cca44e7eab2db7d44e039bed2574/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb",
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 3965974
+ },
+ {
+  "deezerId": 7607976,
+  "name": "PSO THUG",
+  "image": "https://cdn-images.dzcdn.net/images/artist/404c7663fb2d3984bd67c5b3c62b92bf/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2016,
+  "listeners": 61225
+ },
+ {
+  "deezerId": 5059044,
+  "name": "Quavo",
+  "image": "https://cdn-images.dzcdn.net/images/artist/dc5dc20993ecaaf6acf9fb56b6abf609/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1018230
+ },
+ {
+  "deezerId": 399,
+  "name": "Radiohead",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0d58cfbc90f2e776608bcdc0c45a4711/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1993,
+  "listeners": 5909568
+ },
+ {
+  "deezerId": 4101559,
+  "name": "Rag'n'Bone Man",
+  "image": "https://cdn-images.dzcdn.net/images/artist/57bed5d2a115ea5b41ff8db1137e0e02/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 1032515
+ },
+ {
+  "deezerId": 113,
+  "name": "Rage Against the Machine",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1550b258713b3a49cdde60de7757abf7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1992,
+  "listeners": 2935844
+ },
+ {
+  "deezerId": 464,
+  "name": "Rammstein",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f22cac6a41e838f54d2c7b4ea47b5f94/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rock"
+  ],
+  "country": "DE",
+  "kind": "groupe",
+  "firstAlbum": 1995,
+  "listeners": 2963683
+ },
+ {
+  "deezerId": 182,
+  "name": "Red Hot Chili Peppers",
+  "image": "https://cdn-images.dzcdn.net/images/artist/238f5524a401dfdd5cac685f0f7989bd/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1984,
+  "listeners": 7578454
+ },
+ {
+  "deezerId": 1651095,
+  "name": "RIDSA",
+  "image": "https://cdn-images.dzcdn.net/images/artist/428174d903afd6a374773a80636cf546/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2014,
+  "listeners": 224960
+ },
+ {
+  "deezerId": 564,
+  "name": "Rihanna",
+  "image": "https://cdn-images.dzcdn.net/images/artist/b78cdc205fae2641b89208e78b30e1b3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2005,
+  "listeners": 12458619
+ },
+ {
+  "deezerId": 323311,
+  "name": "RK",
+  "image": "https://cdn-images.dzcdn.net/images/artist/e7f18a66439a3cd0b3c30358f01b3f47/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 271483
+ },
+ {
+  "deezerId": 13594287,
+  "name": "Roddy Ricch",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c57bd89d86ac6242777632c1f41d9461/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2019,
+  "listeners": 1137529
+ },
+ {
+  "deezerId": 750,
+  "name": "Rohff",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ecc370565ea0075d56d25aebc1eb97fc/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 1999,
+  "listeners": 293564
+ },
+ {
+  "deezerId": 7961408,
+  "name": "Roméo Elvis",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5c97df977b58f0fe9eb52b13c5879933/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "BE",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 215574
+ },
+ {
+  "deezerId": 1035806,
+  "name": "Royal Blood",
+  "image": "https://cdn-images.dzcdn.net/images/artist/ab2e3dd23b1d71f4c9b7403e538a7d9c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2014,
+  "listeners": 657659
+ },
+ {
+  "deezerId": 4856048,
+  "name": "S-Crew",
+  "image": "https://cdn-images.dzcdn.net/images/artist/224ab2f49e075a927e4d177acb4a0483/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2010,
+  "listeners": 143497
+ },
+ {
+  "deezerId": 1270444,
+  "name": "Sadek",
+  "image": "https://cdn-images.dzcdn.net/images/artist/269b9b348544b54ddeb34e7d36e770d4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2012,
+  "listeners": 179857
+ },
+ {
+  "deezerId": 1097709,
+  "name": "Sam Smith",
+  "image": "https://cdn-images.dzcdn.net/images/artist/df9a62e39aabc1977f3b0bb85998bba8/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2014,
+  "listeners": 4238584
+ },
+ {
+  "deezerId": 162665,
+  "name": "SCH",
+  "image": "https://cdn-images.dzcdn.net/images/artist/50e50c8c9204a9bb953303de2ff52fe8/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 589536
+ },
+ {
+  "deezerId": 292185,
+  "name": "Selena Gomez",
+  "image": "https://cdn-images.dzcdn.net/images/artist/26b3660183a4a626bb185a7089f090b4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 4296239
+ },
+ {
+  "deezerId": 75001,
+  "name": "Sexion d'Assaut",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8aa7f0adee4ee809244019d64c5191b5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2010,
+  "listeners": 706344
+ },
+ {
+  "deezerId": 160,
+  "name": "Shakira",
+  "image": "https://cdn-images.dzcdn.net/images/artist/69c569506a8ff6ab0edfecbd1adf94b0/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "latin"
+  ],
+  "country": "CO",
+  "kind": "solo",
+  "firstAlbum": 1991,
+  "listeners": 9328575
+ },
+ {
+  "deezerId": 5962948,
+  "name": "Shawn Mendes",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3d8ed563d628c5c61ec4569d032ab682/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "CA",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 4451659
+ },
+ {
+  "deezerId": 314777,
+  "name": "Shay",
+  "image": "https://cdn-images.dzcdn.net/images/artist/407b92533e5e3b49d691cd1425ccddb5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb"
+  ],
+  "country": "BE",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 192747
+ },
+ {
+  "deezerId": 3469,
+  "name": "Sia",
+  "image": "https://cdn-images.dzcdn.net/images/artist/f3d1301aeb356dc0f40440c3d4f39d0e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "AU",
+  "kind": "solo",
+  "firstAlbum": 1997,
+  "listeners": 6300485
+ },
+ {
+  "deezerId": 6311908,
+  "name": "Siboy",
+  "image": "https://cdn-images.dzcdn.net/images/artist/85cf505bb49ee85fe7f8790be0516015/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": null,
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 75868
+ },
+ {
+  "deezerId": 4327376,
+  "name": "Sidiki Diabaté",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1506b6db84b65970e8d7cbd220e979f9/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "soul"
+  ],
+  "country": null,
+  "kind": null,
+  "firstAlbum": null,
+  "listeners": 43679
+ },
+ {
+  "deezerId": 525643,
+  "name": "Skrillex",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0075f053766d7d0e12e4a7be22b85e6a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2014,
+  "listeners": 5622779
+ },
+ {
+  "deezerId": 117,
+  "name": "Slipknot",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d1a3db36015dd98615f42a5441dcf2f5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "metal"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1999,
+  "listeners": 4253282
+ },
+ {
+  "deezerId": 460,
+  "name": "Sniper",
+  "image": "https://cdn-images.dzcdn.net/images/artist/53e0073a8c996f212762190ed7a28c55/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2001,
+  "listeners": 205585
+ },
+ {
+  "deezerId": 89657,
+  "name": "Sofiane",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8c9297e9604abb466183f66a5d10e36a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 345383
+ },
+ {
+  "deezerId": 10189104,
+  "name": "Soolking",
+  "image": "https://cdn-images.dzcdn.net/images/artist/590841214b6ab3cb5fecc5245ff5db6b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "DZ",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 614470
+ },
+ {
+  "deezerId": 310260,
+  "name": "Stromae",
+  "image": "https://cdn-images.dzcdn.net/images/artist/3634186855460543a9476870a912a31a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "BE",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 2728633
+ },
+ {
+  "deezerId": 752,
+  "name": "Suprême NTM",
+  "image": "https://cdn-images.dzcdn.net/images/artist/68936b560d0397e4e38eac45dd964b5c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 1991,
+  "listeners": 307885
+ },
+ {
+  "deezerId": 458,
+  "name": "System of a Down",
+  "image": "https://cdn-images.dzcdn.net/images/artist/67460cdb0b52bfde1b807650958058d6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "metal"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1998,
+  "listeners": 5901110
+ },
+ {
+  "deezerId": 5531258,
+  "name": "SZA",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8ced041da2bed70d5715f0860956169b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "soul"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 2219693
+ },
+ {
+  "deezerId": 134790,
+  "name": "Tame Impala",
+  "image": "https://cdn-images.dzcdn.net/images/artist/879015e713cc6ad6ffaeec154c027505/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "AU",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 2330846
+ },
+ {
+  "deezerId": 12246,
+  "name": "Taylor Swift",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cc2495870fe1a792ad0cdb05501ad5ec/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2006,
+  "listeners": 8860114
+ },
+ {
+  "deezerId": 5283366,
+  "name": "The Avener",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cbda9a3947dcca675a6e6fda52072638/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2015,
+  "listeners": 398899
+ },
+ {
+  "deezerId": 1,
+  "name": "The Beatles",
+  "image": "https://cdn-images.dzcdn.net/images/artist/16925ed8f96eb621ecd56c2c8ba3da6e/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1963,
+  "listeners": 7392794
+ },
+ {
+  "deezerId": 4104927,
+  "name": "The Chainsmokers",
+  "image": "https://cdn-images.dzcdn.net/images/artist/461231bf0a032d7b8b315e05d1b4bbd7/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2017,
+  "listeners": 4181551
+ },
+ {
+  "deezerId": 2,
+  "name": "The Clash",
+  "image": "https://cdn-images.dzcdn.net/images/artist/82a5fe6ba783cf618d5394ae0b8129b9/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 1977,
+  "listeners": 2673094
+ },
+ {
+  "deezerId": 847,
+  "name": "The Doors",
+  "image": "https://cdn-images.dzcdn.net/images/artist/94d0bdcebb2840d36ccf63e9edde540a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1967,
+  "listeners": 4280957
+ },
+ {
+  "deezerId": 296861,
+  "name": "The Neighbourhood",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8fdcc9f74aa9f930c28f5b9ea0da0fd4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2013,
+  "listeners": 2654236
+ },
+ {
+  "deezerId": 2519,
+  "name": "The Notorious B.I.G.",
+  "image": "https://cdn-images.dzcdn.net/images/artist/87e928a899c183eb10f1da14db7485dd/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1994,
+  "listeners": 2539005
+ },
+ {
+  "deezerId": 882,
+  "name": "The Offspring",
+  "image": "https://cdn-images.dzcdn.net/images/artist/cb39bd249507f7f66782834195be99de/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock",
+   "pop"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 1989,
+  "listeners": 3096527
+ },
+ {
+  "deezerId": 569,
+  "name": "The Strokes",
+  "image": "https://cdn-images.dzcdn.net/images/artist/88e8ecd06aae5cd69d414af57a67f339/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2001,
+  "listeners": 3218083
+ },
+ {
+  "deezerId": 4050205,
+  "name": "The Weeknd",
+  "image": "https://cdn-images.dzcdn.net/images/artist/581693b4724a7fcfa754455101e13a44/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rnb",
+   "pop"
+  ],
+  "country": "CA",
+  "kind": "solo",
+  "firstAlbum": 2013,
+  "listeners": 9073157
+ },
+ {
+  "deezerId": 261212,
+  "name": "The xx",
+  "image": "https://cdn-images.dzcdn.net/images/artist/09139a1450a61a2e5c8cac87cd01ea7f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "electronic"
+  ],
+  "country": "GB",
+  "kind": "groupe",
+  "firstAlbum": 2009,
+  "listeners": 1760570
+ },
+ {
+  "deezerId": 10806366,
+  "name": "Therapie TAXI",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0269716790a9199fcbe46477a5f9a613/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "groupe",
+  "firstAlbum": 2018,
+  "listeners": 243097
+ },
+ {
+  "deezerId": 13918545,
+  "name": "Tiakola",
+  "image": "https://cdn-images.dzcdn.net/images/artist/0df16db136e7417eeef74988208859c3/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2022,
+  "listeners": 409542
+ },
+ {
+  "deezerId": 74463,
+  "name": "Timal",
+  "image": "https://cdn-images.dzcdn.net/images/artist/49a230282599d7354c95a5be736c906c/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 213811
+ },
+ {
+  "deezerId": 152964,
+  "name": "Toumani Diabaté",
+  "image": "https://cdn-images.dzcdn.net/images/artist/88c7478ee46816051b5672578d62cc4f/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "world"
+  ],
+  "country": "ML",
+  "kind": "solo",
+  "firstAlbum": 1988,
+  "listeners": 90511
+ },
+ {
+  "deezerId": 971,
+  "name": "Tracy Chapman",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c791a2bdb4e5e430ce9230cca8083b23/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "folk"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 1988,
+  "listeners": 3994446
+ },
+ {
+  "deezerId": 4495513,
+  "name": "Travis Scott",
+  "image": "https://cdn-images.dzcdn.net/images/artist/8d8316146026d7e6ce377e314536df62/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": null,
+  "listeners": 3324882
+ },
+ {
+  "deezerId": 647650,
+  "name": "Twenty One Pilots",
+  "image": "https://cdn-images.dzcdn.net/images/artist/2e6d4d494a7b7b2c4bea2ccefad368f5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rock"
+  ],
+  "country": "US",
+  "kind": "groupe",
+  "firstAlbum": 2009,
+  "listeners": 4240978
+ },
+ {
+  "deezerId": 304545,
+  "name": "Tyga",
+  "image": "https://cdn-images.dzcdn.net/images/artist/94f19f580600ea7d1c603e8794c04dd6/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2008,
+  "listeners": 3149771
+ },
+ {
+  "deezerId": 1194083,
+  "name": "Tyler, The Creator",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5eceecd683beab6dd901a7931294a121/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 2513600
+ },
+ {
+  "deezerId": 163,
+  "name": "U2",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a0c5a1ade4409513eb1d69dc6622e5a5/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rock"
+  ],
+  "country": "IE",
+  "kind": "groupe",
+  "firstAlbum": 1980,
+  "listeners": 6144644
+ },
+ {
+  "deezerId": 5175734,
+  "name": "Vald",
+  "image": "https://cdn-images.dzcdn.net/images/artist/c49cad70e83b5dccd3ebd0c96cb098d4/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 350859
+ },
+ {
+  "deezerId": 74804,
+  "name": "Wiz Khalifa",
+  "image": "https://cdn-images.dzcdn.net/images/artist/a1dc970ad2ad6afa42580c692b8a8a8d/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2006,
+  "listeners": 5287123
+ },
+ {
+  "deezerId": 9822974,
+  "name": "XXXTentacion",
+  "image": "https://cdn-images.dzcdn.net/images/artist/62e6edfaf5461eeb5b7310903229607a/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "US",
+  "kind": "solo",
+  "firstAlbum": 2017,
+  "listeners": 3736525
+ },
+ {
+  "deezerId": 12490752,
+  "name": "YL",
+  "image": "https://cdn-images.dzcdn.net/images/artist/d8570a51a224ea19f1a8993ada59d477/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2018,
+  "listeners": 181183
+ },
+ {
+  "deezerId": 13020,
+  "name": "Youssoupha",
+  "image": "https://cdn-images.dzcdn.net/images/artist/46e670f3d01c33706c35b58a61e14c55/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2007,
+  "listeners": 324854
+ },
+ {
+  "deezerId": 9761322,
+  "name": "ZAYN",
+  "image": "https://cdn-images.dzcdn.net/images/artist/1789e943d6bc7ee4a6efe32233d1a90b/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop",
+   "rnb"
+  ],
+  "country": "GB",
+  "kind": "solo",
+  "firstAlbum": 2016,
+  "listeners": 2537249
+ },
+ {
+  "deezerId": 71069,
+  "name": "ZAZ",
+  "image": "https://cdn-images.dzcdn.net/images/artist/29bdd96720333c950d206132b0a14768/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "pop"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": 2010,
+  "listeners": 727056
+ },
+ {
+  "deezerId": 13962203,
+  "name": "Zola",
+  "image": "https://cdn-images.dzcdn.net/images/artist/5d4f7e9995868d0cc9b23259a681f7f8/250x250-000000-80-0-0.jpg",
+  "genres": [
+   "rap"
+  ],
+  "country": "FR",
+  "kind": "solo",
+  "firstAlbum": null,
+  "listeners": 480375
+ }
+]

@@ -17,10 +17,10 @@ ALTER TABLE daily_games ENABLE ROW LEVEL SECURITY; -- aucune règle : seule la c
 
 CREATE TABLE IF NOT EXISTS game_results (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  game TEXT NOT NULL CHECK (game IN ('pochette')),
+  game TEXT NOT NULL CHECK (game IN ('pochette', 'artiste')), -- 'artiste' : voir daily-games-artiste.sql
   day DATE NOT NULL,
   solved BOOLEAN NOT NULL,
-  attempts SMALLINT NOT NULL CHECK (attempts BETWEEN 1 AND 6),
+  attempts SMALLINT NOT NULL CHECK (attempts BETWEEN 1 AND 50),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (user_id, game, day)
 );

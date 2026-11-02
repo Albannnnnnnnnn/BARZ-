@@ -88,11 +88,11 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     <section class="challenge" id="challenge" hidden aria-label="Défi de la semaine"></section>
 
     {current && (
-      <a class="daily-game" href="/BARZ-/jeux/pochette" id="daily-game">
+      <a class="daily-game" href="/BARZ-/jeux" id="daily-game">
         <span class="daily-game-icon" aria-hidden="true">🎲</span>
         <span class="daily-game-text">
-          <b>Jeu du jour · Pochette floue</b>
-          <span id="daily-game-sub">Retrouve l’album derrière la pochette floue, en 6 essais.</span>
+          <b>Jeux du jour · Pochette floue, L’artiste mystère</b>
+          <span id="daily-game-sub">Une minute chacun, nouveaux chaque jour à minuit.</span>
         </span>
         <span class="daily-game-go" id="daily-game-go">Jouer →</span>
       </a>
@@ -184,6 +184,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   import { loadTaste, rank, scoreRelease, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
   import { normName } from '../lib/feat';
+  import { dailyGameStatus } from '../scripts/daily-games';
 
   type WeekRelease = RecoRelease & { title: string; slug: string; date: string };
 
@@ -428,18 +429,14 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     document.getElementById('challenge')!.hidden = false;
   }
 
-  // Jeu du jour déjà joué sur cet appareil (partie gardée par src/pages/jeux/pochette.astro)
-  const gameCard = document.getElementById('daily-game');
-  if (gameCard) {
-    try {
-      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
-      const game = JSON.parse(localStorage.getItem(`barz-pochette-${day}`) ?? 'null');
-      if (game?.done) {
-        document.getElementById('daily-game-sub')!.textContent = game.won ? `Trouvé en ${game.tries.length} essai${game.tries.length > 1 ? 's' : ''}. Nouvelle pochette demain.` : 'Raté aujourd’hui. Nouvelle pochette demain.';
-        document.getElementById('daily-game-go')!.textContent = 'Voir →';
-      }
-    } catch {
-      // stockage bloqué : la carte reste telle quelle
+  // Jeux du jour déjà joués sur cet appareil
+  if (document.getElementById('daily-game')) {
+    const played = (['pochette', 'artiste'] as const).filter((g) => dailyGameStatus(g)).length;
+    if (played === 2) {
+      document.getElementById('daily-game-sub')!.textContent = 'Les deux jeux sont faits. Rendez-vous demain !';
+      document.getElementById('daily-game-go')!.textContent = 'Voir →';
+    } else if (played === 1) {
+      document.getElementById('daily-game-sub')!.textContent = 'Plus qu’un jeu à faire aujourd’hui.';
     }
   }
 

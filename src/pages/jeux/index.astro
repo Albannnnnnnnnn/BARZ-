@@ -1,0 +1,117 @@
+---
+// PAGE JEUX : les jeux du jour, avec où on en est aujourd'hui (parties gardées sur l'appareil par chaque jeu)
+import Layout from '../../layouts/Layout.astro';
+
+const GAMES = [
+  { id: 'pochette', href: '/BARZ-/jeux/pochette', icon: '🖼️', title: 'Pochette floue', text: 'Retrouve l’album derrière la pochette floue, en 6 essais.' },
+  { id: 'artiste', href: '/BARZ-/jeux/artiste', icon: '🕵️', title: 'L’artiste mystère', text: 'Devine l’artiste du jour grâce à son genre, son pays, son premier album…' },
+];
+---
+
+<Layout title="Jeux" description="Les jeux musicaux du jour sur BARZ¡ : Pochette floue et L’artiste mystère.">
+  <div class="bz-page">
+    <a class="back" href="/BARZ-/search">← Découvrir</a>
+    <span class="bz-eyebrow">Jeux du jour</span>
+    <h1 class="bz-display">Une minute, <em>deux jeux.</em></h1>
+    <p class="intro">Les mêmes pour tout le monde, nouveaux chaque jour à minuit.</p>
+
+    <div class="games">
+      {GAMES.map((g) => (
+        <a class="game-card" href={g.href} data-game={g.id}>
+          <span class="icon" aria-hidden="true">{g.icon}</span>
+          <span class="body">
+            <b>{g.title}</b>
+            <span class="text">{g.text}</span>
+            <span class="state" data-state>À jouer aujourd’hui</span>
+          </span>
+          <span class="go" data-go>Jouer →</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { dailyGameStatus } from '../../scripts/daily-games';
+
+  document.querySelectorAll<HTMLElement>('[data-game]').forEach((card) => {
+    const status = dailyGameStatus(card.dataset.game as 'pochette' | 'artiste');
+    if (!status) return;
+    card.classList.add('is-done');
+    card.querySelector('[data-state]')!.textContent = status;
+    card.querySelector('[data-go]')!.textContent = 'Voir →';
+  });
+</script>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .intro {
+    margin-top: 8px;
+    color: var(--color-text-muted);
+  }
+
+  .games {
+    display: grid;
+    gap: 14px;
+    max-width: 640px;
+    margin-top: 28px;
+  }
+
+  .game-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 22px;
+    background: var(--color-paper);
+    color: var(--color-text);
+  }
+
+  .game-card:hover {
+    border-color: var(--color-accent-line);
+  }
+
+  .icon {
+    font-size: 36px;
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .body b {
+    font: 400 26px/1.1 var(--font-display);
+  }
+
+  .text {
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .state {
+    margin-top: 4px;
+    font: 600 13px/1.2 var(--font-sans);
+    color: var(--color-accent);
+  }
+
+  .game-card.is-done .state {
+    color: #3f9a5b;
+  }
+
+  .go {
+    margin-left: auto;
+    flex-shrink: 0;
+    font: 600 14px/1 var(--font-sans);
+    color: var(--color-accent);
+  }
+</style>
