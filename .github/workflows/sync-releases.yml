@@ -3,7 +3,7 @@ name: Sync Releases
 on:
   # Synchro de minuit (heure de Paris) : lancée à l'heure par Supabase (pg_cron → fonction sync-fresh, mode minuit),
   # car les tâches programmées de GitHub partent avec des heures de retard. Dans la journée, la veille de sync-fresh
-  # (toutes les 15 min) prend les nouvelles sorties des artistes les plus suivis.
+  # (toutes les 5 min) prend les nouvelles sorties des artistes les plus suivis.
   schedule:
     # Lundi et vendredi à 6h UTC (7h/8h en France) : catalogue d'artistes, puis sorties ajoutées en retard par Deezer
     - cron: '0 6 * * 1,5'

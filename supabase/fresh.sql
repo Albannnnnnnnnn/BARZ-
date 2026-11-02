@@ -38,7 +38,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
 $$;
 REVOKE ALL ON FUNCTION barz_call_sync_fresh(TEXT) FROM PUBLIC, anon, authenticated;
 
--- Veille toutes les 15 minutes
-SELECT cron.schedule('barz-veille', '*/15 * * * *', $$ SELECT barz_call_sync_fresh('veille') $$);
+-- Veille toutes les 5 minutes (un passage dure environ une minute pour ~530 artistes)
+SELECT cron.schedule('barz-veille', '*/5 * * * *', $$ SELECT barz_call_sync_fresh('veille') $$);
 -- Synchro complète à 0h05 heure de Paris : 23h05 UTC en hiver, 22h05 UTC en été (la fonction ne lance que celle qui tombe à 0h)
 SELECT cron.schedule('barz-minuit', '5 22,23 * * *', $$ SELECT barz_call_sync_fresh('minuit') $$);

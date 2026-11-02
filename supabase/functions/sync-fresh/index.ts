@@ -1,8 +1,8 @@
 // Fonction Supabase « sync-fresh » (Deno), exécutée à Paris (x-region: eu-west-3) et appelée par pg_cron
 // (supabase/fresh.sql) :
-// - veille  : toutes les 15 min, les sorties du jour des artistes qui comptent le plus (watchlist, artistes suivis
+// - veille  : toutes les 5 min, les sorties du jour des artistes qui comptent le plus (watchlist, artistes suivis
 //             par les membres, les plus écoutés, nouveautés Deezer). Les nouvelles sont enregistrées tout de suite
-//             et le site est reconstruit (au plus une fois toutes les 30 min). La synchro complète
+//             et le site est reconstruit (au plus une fois toutes les 10 min). La synchro complète
 //             (scripts/sync-releases.ts) repasse ensuite derrière et complète les lignes.
 // - minuit  : lance la synchro complète sur GitHub à minuit heure de Paris, à l'heure (les tâches programmées de
 //             GitHub partent avec beaucoup de retard). pg_cron appelle à 22h05 et 23h05 UTC ; seul l'appel qui
@@ -21,7 +21,7 @@ const TOP_ARTISTS = 300;
 const MIN_AUDIENCE = 30_000;
 // Sorties datées d'aujourd'hui ou des jours précédents (ajouts tardifs de Deezer)
 const DAYS_BACK = 3;
-const DEPLOY_EVERY_MS = 30 * 60_000;
+const DEPLOY_EVERY_MS = 10 * 60_000; // reconstruction au plus toutes les 10 min (la page Sorties montre déjà les nouvelles en direct)
 const JUNK_TITLE = /slowed|sped up|reverb|vocals only|instrumental|karaoke|8d audio|nightcore/i;
 
 // Enregistrements live (concert, Tiny Desk, session…) : classés « live », même si Deezer les donne en album ou EP.
@@ -202,7 +202,7 @@ async function veille() {
     if (error) throw new Error(`Enregistrement : ${error.message}`);
   }
 
-  // Reconstruction du site : dès qu'il y a du nouveau, au plus une fois toutes les 30 min (minutes GitHub comptées)
+  // Reconstruction du site : dès qu’il y a du nouveau, au plus une fois toutes les 10 min (minutes GitHub comptées)
   const { data: state } = await admin.from('sync_state').select('last_deploy, pending').eq('id', 1).maybeSingle();
   const pending = !!state?.pending || fresh.length > 0;
   let deployed = false;

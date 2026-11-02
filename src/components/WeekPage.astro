@@ -73,13 +73,21 @@ const weekData = sorted.map((r, i) => ({
 }));
 // Titres de jour du tri « Plus récentes » (placés et affichés par le script de la page)
 const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
+// Heure du build : les sorties enregistrées depuis par la veille (sync-fresh) sont lues en direct par la page
+const builtAt = new Date().toISOString();
 ---
 
 <Layout
   title={current ? 'Sorties' : `${weekLabel(friday)} · Sorties`}
   description={current ? 'Les sorties musicales de la semaine, triées pour toi.' : `Les sorties musicales de la semaine du ${format(friday, 'd MMMM yyyy', { locale: fr })}.`}
 >
-  <div class="bz-page" data-current-week={current ? '' : undefined}>
+  <div
+    class="bz-page"
+    data-current-week={current ? '' : undefined}
+    data-built-at={builtAt}
+    data-week-start={format(friday, 'yyyy-MM-dd')}
+    data-week-end={format(addDays(friday, 6), 'yyyy-MM-dd')}
+  >
     <header class="week-hero">
       <span class="bz-eyebrow">{eyebrow}</span>
       <h1 class="bz-display">{count} sortie{count > 1 ? 's' : ''}</h1>
@@ -115,6 +123,12 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
           </li>
         ))}
       </ul>
+    </section>
+
+    <!-- Sorties arrivées depuis la dernière reconstruction du site : affichées tout de suite, en direct -->
+    <section class="fresh" id="fresh" hidden aria-labelledby="fresh-title">
+      <h2 class="group-title" id="fresh-title">Tout juste sorti</h2>
+      <div class="bz-tiles bz-rail" id="fresh-tiles"></div>
     </section>
 
     {count > 0 ? (
@@ -199,7 +213,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 </Layout>
 
 <script>
-  import { BASE, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
+  import { BASE, escapeHtml, getSession, myFollows, releaseTileHtml, supabase, timeAgo } from '../scripts/social';
   import { canRecommend, dismissButtonHtml, loadTaste, rank, scoreRelease, wireDismiss, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit } from '../scripts/engage';
   import { normName } from '../lib/feat';
@@ -472,8 +486,29 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     document.getElementById('visit')!.hidden = false;
   }
 
+  // Tout juste sorti : les sorties de la semaine enregistrées après le build (leur fiche est provisoire
+  // jusqu'à la prochaine reconstruction, voir src/pages/404.astro)
+  async function showFresh() {
+    const page = document.querySelector<HTMLElement>('[data-built-at]');
+    if (!page || !supabase) return;
+    const { builtAt, weekStart, weekEnd } = page.dataset;
+    const { data } = await supabase
+      .from('releases')
+      .select('id, title, slug, cover_url, release_type, metadata, artist:artists!artist_id(name)')
+      .gt('created_at', builtAt!)
+      .gte('release_date', weekStart!)
+      .lte('release_date', weekEnd!)
+      .order('created_at', { ascending: false })
+      .limit(24);
+    const rows = ((data ?? []) as any[]).filter((r) => !tiles.has(r.id));
+    if (!rows.length) return;
+    document.getElementById('fresh-tiles')!.innerHTML = rows.map((r) => releaseTileHtml({ ...r, featuring: r.metadata?.featuring }, { badge: 'Nouveau' })).join('');
+    document.getElementById('fresh')!.hidden = false;
+  }
+
   // Nouveautés et artistes suivis : seulement sur la semaine en cours (le défi et les jeux sont dans Découvrir)
   if (document.querySelector('[data-current-week]')) {
+    showFresh().catch((err) => console.warn('Nouvelles sorties indisponibles :', err));
     showVisit().catch((err) => console.warn('Nouveautés indisponibles :', err));
     showFollowed().catch(() => {});
   }
@@ -484,6 +519,10 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   #all-grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden], .is-out))),
   .group .grid.is-capped > :global(:nth-child(n + 13 of .tile:not([hidden]))) {
     display: none;
+  }
+
+  .fresh {
+    margin-bottom: 40px;
   }
 
   #groups[hidden],
