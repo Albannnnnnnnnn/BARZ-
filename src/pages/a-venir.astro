@@ -42,7 +42,8 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
           <span class="lead-note">Les annonces arrivent au fil des pré-sorties : le calendrier se remplit deux fois par jour.</span>
         </p>
 
-    <div class="months">
+    <!-- Sur mobile, un mois à la fois : on fait défiler les mois sur le côté -->
+    <div class="months bz-rail">
       {months.map((month) => {
         const days = eachDayOfInterval({ start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }) });
         return (
@@ -267,6 +268,10 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     .months {
       grid-template-columns: minmax(0, 1fr);
       margin-top: 36px;
+    }
+    body .months.bz-rail.bz-rail {
+      grid-auto-columns: calc(100% - 40px);
+      gap: 20px;
     }
     .day {
       min-height: 52px;
