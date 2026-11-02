@@ -20,7 +20,7 @@ import InstallApp from '../components/InstallApp.astro';
           <h1 id="p-name"></h1>
           <p class="handle" id="p-handle"></p>
           <p class="bio" id="p-bio"></p>
-          <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan">Bilan du mois →</a>
+          <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan" hidden>Bilan du mois →</a>
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
             <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
@@ -275,7 +275,17 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-bio').textContent = profile.bio?.trim() ?? '';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
-    ($('p-bilan') as HTMLAnchorElement).href = `${BASE}bilan?u=${encodeURIComponent(profile.username)}`;
+    // Le bilan, seulement la première semaine du mois : celui du mois qui vient de finir
+    const today = new Date();
+    if (today.getDate() <= 7) {
+      const last = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const month = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][last.getMonth()];
+      const key = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+      const bilan = $('p-bilan') as HTMLAnchorElement;
+      bilan.href = `${BASE}bilan?m=${key}&u=${encodeURIComponent(profile.username)}`;
+      bilan.textContent = `${isMe ? 'Ton bilan' : 'Son bilan'} ${/^[aeiou]/.test(month) ? 'd’' : 'de '}${month} →`;
+      bilan.hidden = false;
+    }
     // Chaque compteur ouvre la liste correspondante plus bas
     $('p-stats').innerHTML = [
       ['Écoutés', listened.length, 'listened'],
