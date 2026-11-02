@@ -19,10 +19,10 @@ const catalog = await fetchReleasesBetween(supabase, new Date('1900-01-01'), add
 // Sans compte, le curseur part du rap et s'en éloigne genre par genre ; connecté, c'est le moteur de reco qui choisit
 const LOGIN_HINT = 'Connecte-toi pour que le curseur parte de tes propres goûts.';
 const ZONES = [
-  { word: 'Casanier', genres: ['rap', 'rnb', 'soul'], why: `Les sorties récentes en rap, R&B et soul. ${LOGIN_HINT}` },
-  { word: 'Ouvert', genres: ['soul', 'rnb', 'pop', 'electronic'], why: `Un pas de côté : soul, pop et électro. ${LOGIN_HINT}` },
-  { word: 'Curieux', genres: ['electronic', 'jazz'], why: `Plus loin : électro et jazz. ${LOGIN_HINT}` },
-  { word: 'Aventurier', genres: ['jazz', 'world', 'latin', 'rock', 'metal', 'reggae', 'folk', 'classical'], why: `Loin des sentiers battus : jazz, musiques du monde, rock, metal, reggae, folk, classique. ${LOGIN_HINT}` },
+  { word: 'En terrain connu', genres: ['rap', 'rnb', 'soul'], why: `Les sorties récentes en rap, R&B et soul. ${LOGIN_HINT}` },
+  { word: 'Pas de côté', genres: ['soul', 'rnb', 'pop', 'electronic'], why: `Soul, pop et électro. ${LOGIN_HINT}` },
+  { word: 'Plus loin', genres: ['electronic', 'jazz'], why: `Électro et jazz. ${LOGIN_HINT}` },
+  { word: 'Hors des sentiers', genres: ['jazz', 'world', 'latin', 'rock', 'metal', 'reggae', 'folk', 'classical'], why: `Jazz, musiques du monde, rock, metal, reggae, folk, classique. ${LOGIN_HINT}` },
 ];
 const DEFAULT_ZONE = 2;
 
@@ -283,7 +283,7 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
 
   .cursor-word {
     margin: 18px 0 26px;
-    font: 800 clamp(46px, 5.6vw, 72px) / 1 var(--font-display);
+    font: 800 clamp(36px, 5.6vw, 64px) / 1.05 var(--font-display);
     color: var(--color-accent);
   }
 

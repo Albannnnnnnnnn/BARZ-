@@ -13,6 +13,8 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
 <header class="topbar">
   <!-- Logo : seulement sur mobile (sur ordinateur, il est dans la barre latérale) -->
   <a href="/BARZ-/" class="topbar-logo" aria-label="BARZ¡ — accueil"><img src="/BARZ-/icon-192.png" alt="" width="40" height="40" /></a>
+  <!-- Sur mobile, une loupe qui déplie le champ sur toute la largeur -->
+  <button type="button" class="search-toggle" id="search-toggle" aria-label="Rechercher" aria-controls="topbar-q" aria-expanded="false"><NavIcon name="search" size={20} /></button>
   <form class="search" method="get" action="/BARZ-/search" role="search">
     <label for="topbar-q" class="sr-only">Rechercher</label>
     <input id="topbar-q" type="search" name="q" placeholder="Rechercher un album, un artiste, un genre, un label…" autocomplete="off" />
@@ -38,8 +40,31 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
 <script>
   import { BASE, avatarUrl, escapeHtml, getMyProfile, getSession, supabase, timeAgo } from '../scripts/social';
 
-  // Sur mobile, le champ est étroit : une invite courte plutôt qu'une phrase coupée
-  if (matchMedia('(max-width: 900px)').matches) (document.getElementById('topbar-q') as HTMLInputElement).placeholder = 'Rechercher…';
+  // Sur mobile, le champ déplié prend toute la barre : une invite courte plutôt qu'une phrase coupée
+  const topbar = document.querySelector<HTMLElement>('.topbar')!;
+  const searchInput = document.getElementById('topbar-q') as HTMLInputElement;
+  const searchToggle = document.getElementById('search-toggle') as HTMLButtonElement;
+  if (matchMedia('(max-width: 900px)').matches) searchInput.placeholder = 'Album, artiste, genre…';
+  const unfold = (open: boolean) => {
+    topbar.classList.toggle('is-searching', open);
+    searchToggle.setAttribute('aria-expanded', String(open));
+  };
+  searchToggle.addEventListener('click', () => {
+    unfold(true);
+    searchInput.focus();
+  });
+  // Champ vidé puis quitté : on revient à la loupe
+  searchInput.addEventListener('blur', () => {
+    if (!searchInput.value.trim()) unfold(false);
+  });
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      searchInput.value = '';
+      searchInput.blur();
+    }
+  });
+  // Page de résultats : le champ reste déplié avec la recherche en cours
+  if (new URLSearchParams(location.search).get('q')?.trim()) unfold(true);
 
   getMyProfile().then((profile) => {
     const link = document.getElementById('account-link') as HTMLAnchorElement | null;
@@ -156,7 +181,8 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     -webkit-backdrop-filter: blur(16px);
   }
 
-  .topbar-logo {
+  .topbar-logo,
+  .search-toggle {
     display: none;
   }
 
@@ -362,7 +388,31 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
       border-radius: 10px;
     }
     .search {
+      display: none;
       min-width: 0;
+    }
+    .search-toggle {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      margin-left: auto;
+      border: var(--line);
+      border-radius: 10px;
+      background: var(--color-paper);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .right {
+      margin-left: 0;
+    }
+    .topbar.is-searching .search {
+      display: block;
+    }
+    .topbar.is-searching .topbar-logo,
+    .topbar.is-searching .search-toggle,
+    .topbar.is-searching .right {
+      display: none;
     }
     .right {
       gap: 10px;

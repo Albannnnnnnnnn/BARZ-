@@ -19,7 +19,10 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
 
     <div class="layout">
       <div class="feed">
-        <form class="composer" id="composer">
+        <a class="bz-notice login-cta" id="composer-login" href="/BARZ-/connexion" hidden>
+          <b>Connecte-toi pour écrire ton Barz</b> et noter les sorties de la semaine →
+        </a>
+        <form class="composer" id="composer" hidden>
           <span class="me" id="composer-me">A</span>
           <div class="composer-fields">
             <label class="sr-only" for="composer-release">Sortie</label>
@@ -92,7 +95,16 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     }
   }
 
-  getSession().then((session) => (myId = session?.user.id ?? null)).then(render);
+  getSession()
+    .then((session) => {
+      myId = session?.user.id ?? null;
+      // Les visiteurs voient une invitation à la place du formulaire
+      form.hidden = !myId;
+      const login = document.getElementById('composer-login') as HTMLAnchorElement;
+      login.href = loginUrl();
+      login.hidden = !!myId;
+    })
+    .then(render);
   getMyProfile().then((profile) => {
     if (profile) document.getElementById('composer-me')!.textContent = profile.display_name.slice(0, 1).toUpperCase();
   });
@@ -143,8 +155,19 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   #feed-empty[hidden],
   #feed-live[hidden],
   #top[hidden],
+  .composer[hidden],
   .bz-notice[hidden] {
     display: none;
+  }
+
+  .login-cta {
+    display: block;
+    margin-bottom: 20px;
+    color: var(--color-text) !important;
+  }
+
+  .login-cta b {
+    color: var(--color-accent);
   }
 
   .composer {

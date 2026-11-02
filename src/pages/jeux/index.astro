@@ -3,8 +3,8 @@
 import Layout from '../../layouts/Layout.astro';
 
 const GAMES = [
-  { id: 'pochette', href: '/BARZ-/jeux/pochette', icon: '🖼️', title: 'Pochette floue', text: 'Retrouve l’album derrière la pochette floue, en 6 essais.' },
-  { id: 'artiste', href: '/BARZ-/jeux/artiste', icon: '🕵️', title: 'L’artiste mystère', text: 'Devine l’artiste du jour grâce à son genre, son pays, son premier album…' },
+  { id: 'pochette', href: '/BARZ-/jeux/pochette', title: 'Pochette floue', text: 'Retrouve l’album derrière la pochette floue, en 6 essais.' },
+  { id: 'artiste', href: '/BARZ-/jeux/artiste', title: 'L’artiste mystère', text: 'Devine l’artiste du jour grâce à son genre, son pays, son premier album…' },
 ];
 ---
 
@@ -18,7 +18,7 @@ const GAMES = [
     <div class="games">
       {GAMES.map((g) => (
         <a class="game-card" href={g.href} data-game={g.id}>
-          <span class="icon" aria-hidden="true">{g.icon}</span>
+          <span class={`icon icon--${g.id}`} aria-hidden="true">{g.id === 'artiste' ? '?' : ''}</span>
           <span class="body">
             <b>{g.title}</b>
             <span class="text">{g.text}</span>
@@ -79,8 +79,30 @@ const GAMES = [
     border-color: var(--color-accent-line);
   }
 
+  /* Vignettes dessinées en CSS : une pochette floue, une silhouette mystère */
   .icon {
-    font-size: 36px;
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    border: var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .icon--pochette {
+    background:
+      radial-gradient(circle at 30% 35%, #ffd54f 0 18%, transparent 42%),
+      radial-gradient(circle at 70% 70%, #ff6e6e 0 20%, transparent 48%),
+      var(--color-accent);
+    box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.5);
+  }
+
+  .icon--artiste {
+    display: grid;
+    place-items: center;
+    background: var(--color-ink);
+    color: #fff;
+    font: 800 34px/1 var(--font-display);
   }
 
   .body {

@@ -8,9 +8,20 @@ import InstallApp from '../components/InstallApp.astro';
 
 <Layout title="Profil" description="Ton ADN musical, ta spin list, tes Barz.">
   <div class="bz-page">
-    <a class="bz-notice cta" id="profile-cta" href="/BARZ-/connexion">
-      <b>Connecte-toi ou crée ton compte</b> pour avoir ton profil : spin list, Barz, artistes suivis et ADN musical →
-    </a>
+    <section class="cta" id="profile-cta">
+      <span class="bz-eyebrow">Profil</span>
+      <h1 class="bz-display">Ta musique, <em>ton profil.</em></h1>
+      <ul class="perks">
+        <li><b>Spin list</b>Les sorties à écouter, gardées au même endroit.</li>
+        <li><b>Barz</b>Note les sorties et donne ton avis en quelques mots.</li>
+        <li><b>ADN musical</b>Tes genres et tes artistes, avec un bilan chaque mois.</li>
+        <li><b>Amis</b>Vois ce que tes amis écoutent et compare vos goûts.</li>
+      </ul>
+      <div class="cta-actions">
+        <a class="bz-btn bz-btn--lime" href="/BARZ-/connexion?mode=signup">Créer mon compte</a>
+        <a class="bz-link" href="/BARZ-/connexion">Déjà membre ? Se connecter</a>
+      </div>
+    </section>
     <p class="bz-notice bz-notice--error" id="profile-error" hidden></p>
 
     <div id="p-content" hidden>
@@ -826,13 +837,42 @@ import InstallApp from '../components/InstallApp.astro';
 
 <style>
   .cta {
-    display: block;
     margin-bottom: 28px;
-    color: var(--color-text) !important;
   }
 
-  .cta b {
-    color: var(--color-accent);
+  .perks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 24px 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .perks li {
+    padding: 16px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard-sm);
+    color: var(--color-text-muted);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .perks b {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-text);
+    font: 800 15px/1.2 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 20px;
   }
 
   .cta[hidden],

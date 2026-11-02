@@ -75,6 +75,8 @@ import Layout from '../layouts/Layout.astro';
       message.hidden = true;
     })
   );
+  // Lien « Créer mon compte » (?mode=signup) : on ouvre directement l'inscription
+  if (new URLSearchParams(location.search).get('mode') === 'signup') document.querySelector<HTMLButtonElement>('[data-mode="signup"]')?.click();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
