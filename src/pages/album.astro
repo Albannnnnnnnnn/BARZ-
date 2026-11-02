@@ -163,6 +163,7 @@ import Player from '../components/Player.astro';
     const date = new Date(`${album.release_date}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     $('al-eyebrow').textContent = `${TYPES[album.record_type] ?? 'Album'} · ${date}`;
     $('al-title').textContent = album.title;
+    $('al-title').style.setProperty('--mot', String(Math.max(7, ...String(album.title).split(/\s+/).map((w: string) => w.length))));
     const artistLink = $('al-artist') as HTMLAnchorElement;
     artistLink.textContent = artistName;
     artistLink.href = artistHref;
@@ -262,11 +263,15 @@ import Player from '../components/Player.astro';
     box-shadow: var(--shadow-hard);
   }
 
+  /* Le titre suit la largeur de sa colonne et la longueur de son mot le plus long (--mot, posé par le script) */
   .info {
     min-width: 0;
+    container-type: inline-size;
+    width: 100%;
   }
 
   .info .bz-display {
+    font-size: clamp(26px, calc(100cqi / (var(--mot, 8) * 0.9)), 80px);
     overflow-wrap: break-word;
   }
 
