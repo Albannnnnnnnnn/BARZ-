@@ -85,7 +85,7 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
         {[...byDate.entries()].map(([date, list]) => (
           <section class="date-block" id={`jour-${date}`}>
             <h3 class="date-title">{format(parseISO(date), 'EEEE d MMMM', { locale: fr })}</h3>
-            <div class="bz-tiles">
+            <div class="bz-tiles bz-rail">
               {list.map((r) => (
                 <div class="item" data-artist-id={r.artist?.id} data-artist-name={r.artist?.name}>
                   <AlbumTile

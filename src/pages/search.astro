@@ -92,13 +92,13 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
         <p class="cursor-why"><strong>Pourquoi ces choix ?</strong> <span id="cursor-why">{ZONES[DEFAULT_ZONE].why}</span></p>
       </div>
       {ZONES.map((zone, i) => (
-        <div class="picks" data-zone={i} hidden={i !== DEFAULT_ZONE} data-why={zone.why} data-word={zone.word}>
+        <div class="picks bz-rail" data-zone={i} hidden={i !== DEFAULT_ZONE} data-why={zone.why} data-word={zone.word}>
           {zoneTiles[i].length > 0
             ? zoneTiles[i].map((r) => <AlbumTile title={r.title} subtitle={subtitleOf(r)} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />)
             : <p class="bz-empty">Pas de sortie récente dans ces genres.</p>}
         </div>
       ))}
-      <div class="picks" id="picks-live" hidden></div>
+      <div class="picks bz-rail" id="picks-live" hidden></div>
       <script type="application/json" id="explore-data" set:html={JSON.stringify(exploreData)} />
     </section>
 

@@ -612,8 +612,67 @@
 
 @media (max-width: 900px) {
   .bz-artists {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px 10px;
+  }
+  .bz-artist-name {
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .bz-artist-initial {
+    font-size: 32px;
+  }
+}
+
+/* ============================================================================
+   CARROUSEL (mobile) : une grille de vignettes ou d'artistes devient une rangée qui défile
+   sur le côté, au lieu d'une longue colonne. Sur ordinateur, la grille reste une grille.
+   « bz-rail--compact » : artistes en petites bulles, sans audience ni bouton Suivre.
+   ============================================================================ */
+@media (max-width: 900px) {
+  body .bz-rail.bz-rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: 42%;
+    gap: 14px;
+    margin-inline: -16px;
+    padding: 4px 16px 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+  }
+  .bz-rail::-webkit-scrollbar {
+    display: none;
+  }
+  .bz-rail > * {
+    scroll-snap-align: start;
+  }
+  body .bz-artists.bz-rail.bz-rail {
+    grid-auto-columns: 30%;
+  }
+  body .bz-rail--compact.bz-rail--compact {
+    grid-auto-columns: 22%;
+    gap: 12px;
+  }
+  .bz-rail--compact .bz-follow,
+  .bz-rail--compact .bz-artist-meta {
+    display: none;
+  }
+  .bz-rail--compact .bz-artist-name {
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .bz-rail--compact .bz-artist-photo {
+    box-shadow: 0 0 0 2px var(--color-ink);
+  }
+  /* Message « rien ici » dans une rangée : toute la largeur */
+  .bz-rail > .bz-empty {
+    grid-column: 1 / -1;
+    width: calc(100vw - 32px);
   }
 }
 

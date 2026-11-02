@@ -155,7 +155,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
           {GROUPS.map((g) => (
             <section class="group" data-group={g.id} data-unit={g.unit} hidden={!byGroup[g.id].length} aria-labelledby={`group-${g.id}`}>
               <h2 class="group-title" id={`group-${g.id}`}>{g.title}</h2>
-              <div class:list={['bz-tiles', 'grid', { 'is-capped': g.id !== 'top' }]}>
+              <div class:list={['bz-tiles', 'bz-rail', 'grid', { 'is-capped': g.id !== 'top' }]}>
                 {byGroup[g.id].map((r) => (
                   <AlbumTile
                     title={r.title}
@@ -313,7 +313,8 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   groupsBox?.addEventListener('click', (event) => {
     const more = (event.target as HTMLElement).closest<HTMLElement>('.group-more');
     if (!more) return;
-    more.closest('.group')?.querySelector('.grid')?.classList.remove('is-capped');
+    // Toute la section : en grille (sur mobile, la rangée qui défile redevient une grille)
+    more.closest('.group')?.querySelector('.grid')?.classList.remove('is-capped', 'bz-rail');
     more.remove();
   });
   document.getElementById('show-all')?.addEventListener('click', (event) => {

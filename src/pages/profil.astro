@@ -44,18 +44,18 @@ import Layout from '../layouts/Layout.astro';
 
       <section class="block" id="p-picks" hidden aria-labelledby="picks-title">
         <div class="bz-section-head"><h2 id="picks-title" class="bz-h2">Ses coups de cœur</h2></div>
-        <div class="bz-tiles" id="p-picks-releases"></div>
+        <div class="bz-tiles bz-rail" id="p-picks-releases"></div>
         <h3 class="sub" id="p-picks-artists-title">Artistes préférés</h3>
-        <div class="bz-artists" id="p-picks-artists"></div>
+        <div class="bz-artists bz-rail bz-rail--compact" id="p-picks-artists"></div>
         <button type="button" class="bz-btn bz-btn--outline bz-btn--small picks-more" id="p-picks-more" hidden>Voir tous les artistes</button>
       </section>
 
       <section class="block" id="p-blend" hidden aria-labelledby="blend-title">
         <div class="bz-section-head"><h2 id="blend-title" class="bz-h2">Pour vous deux</h2></div>
         <p class="blend-note" id="p-blend-note"></p>
-        <div class="bz-tiles" id="p-blend-releases"></div>
+        <div class="bz-tiles bz-rail" id="p-blend-releases"></div>
         <h3 class="sub" id="p-blend-artists-title" hidden>Vos artistes en commun</h3>
-        <div class="bz-artists" id="p-blend-artists"></div>
+        <div class="bz-artists bz-rail bz-rail--compact" id="p-blend-artists"></div>
       </section>
 
       <div class="layout">
@@ -259,6 +259,9 @@ import Layout from '../layouts/Layout.astro';
     renderTab = (tab: string) => {
       const collection = $('p-collection');
       collection.classList.toggle('is-barz', tab === 'barz');
+      // Sur mobile, sorties et artistes défilent sur le côté ; les Barz et les bilans restent en colonne
+      collection.classList.toggle('bz-rail', ['spin_list', 'listened', 'artists'].includes(tab));
+      collection.classList.toggle('bz-rail--compact', tab === 'artists');
       if (tab === 'artists') {
         collection.classList.add('is-artists');
         collection.innerHTML = artists.length
@@ -734,6 +737,16 @@ import Layout from '../layouts/Layout.astro';
   }
 
   /* Artistes préférés repliés : les 6 premiers seulement */
+  /* Sur mobile, la rangée qui défile montre tous les artistes : pas besoin de « Voir les N artistes » */
+  @media (max-width: 900px) {
+    .bz-artists.bz-rail.is-collapsed > :global(:nth-child(n + 7)) {
+      display: flex;
+    }
+    .picks-more {
+      display: none !important;
+    }
+  }
+
   .bz-artists.is-collapsed > :global(:nth-child(n + 7)) {
     display: none;
   }
