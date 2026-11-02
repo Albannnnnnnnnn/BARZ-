@@ -11,7 +11,7 @@ import { sleep, supabase, must } from './lib/common';
 const MIN_FANS = Number(process.env.COVER_MIN_FANS ?? 100_000);
 const MAX_PER_ARTIST = 3;
 const NOT_AN_ALBUM =
-  /\blive\b|best of|greatest hits|\bhits\b|\bgold\b|collection|anthology|essentials|karaoke|instrumental|remix|playlist|soundtrack|original .*cast|bande originale|\bost\b|christmas|noël/i;
+  /\blive\b|best of|greatest hits|\bhits\b|\bgold\b|collection|anthology|essentials|karaoke|instrumental|remix|playlist|soundtrack|music from|inspired by|motion picture|from the (film|movie|series)|original .*cast|bande originale|\bost\b|christmas|noël/i;
 const URBAN = ['rap', 'rnb'];
 const OUT = new URL('../supabase/functions/cover-game/pool.json', import.meta.url);
 
