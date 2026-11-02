@@ -1161,6 +1161,16 @@ import Layout from '../layouts/Layout.astro';
     .layout {
       grid-template-columns: minmax(0, 1fr);
     }
+    /* Petits écrans d'ordinateur : photo plus petite pour laisser la place au nom */
+    .hero {
+      gap: 28px;
+      padding: 36px;
+    }
+    .avatar {
+      width: 140px;
+      height: 140px;
+      font-size: 64px;
+    }
   }
 
   @media (max-width: 900px) {
