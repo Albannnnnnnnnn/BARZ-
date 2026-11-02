@@ -1,0 +1,4732 @@
+[
+ {
+  "albumId": 6851659,
+  "title": "racine carrée",
+  "artist": "Stromae",
+  "artistDeezerId": 310260,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/914db9146f330d0a2969d157872da5eb/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 1167927
+ },
+ {
+  "albumId": 11524812,
+  "title": "Le monde Chico",
+  "artist": "PNL",
+  "artistDeezerId": 1519461,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3c0d34f7576d81c8f269570d9806fb88/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 1037449
+ },
+ {
+  "albumId": 15478674,
+  "title": "÷",
+  "artist": "Ed Sheeran",
+  "artistDeezerId": 384236,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/000a9228cecfcc7c2093d9cd7bb66447/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 1017333
+ },
+ {
+  "albumId": 7964062,
+  "title": "x",
+  "artist": "Ed Sheeran",
+  "artistDeezerId": 384236,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b1d763da698c38bde6a526c8220ca0ea/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 947243
+ },
+ {
+  "albumId": 11839652,
+  "title": "My World",
+  "artist": "Jul",
+  "artistDeezerId": 1191615,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2a67a4f85fef016ef6d5022930bff57b/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 908176
+ },
+ {
+  "albumId": 6575789,
+  "title": "Random Access Memories",
+  "artist": "Daft Punk",
+  "artistDeezerId": 27,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 888052
+ },
+ {
+  "albumId": 40687031,
+  "title": "Ipséité",
+  "artist": "Damso",
+  "artistDeezerId": 9197980,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/79ba3cd515942d1dc62f49f859a374fd/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 879524
+ },
+ {
+  "albumId": 746059,
+  "title": "21",
+  "artist": "Adele",
+  "artistDeezerId": 75798,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/dc1ce848d830ecc93521be5a78350364/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 862824
+ },
+ {
+  "albumId": 91095382,
+  "title": "Destin",
+  "artist": "Ninho",
+  "artistDeezerId": 5542343,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ac0ec199892ba83b2f8969a592530a79/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 831915
+ },
+ {
+  "albumId": 11674708,
+  "title": "Purpose",
+  "artist": "Justin Bieber",
+  "artistDeezerId": 288166,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/340283aafac320864b207c420124ee46/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 831099
+ },
+ {
+  "albumId": 13246617,
+  "title": "Émotions",
+  "artist": "Jul",
+  "artistDeezerId": 1191615,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/64c413941fbc537f132f79bd47a07e81/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 760132
+ },
+ {
+  "albumId": 6168389,
+  "title": "Nothing but the Beat",
+  "artist": "David Guetta",
+  "artistDeezerId": 542,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/52330286cb5008805253fd77c7111d3f/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 696354
+ },
+ {
+  "albumId": 11682834,
+  "title": "A7",
+  "artist": "SCH",
+  "artistDeezerId": 162665,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/790e1986c368c44d27e333a741e377cc/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 689769
+ },
+ {
+  "albumId": 60147352,
+  "title": "M.I.L.S 2.0",
+  "artist": "Ninho",
+  "artistDeezerId": 5542343,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1e8f03c4e6d13997881165f8def03edc/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 677566
+ },
+ {
+  "albumId": 14720858,
+  "title": "Cyborg",
+  "artist": "Nekfeu",
+  "artistDeezerId": 1412564,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bac0ea75cfad929e85de82ee823cd638/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 675949
+ },
+ {
+  "albumId": 14721048,
+  "title": "L'ovni",
+  "artist": "Jul",
+  "artistDeezerId": 1191615,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/056f3edf83ecdc56d2797d9958c13696/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 660783
+ },
+ {
+  "albumId": 15810564,
+  "title": "Force & Honneur",
+  "artist": "Lacrim",
+  "artistDeezerId": 4087782,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8500b75a2b92766226b987b012fd02da/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 645711
+ },
+ {
+  "albumId": 9715130,
+  "title": "Que la famille",
+  "artist": "PNL",
+  "artistDeezerId": 1519461,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5e78b468cd3f76c74f29262ec450b472/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 591647
+ },
+ {
+  "albumId": 52475732,
+  "title": "Trône",
+  "artist": "Booba",
+  "artistDeezerId": 390,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c35627fb50640d971702930cf469f594/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 581291
+ },
+ {
+  "albumId": 739505,
+  "title": "Doo-Wops & Hooligans",
+  "artist": "Bruno Mars",
+  "artistDeezerId": 429675,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5b59dc18e109515420f8237719bd2186/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": true,
+  "fans": 579899
+ },
+ {
+  "albumId": 7152548,
+  "title": "Subliminal (La face cachée)",
+  "artist": "GIMS",
+  "artistDeezerId": 4429712,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a48a99f7fd9c42d9de770de4543b4b86/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 568136
+ },
+ {
+  "albumId": 7090505,
+  "title": "The Marshall Mathers LP2",
+  "artist": "Eminem",
+  "artistDeezerId": 13,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b6938db3addc3ccd9575d6d12220e466/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 565247
+ },
+ {
+  "albumId": 13082992,
+  "title": "Views",
+  "artist": "Drake",
+  "artistDeezerId": 246791,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/56bdb7a86a27fadb96332c0c8f1b8e81/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 562646
+ },
+ {
+  "albumId": 91598612,
+  "title": "WHEN WE ALL FALL ASLEEP, WHERE DO WE GO?",
+  "artist": "Billie Eilish",
+  "artistDeezerId": 9635624,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6630083f454d48eadb6a9b53f035d734/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 556683
+ },
+ {
+  "albumId": 49458742,
+  "title": "La fête est finie",
+  "artist": "Orelsan",
+  "artistDeezerId": 259467,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a73297e3ab7ccacfba29d7b958a28fe6/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 551703
+ },
+ {
+  "albumId": 58972642,
+  "title": "?",
+  "artist": "XXXTentacion",
+  "artistDeezerId": 9822974,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9b6da786cd3ca8b286a04186b3c9079c/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 549444
+ },
+ {
+  "albumId": 6899610,
+  "title": "AM",
+  "artist": "Arctic Monkeys",
+  "artistDeezerId": 1182,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/64e54e307bd5e2bdb27ffeb662fd910d/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 548025
+ },
+ {
+  "albumId": 10236282,
+  "title": "Blurryface",
+  "artist": "Twenty One Pilots",
+  "artistDeezerId": 647650,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/dbbde1014cda9b101412a8e27add0ad2/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 544634
+ },
+ {
+  "albumId": 11923366,
+  "title": "R.I.P.R.O 2",
+  "artist": "Lacrim",
+  "artistDeezerId": 4087782,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fcb3211de97118491add2231a8fe7552/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 535400
+ },
+ {
+  "albumId": 103248,
+  "title": "The Eminem Show",
+  "artist": "Eminem",
+  "artistDeezerId": 13,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ec3c8ed67427064c70f67e5815b74cef/1000x1000-000000-80-0-0.jpg",
+  "year": "2002",
+  "urban": true,
+  "fans": 532251
+ },
+ {
+  "albumId": 11061270,
+  "title": "Mon coeur avait raison",
+  "artist": "GIMS",
+  "artistDeezerId": 4429712,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a3878ba440ebc7e2d74c9454bfa21405/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 522304
+ },
+ {
+  "albumId": 11898198,
+  "title": "A Head Full of Dreams",
+  "artist": "Coldplay",
+  "artistDeezerId": 892,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5df065fdcbaffd0f83d09789bad9d2db/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 517094
+ },
+ {
+  "albumId": 12279688,
+  "title": "ANTI",
+  "artist": "Rihanna",
+  "artistDeezerId": 564,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4fc5f387624c25de0ec96b4719e3a36d/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 509192
+ },
+ {
+  "albumId": 14139248,
+  "title": "M.I.L.S",
+  "artist": "Ninho",
+  "artistDeezerId": 5542343,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9bd60630a8171f927e16bfe873f19162/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 497504
+ },
+ {
+  "albumId": 51669952,
+  "title": "R.I.P.R.O 3",
+  "artist": "Lacrim",
+  "artistDeezerId": 4087782,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/dc9727adf5d656f23244751464c1876e/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 496770
+ },
+ {
+  "albumId": 12870014,
+  "title": "MHD",
+  "artist": "MHD",
+  "artistDeezerId": 881751,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/373bf35cf9fda4c0c3a10ed81ce8ccc9/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 496360
+ },
+ {
+  "albumId": 11853434,
+  "title": "Nero nemesis",
+  "artist": "Booba",
+  "artistDeezerId": 390,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3ea4e7a79cb3b6b7cd6cc8b1419bc78a/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 483693
+ },
+ {
+  "albumId": 13211126,
+  "title": "Anarchie",
+  "artist": "SCH",
+  "artistDeezerId": 162665,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/07d50cc50f4d446b7cbe9016cd0b0c3a/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 481321
+ },
+ {
+  "albumId": 69804312,
+  "title": "ASTROWORLD",
+  "artist": "Travis Scott",
+  "artistDeezerId": 4495513,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0b08015216f975dc7fb5be3d5dcc4d88/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 469642
+ },
+ {
+  "albumId": 100821322,
+  "title": "Les étoiles vagabondes : expansion",
+  "artist": "Nekfeu",
+  "artistDeezerId": 1412564,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/853d2682fcb082898db6e114baea0309/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 465933
+ },
+ {
+  "albumId": 7040437,
+  "title": "PRISM",
+  "artist": "Katy Perry",
+  "artistDeezerId": 144227,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fe781ecd9879a82beed80f6d3e80745b/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 460425
+ },
+ {
+  "albumId": 51831522,
+  "title": "Gentleman 2.0",
+  "artist": "Dadju",
+  "artistDeezerId": 4803754,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fb8bdd37b846a6249f59f0a9ab1d9b12/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 458676
+ },
+ {
+  "albumId": 116180752,
+  "title": "Deux frères",
+  "artist": "PNL",
+  "artistDeezerId": 1519461,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6e14fef7ed2c5684a36badd00b693036/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 456145
+ },
+ {
+  "albumId": 10565677,
+  "title": "Feu",
+  "artist": "Nekfeu",
+  "artistDeezerId": 1412564,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/beb388822ee34e78a0e30c0436c6a299/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 453586
+ },
+ {
+  "albumId": 6893935,
+  "title": "True",
+  "artist": "Avicii",
+  "artistDeezerId": 293585,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ec97306735b46ec334e0ce562290775b/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 453162
+ },
+ {
+  "albumId": 595243,
+  "title": "Recovery",
+  "artist": "Eminem",
+  "artistDeezerId": 13,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/be682506145061814eddee648edb7c59/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": true,
+  "fans": 451344
+ },
+ {
+  "albumId": 390984,
+  "title": "The Resistance",
+  "artist": "Muse",
+  "artistDeezerId": 705,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/79845461299661387ade37f8e34d643c/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 448292
+ },
+ {
+  "albumId": 39949511,
+  "title": "DAMN.",
+  "artist": "Kendrick Lamar",
+  "artistDeezerId": 525046,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7ce6b8452fae425557067db6e6a1cad5/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 443214
+ },
+ {
+  "albumId": 6041110,
+  "title": "Take Me Home",
+  "artist": "One Direction",
+  "artistDeezerId": 1007876,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d1458579e53353f4278f2e77ffc75b3b/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 438607
+ },
+ {
+  "albumId": 9163719,
+  "title": "BEYONCÉ",
+  "artist": "Beyoncé",
+  "artistDeezerId": 145,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e9348d5c24bdabc41d13222827c2aee1/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 437183
+ },
+ {
+  "albumId": 86511,
+  "title": "Californication",
+  "artist": "Red Hot Chili Peppers",
+  "artistDeezerId": 182,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5e61e8290a4d1d64ca58920656c9602d/1000x1000-000000-80-0-0.jpg",
+  "year": "1999",
+  "urban": false,
+  "fans": 430146
+ },
+ {
+  "albumId": 42170651,
+  "title": "Batterie faible",
+  "artist": "Damso",
+  "artistDeezerId": 9197980,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bd1be3997cb1ec7452c5e39c9ea0decf/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 429092
+ },
+ {
+  "albumId": 66392272,
+  "title": "Lithopédion",
+  "artist": "Damso",
+  "artistDeezerId": 9197980,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d4aa1da7ceffc0a98974d1e6ba12173a/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 428502
+ },
+ {
+  "albumId": 14652356,
+  "title": "Starboy",
+  "artist": "The Weeknd",
+  "artistDeezerId": 4050205,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/134778e4c4f19ea71c82408300925a9a/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 423854
+ },
+ {
+  "albumId": 1312875,
+  "title": "Mylo Xyloto",
+  "artist": "Coldplay",
+  "artistDeezerId": 892,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e0dd8263dfed37c50a868abbf65fd7da/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 418568
+ },
+ {
+  "albumId": 11675254,
+  "title": "Made In The A.M.",
+  "artist": "One Direction",
+  "artistDeezerId": 1007876,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/433ce4072595090a6b2add706416d311/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 415336
+ },
+ {
+  "albumId": 14581500,
+  "title": "24K Magic",
+  "artist": "Bruno Mars",
+  "artistDeezerId": 429675,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/012b27906b430a37ec1d8f793d5c4fa6/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 414465
+ },
+ {
+  "albumId": 81763,
+  "title": "Hybrid Theory",
+  "artist": "Linkin Park",
+  "artistDeezerId": 92,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/033a271b5ec10842c287827c39244fb5/1000x1000-000000-80-0-0.jpg",
+  "year": "2000",
+  "urban": false,
+  "fans": 411333
+ },
+ {
+  "albumId": 1238967,
+  "title": "Loud",
+  "artist": "Rihanna",
+  "artistDeezerId": 564,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3a12c64bb52a167944783878ffe41f02/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 411143
+ },
+ {
+  "albumId": 14530576,
+  "title": "Okou Gnakouri",
+  "artist": "Kaaris",
+  "artistDeezerId": 388973,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/74c25c24295c145b2cda08869b100f32/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 407829
+ },
+ {
+  "albumId": 96126,
+  "title": "Thriller",
+  "artist": "Michael Jackson",
+  "artistDeezerId": 259,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f01e09ceb8ad1e96707c1b4aadb5911b/1000x1000-000000-80-0-0.jpg",
+  "year": "1983",
+  "urban": false,
+  "fans": 395568
+ },
+ {
+  "albumId": 11107272,
+  "title": "Beauty Behind The Madness",
+  "artist": "The Weeknd",
+  "artistDeezerId": 4050205,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/eea9f7fc913300e40307a0ff70dc73cf/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 391845
+ },
+ {
+  "albumId": 46787432,
+  "title": "17",
+  "artist": "XXXTentacion",
+  "artistDeezerId": 9822974,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b7d770d1049a3d4742d5ac0759b501e9/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 390776
+ },
+ {
+  "albumId": 7132577,
+  "title": "Midnight Memories",
+  "artist": "One Direction",
+  "artistDeezerId": 1007876,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/620bcd9a3310b1bfaba639b060b54abf/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 388820
+ },
+ {
+  "albumId": 1261739,
+  "title": "Le Chant des sirènes",
+  "artist": "Orelsan",
+  "artistDeezerId": 259467,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/df92a3f9eece374346452bea687278f1/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": true,
+  "fans": 386987
+ },
+ {
+  "albumId": 6120369,
+  "title": "Unapologetic",
+  "artist": "Rihanna",
+  "artistDeezerId": 564,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/246fb21e05da3d1460eb147123bb906b/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 386618
+ },
+ {
+  "albumId": 6019334,
+  "title": "The Heist",
+  "artist": "Macklemore",
+  "artistDeezerId": 152291,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/238f1c36e8445fd162d1d53b8181ecb5/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 385802
+ },
+ {
+  "albumId": 15685208,
+  "title": "More Life",
+  "artist": "Drake",
+  "artistDeezerId": 246791,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8f0187ad83cdd1f47f1c55420f9df227/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 385293
+ },
+ {
+  "albumId": 71730882,
+  "title": "Brol",
+  "artist": "Angèle",
+  "artistDeezerId": 1042268,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4a2360324af313f73b56fd1f7faaac88/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 384782
+ },
+ {
+  "albumId": 1262014,
+  "title": "Nevermind",
+  "artist": "Nirvana",
+  "artistDeezerId": 415,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f0282817b697279e56df13909962a54a/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 383196
+ },
+ {
+  "albumId": 41004921,
+  "title": "Deo Favente",
+  "artist": "SCH",
+  "artistDeezerId": 162665,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/35260141a4a408b1fb0053e3224a1adf/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 377897
+ },
+ {
+  "albumId": 6941024,
+  "title": "Nothing Was The Same",
+  "artist": "Drake",
+  "artistDeezerId": 246791,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/64ec37a4cf512c7810c40ba0d318ff1e/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 371117
+ },
+ {
+  "albumId": 62183462,
+  "title": "beerbongs & bentleys",
+  "artist": "Post Malone",
+  "artistDeezerId": 7543848,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c000a4d39f31f3716bf3f11aa5fab080/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 357888
+ },
+ {
+  "albumId": 270762122,
+  "title": "Civilisation",
+  "artist": "Orelsan",
+  "artistDeezerId": 259467,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/974e863966461c44768f0732752695c9/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": true,
+  "fans": 357675
+ },
+ {
+  "albumId": 6240279,
+  "title": "Night Visions",
+  "artist": "Imagine Dragons",
+  "artistDeezerId": 416239,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7e8314f4280cffde363547a495a260bc/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 355761
+ },
+ {
+  "albumId": 423368,
+  "title": "Michael Jackson's This Is It",
+  "artist": "Michael Jackson",
+  "artistDeezerId": 259,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a0ad67d1beb761f2cb9f8b60e5bcf07a/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 355506
+ },
+ {
+  "albumId": 119282,
+  "title": "MTV Unplugged In New York",
+  "artist": "Nirvana",
+  "artistDeezerId": 415,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fe1082c5ef54876802146897e76b592e/1000x1000-000000-80-0-0.jpg",
+  "year": "1994",
+  "urban": false,
+  "fans": 354819
+ },
+ {
+  "albumId": 299821,
+  "title": "A Rush of Blood to the Head",
+  "artist": "Coldplay",
+  "artistDeezerId": 892,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5ba1787e1ec36dbbca38ff01fea8fb21/1000x1000-000000-80-0-0.jpg",
+  "year": "2002",
+  "urban": false,
+  "fans": 348678
+ },
+ {
+  "albumId": 302127,
+  "title": "Discovery",
+  "artist": "Daft Punk",
+  "artistDeezerId": 27,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5718f7c81c27e0b2417e2a4c45224f8a/1000x1000-000000-80-0-0.jpg",
+  "year": "2001",
+  "urban": false,
+  "fans": 344572
+ },
+ {
+  "albumId": 73379522,
+  "title": "Insolent",
+  "artist": "RK",
+  "artistDeezerId": 323311,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9ed61c353c093c07ea2040cd4982295b/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 339336
+ },
+ {
+  "albumId": 5965734,
+  "title": "The 2nd Law",
+  "artist": "Muse",
+  "artistDeezerId": 705,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/dffef0ec67705fdca2b1dd9f55a5abb3/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 339188
+ },
+ {
+  "albumId": 1603030,
+  "title": "Teenage Dream: The Complete Confection",
+  "artist": "Katy Perry",
+  "artistDeezerId": 144227,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/99578b0bb8c838383c414a5b62b5e15d/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 335671
+ },
+ {
+  "albumId": 9410100,
+  "title": "Back In Black",
+  "artist": "AC/DC",
+  "artistDeezerId": 115,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/41041b14873956eff0459c8ea2c296a8/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 331131
+ },
+ {
+  "albumId": 109347,
+  "title": "Louise Attaque",
+  "artist": "Louise Attaque",
+  "artistDeezerId": 633,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0b2be6637d8afd3dfc1bc77d5585054f/1000x1000-000000-80-0-0.jpg",
+  "year": "2002",
+  "urban": false,
+  "fans": 324538
+ },
+ {
+  "albumId": 1457546,
+  "title": "Bangarang EP",
+  "artist": "Skrillex",
+  "artistDeezerId": 525643,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3d5ef81b8e6c4b5c35ebe1dfa69a0463/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 321816
+ },
+ {
+  "albumId": 7575033,
+  "title": "Les yeux plus gros que le monde",
+  "artist": "Black M",
+  "artistDeezerId": 4494623,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b0c4fd4010f56d305bcb5bd65afb90b3/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": true,
+  "fans": 320683
+ },
+ {
+  "albumId": 1346746,
+  "title": "Meteora",
+  "artist": "Linkin Park",
+  "artistDeezerId": 92,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/882448ab63952aa16e502c82db2df160/1000x1000-000000-80-0-0.jpg",
+  "year": "2003",
+  "urban": false,
+  "fans": 318196
+ },
+ {
+  "albumId": 13263913,
+  "title": "Zifukoro",
+  "artist": "Niska",
+  "artistDeezerId": 5288900,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f2957b8171ac28014ae0f394b96d4e1a/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 314962
+ },
+ {
+  "albumId": 6475501,
+  "title": "4",
+  "artist": "Beyoncé",
+  "artistDeezerId": 145,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bc927a6b67e8a16351a3de87ba94328c/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 314441
+ },
+ {
+  "albumId": 10038198,
+  "title": "D.U.C.",
+  "artist": "Booba",
+  "artistDeezerId": 390,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5a993ceb07218ca6333994fe4c43a35d/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 312903
+ },
+ {
+  "albumId": 15168233,
+  "title": "JesuispasséchezSo",
+  "artist": "Sofiane",
+  "artistDeezerId": 89657,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3354a32063e0ac8c1ed6e1590a4a4bf9/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 309295
+ },
+ {
+  "albumId": 55616062,
+  "title": "Affranchis",
+  "artist": "Sofiane",
+  "artistDeezerId": 89657,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f0f72ca0efade26f6329fe40804bebb9/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 305583
+ },
+ {
+  "albumId": 3602971,
+  "title": "Believe",
+  "artist": "Justin Bieber",
+  "artistDeezerId": 288166,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/312ece7b31fb86c7a13afd757e99437c/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 302877
+ },
+ {
+  "albumId": 9146317,
+  "title": "Listen",
+  "artist": "David Guetta",
+  "artistDeezerId": 542,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/05694021a91839715f8280a11bd65702/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 301576
+ },
+ {
+  "albumId": 77129912,
+  "title": "NAKAMURA",
+  "artist": "Aya Nakamura",
+  "artistDeezerId": 8909272,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/41fc3e7a3430f3a5e1c1780b57c3147f/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 301050
+ },
+ {
+  "albumId": 7350949,
+  "title": "Mini World",
+  "artist": "Indila",
+  "artistDeezerId": 4437965,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6efb3506ac68e18e23d8f62d8b38ebfb/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 299052
+ },
+ {
+  "albumId": 86773062,
+  "title": "thank u, next",
+  "artist": "Ariana Grande",
+  "artistDeezerId": 1562681,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/49e86e935da829b44cb5ffae16826e55/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 298947
+ },
+ {
+  "albumId": 50781562,
+  "title": "Dozo",
+  "artist": "Kaaris",
+  "artistDeezerId": 388973,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3c760d285b29feccc23b7f5f6c5328d7/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 294798
+ },
+ {
+  "albumId": 60656102,
+  "title": "Trop chaud",
+  "artist": "Timal",
+  "artistDeezerId": 74463,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/210a1d428912c0f4ec472448444f34ff/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 291837
+ },
+ {
+  "albumId": 15188215,
+  "title": "Human",
+  "artist": "Rag'n'Bone Man",
+  "artistDeezerId": 4101559,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/44037061fb79c73d1039c400662434a5/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 290599
+ },
+ {
+  "albumId": 48992972,
+  "title": "Nous-mêmes",
+  "artist": "Hornet la Frappe",
+  "artistDeezerId": 6545727,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4baa55f423e5fc23d8bd46982bd805a2/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 289353
+ },
+ {
+  "albumId": 13150622,
+  "title": "Avenue de St Antoine",
+  "artist": "Alonzo",
+  "artistDeezerId": 259729,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3b364b61e379b936fa37cce75e6995ec/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 286483
+ },
+ {
+  "albumId": 514869,
+  "title": "L'école des points vitaux",
+  "artist": "Sexion d'Assaut",
+  "artistDeezerId": 75001,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/00cb64e8f7241cd51899b88a616eecf2/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": true,
+  "fans": 284374
+ },
+ {
+  "albumId": 3666371,
+  "title": "LIVING THINGS",
+  "artist": "Linkin Park",
+  "artistDeezerId": 92,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0ce480e7723712dee352c68fdfef2599/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 282843
+ },
+ {
+  "albumId": 14223624,
+  "title": "Tout pour le gang",
+  "artist": "MMZ",
+  "artistDeezerId": 1002485,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a685104353c013f5800d98802d3e6c1d/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 278273
+ },
+ {
+  "albumId": 5884161,
+  "title": "The Truth About Love",
+  "artist": "P!nk",
+  "artistDeezerId": 69925,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a43e104f2ff2872df2e1bf4207b6b5e6/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 276924
+ },
+ {
+  "albumId": 90909262,
+  "title": "Cicatrices",
+  "artist": "Zola",
+  "artistDeezerId": 13962203,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cf306b57188398621893c30b38d03ccc/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 276877
+ },
+ {
+  "albumId": 41712861,
+  "title": "Oyoki",
+  "artist": "Kalash Criminel",
+  "artistDeezerId": 10452069,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b739d957757d6c93aaffc0a8820b18d3/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 274882
+ },
+ {
+  "albumId": 11326792,
+  "title": "Charo Life",
+  "artist": "Niska",
+  "artistDeezerId": 5288900,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a1ae0b0128326949a94c8b8eda99a5c3/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 274794
+ },
+ {
+  "albumId": 4361011,
+  "title": "Overexposed",
+  "artist": "Maroon 5",
+  "artistDeezerId": 1188,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/81d7aae96ab55297abdfd5370f6b38a0/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 274560
+ },
+ {
+  "albumId": 41373501,
+  "title": "Harry Styles",
+  "artist": "Harry Styles",
+  "artistDeezerId": 5313805,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a41167cfcc7e840821fad5f5f5f91da2/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 272179
+ },
+ {
+  "albumId": 122366,
+  "title": "Get Rich Or Die Tryin'",
+  "artist": "50 Cent",
+  "artistDeezerId": 66,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8f4dd4d8abf85ceda96b6b4adf217590/1000x1000-000000-80-0-0.jpg",
+  "year": "2003",
+  "urban": true,
+  "fans": 271918
+ },
+ {
+  "albumId": 80068962,
+  "title": "Pure",
+  "artist": "Maes",
+  "artistDeezerId": 4448630,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b8981c97457e70129e279ccbf4bb16bf/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 270230
+ },
+ {
+  "albumId": 133878352,
+  "title": "YHLQMDLG",
+  "artist": "Bad Bunny",
+  "artistDeezerId": 10583405,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0a6f32569d4785c5ef82f581086f4302/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": false,
+  "fans": 267671
+ },
+ {
+  "albumId": 85084202,
+  "title": "En esprit",
+  "artist": "Heuss L'enfoiré",
+  "artistDeezerId": 13645509,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d9e47971109dd5f578a004e7d7d5a9d4/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 266473
+ },
+ {
+  "albumId": 14880539,
+  "title": "25",
+  "artist": "Adele",
+  "artistDeezerId": 75798,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/eaeadce7932a97533fe495881d2fcd7a/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 265082
+ },
+ {
+  "albumId": 401340,
+  "title": "Whatever People Say I Am, That's What I'm Not",
+  "artist": "Arctic Monkeys",
+  "artistDeezerId": 1182,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f7a0a1ca91431861989efe5a22aad557/1000x1000-000000-80-0-0.jpg",
+  "year": "2006",
+  "urban": false,
+  "fans": 264123
+ },
+ {
+  "albumId": 7898255,
+  "title": "Ultraviolence",
+  "artist": "Lana Del Rey",
+  "artistDeezerId": 1424821,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b68adb6788dfa09a314f594aec287850/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 263246
+ },
+ {
+  "albumId": 251821,
+  "title": "19",
+  "artist": "Adele",
+  "artistDeezerId": 75798,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cdab12a45f072fad70fe2ef35f10e28a/1000x1000-000000-80-0-0.jpg",
+  "year": "2008",
+  "urban": false,
+  "fans": 262169
+ },
+ {
+  "albumId": 7776833,
+  "title": "XSCAPE",
+  "artist": "Michael Jackson",
+  "artistDeezerId": 259,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8d0164d7161ac43452ec58201e56e3a4/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 261561
+ },
+ {
+  "albumId": 7042876,
+  "title": "Or Noir",
+  "artist": "Kaaris",
+  "artistDeezerId": 388973,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1592d2a42e992da187cb70f12994677d/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 259663
+ },
+ {
+  "albumId": 7927592,
+  "title": "1000 Forms Of Fear",
+  "artist": "Sia",
+  "artistDeezerId": 3469,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4275db12f5e284b3c2f3e20726187b64/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 258122
+ },
+ {
+  "albumId": 6651488,
+  "title": "good kid, m.A.A.d city",
+  "artist": "Kendrick Lamar",
+  "artistDeezerId": 525046,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b5be27644d505bad7bdb516fe4165475/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 258046
+ },
+ {
+  "albumId": 217795,
+  "title": "Back To Black",
+  "artist": "Amy Winehouse",
+  "artistDeezerId": 9052,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5772b495f0dcdf660d0fc88c4c38a3fa/1000x1000-000000-80-0-0.jpg",
+  "year": "2006",
+  "urban": true,
+  "fans": 257561
+ },
+ {
+  "albumId": 339063,
+  "title": "Black Holes and Revelations",
+  "artist": "Muse",
+  "artistDeezerId": 705,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fc457d27a8c0b7fc6f9b56fb94e22a0d/1000x1000-000000-80-0-0.jpg",
+  "year": "2006",
+  "urban": false,
+  "fans": 256537
+ },
+ {
+  "albumId": 60711332,
+  "title": "Invasion of Privacy",
+  "artist": "Cardi B",
+  "artistDeezerId": 9064930,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9617334140532d2a13584042f38e67fa/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 256479
+ },
+ {
+  "albumId": 7069086,
+  "title": "Orelsan et Gringe sont les Casseurs Flowters",
+  "artist": "Casseurs Flowters",
+  "artistDeezerId": 4944278,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/07f3a77386f9d076395dc7782f3f1c9e/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 256458
+ },
+ {
+  "albumId": 11539532,
+  "title": "Pretty Boy, Dirty Boy",
+  "artist": "Maluma",
+  "artistDeezerId": 1424602,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f3e140064eb82d2f07a8d5fe24abf261/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 254494
+ },
+ {
+  "albumId": 46726782,
+  "title": "100 %",
+  "artist": "Alonzo",
+  "artistDeezerId": 259729,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/16b8e45dea0f5bfdf07e73b443d42244/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 252881
+ },
+ {
+  "albumId": 576738,
+  "title": "Cheese",
+  "artist": "Stromae",
+  "artistDeezerId": 310260,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/43bd78a4753df33da9efc2207c4286ee/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 252572
+ },
+ {
+  "albumId": 10966110,
+  "title": "Cry Baby",
+  "artist": "Melanie Martinez",
+  "artistDeezerId": 5518450,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0debfac5419ff21175ffb8330528e7d8/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 250753
+ },
+ {
+  "albumId": 14788277,
+  "title": "Les autres",
+  "artist": "Niro",
+  "artistDeezerId": 58624,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/dfee8d3680527363d104b218de716a7e/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 250671
+ },
+ {
+  "albumId": 109726692,
+  "title": "Mr Sal",
+  "artist": "Niska",
+  "artistDeezerId": 5288900,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f78885cc63005717be736c0d9750c623/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 248895
+ },
+ {
+  "albumId": 301752,
+  "title": "Demon Days",
+  "artist": "Gorillaz",
+  "artistDeezerId": 14,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3dc29a565149240729afc08e1f251b46/1000x1000-000000-80-0-0.jpg",
+  "year": "2005",
+  "urban": false,
+  "fans": 248646
+ },
+ {
+  "albumId": 1315768,
+  "title": "Birdy",
+  "artist": "Birdy",
+  "artistDeezerId": 107666,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4dc7dcd6df2eade73db2e0d825910e09/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 247444
+ },
+ {
+  "albumId": 707965,
+  "title": "My Beautiful Dark Twisted Fantasy",
+  "artist": "Kanye West",
+  "artistDeezerId": 230,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/742aba8510ba803bea51d304cf2ca786/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": true,
+  "fans": 247179
+ },
+ {
+  "albumId": 12554508,
+  "title": "Maestro",
+  "artist": "Lartiste",
+  "artistDeezerId": 1670355,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8951ae34138ec0ea185cf7d95e623f5e/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 245301
+ },
+ {
+  "albumId": 5988249,
+  "title": "18 Months",
+  "artist": "Calvin Harris",
+  "artistDeezerId": 12178,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3cd154b7ee332e7fb0dc3e8bd4085f6b/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 244676
+ },
+ {
+  "albumId": 316164367,
+  "title": "Un Verano Sin Ti",
+  "artist": "Bad Bunny",
+  "artistDeezerId": 10583405,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b29d1070377b784384c2456093f96a66/1000x1000-000000-80-0-0.jpg",
+  "year": "2022",
+  "urban": false,
+  "fans": 243049
+ },
+ {
+  "albumId": 44205571,
+  "title": "OX7",
+  "artist": "Niro",
+  "artistDeezerId": 58624,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8ca5ddb64bff98ed7fc7d22e6f84f9e0/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 242779
+ },
+ {
+  "albumId": 9896728,
+  "title": "To Pimp A Butterfly",
+  "artist": "Kendrick Lamar",
+  "artistDeezerId": 525046,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/00dd0da365a94b1829302d6b7fec70e6/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 242670
+ },
+ {
+  "albumId": 231552772,
+  "title": "SOUR",
+  "artist": "Olivia Rodrigo",
+  "artistDeezerId": 11152580,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e68da86fd7976135c2d2d1715afaef7c/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": false,
+  "fans": 242664
+ },
+ {
+  "albumId": 6304178,
+  "title": "Drôle de parcours",
+  "artist": "La Fouine",
+  "artistDeezerId": 12778,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9243777bd36610437d2e4e1de206ec39/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 241603
+ },
+ {
+  "albumId": 55727052,
+  "title": "Culture II",
+  "artist": "Migos",
+  "artistDeezerId": 4962010,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fbf468e6ead9a88670c36e236787bfce/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 240787
+ },
+ {
+  "albumId": 52612062,
+  "title": "reputation",
+  "artist": "Taylor Swift",
+  "artistDeezerId": 12246,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e6f3afd8a5c3d8ea797f458694166e47/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 240782
+ },
+ {
+  "albumId": 8990105,
+  "title": "Motion",
+  "artist": "Calvin Harris",
+  "artistDeezerId": 12178,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a72e5db10e9168cd6f5065fbe750cdbb/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 240557
+ },
+ {
+  "albumId": 122664252,
+  "title": "Fine Line",
+  "artist": "Harry Styles",
+  "artistDeezerId": 5313805,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/346c524c15ecccbc4a8a78e8972a352c/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 238392
+ },
+ {
+  "albumId": 14650244,
+  "title": "Where Is l'album de Gradur",
+  "artist": "Gradur",
+  "artistDeezerId": 5876247,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fd1700711d8891d1a481c30402553d7b/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 237972
+ },
+ {
+  "albumId": 126931692,
+  "title": "Les derniers salopards",
+  "artist": "Maes",
+  "artistDeezerId": 4448630,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b0122ae8efd3951902e1f01673a4f219/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 237419
+ },
+ {
+  "albumId": 11225278,
+  "title": "Capo Dei Capi",
+  "artist": "Alonzo",
+  "artistDeezerId": 259729,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b538c379463e475dabffc0e78f7d3817/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 237403
+ },
+ {
+  "albumId": 355921,
+  "title": "xx",
+  "artist": "The xx",
+  "artistDeezerId": 261212,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7037869230e2fbf86b91ec1b4c7e8b8d/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 236735
+ },
+ {
+  "albumId": 9410086,
+  "title": "Highway to Hell",
+  "artist": "AC/DC",
+  "artistDeezerId": 115,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/de48d988a82fc401f4b9bafc2639f7d0/1000x1000-000000-80-0-0.jpg",
+  "year": "1979",
+  "urban": false,
+  "fans": 236245
+ },
+ {
+  "albumId": 1503261,
+  "title": "Born To Die",
+  "artist": "Lana Del Rey",
+  "artistDeezerId": 1424821,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/29d25102cd063abf1affa69143966918/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 236173
+ },
+ {
+  "albumId": 14408378,
+  "title": "R.A.S",
+  "artist": "Kalash Criminel",
+  "artistDeezerId": 10452069,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4494de4879572f8561d37e7e73df288b/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 235044
+ },
+ {
+  "albumId": 41733051,
+  "title": "Double V",
+  "artist": "Mister V",
+  "artistDeezerId": 3638541,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e19b1c7c3672565193fd1d4d03facf89/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 233593
+ },
+ {
+  "albumId": 70912182,
+  "title": "Sweetener",
+  "artist": "Ariana Grande",
+  "artistDeezerId": 1562681,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8a5d4fa5c1b97100bf128909d766f06f/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 232994
+ },
+ {
+  "albumId": 11990790,
+  "title": "Royalty",
+  "artist": "Chris Brown",
+  "artistDeezerId": 102,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5f322ed89444218edd17863d9154db11/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 232823
+ },
+ {
+  "albumId": 77648602,
+  "title": "Origins",
+  "artist": "Imagine Dragons",
+  "artistDeezerId": 416239,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/974997a0db8d1d0c2de1ebde4275997f/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 231146
+ },
+ {
+  "albumId": 401346,
+  "title": "Favourite Worst Nightmare",
+  "artist": "Arctic Monkeys",
+  "artistDeezerId": 1182,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d7a4f9f1af8736457de34f28d50ef496/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 229303
+ },
+ {
+  "albumId": 12114240,
+  "title": "The Dark Side of the Moon",
+  "artist": "Pink Floyd",
+  "artistDeezerId": 860,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e635a8510c1a74bc089b3566ebbb9cb8/1000x1000-000000-80-0-0.jpg",
+  "year": "1973",
+  "urban": false,
+  "fans": 228746
+ },
+ {
+  "albumId": 11375172,
+  "title": "Revival",
+  "artist": "Selena Gomez",
+  "artistDeezerId": 292185,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/51f0d069107589ed8d7f4dd848e3a33b/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 228458
+ },
+ {
+  "albumId": 14345648,
+  "title": "This Is Acting",
+  "artist": "Sia",
+  "artistDeezerId": 3469,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/305b06b02f21849dd2bf45614e0fafef/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 227455
+ },
+ {
+  "albumId": 73123,
+  "title": "Mezmerize",
+  "artist": "System of a Down",
+  "artistDeezerId": 458,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4954f43cc6033ddfa0fa3ee5514a26ca/1000x1000-000000-80-0-0.jpg",
+  "year": "2005",
+  "urban": false,
+  "fans": 226114
+ },
+ {
+  "albumId": 6694046,
+  "title": "Yeezus",
+  "artist": "Kanye West",
+  "artistDeezerId": 230,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5a56530f7906bd9786fa47bd0be421b3/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 225169
+ },
+ {
+  "albumId": 73448912,
+  "title": "Dans les yeux",
+  "artist": "Hornet la Frappe",
+  "artistDeezerId": 6545727,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/74cf27a9da5add8485ebb16e85855ec5/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 224665
+ },
+ {
+  "albumId": 168366422,
+  "title": "LMF",
+  "artist": "Freeze Corleone",
+  "artistDeezerId": 13755123,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b1992b21b96b9ba7b10af14ad49d842d/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 224544
+ },
+ {
+  "albumId": 14435980,
+  "title": "Clandestino",
+  "artist": "Lartiste",
+  "artistDeezerId": 1670355,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e2e018ad9df12e80671538b00d836dcb/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 222033
+ },
+ {
+  "albumId": 7295343,
+  "title": "L'école du micro d'argent",
+  "artist": "IAM",
+  "artistDeezerId": 48,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/564dd3853a925bcd433b4e9846e78d09/1000x1000-000000-80-0-0.jpg",
+  "year": "1999",
+  "urban": true,
+  "fans": 217581
+ },
+ {
+  "albumId": 90799,
+  "title": "American Idiot",
+  "artist": "Green Day",
+  "artistDeezerId": 52,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9e17c202b5ab081171f31c81eb32dc5d/1000x1000-000000-80-0-0.jpg",
+  "year": "2004",
+  "urban": false,
+  "fans": 217347
+ },
+ {
+  "albumId": 73356082,
+  "title": "19",
+  "artist": "MHD",
+  "artistDeezerId": 881751,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8c96bb28d1ba8a8c5fe1b589b08c13e8/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 216715
+ },
+ {
+  "albumId": 12047956,
+  "title": "1",
+  "artist": "The Beatles",
+  "artistDeezerId": 1,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c65b3bd84e81056e060be144381c06c8/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 216297
+ },
+ {
+  "albumId": 50618982,
+  "title": "La vraie vie",
+  "artist": "Bigflo & Oli",
+  "artistDeezerId": 5497121,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/488600fe310b0efbd91f6f99fb176032/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 216147
+ },
+ {
+  "albumId": 6983510,
+  "title": "Bangerz",
+  "artist": "Miley Cyrus",
+  "artistDeezerId": 12436,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0e43d6341c659c4cd71e676fb13282e6/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 215417
+ },
+ {
+  "albumId": 10709540,
+  "title": "Currents",
+  "artist": "Tame Impala",
+  "artistDeezerId": 134790,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/de5b9b704cd4ec36f8bf49beb3e17ba2/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 213709
+ },
+ {
+  "albumId": 8015598,
+  "title": "Fallen",
+  "artist": "Evanescence",
+  "artistDeezerId": 98,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/56c02d3764f5a078ceecd27b64b7d789/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 213690
+ },
+ {
+  "albumId": 77905822,
+  "title": "Fruit du démon",
+  "artist": "Soolking",
+  "artistDeezerId": 10189104,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1d7b35ed8aa0205ff5a2575b382fec7a/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 212626
+ },
+ {
+  "albumId": 72046,
+  "title": "Hypnotize",
+  "artist": "System of a Down",
+  "artistDeezerId": 458,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/047bea0f3708bd88049e675c918f9605/1000x1000-000000-80-0-0.jpg",
+  "year": "2005",
+  "urban": false,
+  "fans": 211293
+ },
+ {
+  "albumId": 248216622,
+  "title": "Happier Than Ever",
+  "artist": "Billie Eilish",
+  "artistDeezerId": 9635624,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bb2880548dd3bc71fb97def2eedec130/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": false,
+  "fans": 210922
+ },
+ {
+  "albumId": 11375984,
+  "title": "Zanaka",
+  "artist": "Jain",
+  "artistDeezerId": 5951582,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cc09c2457ce3e1adc3a7a23f93440e59/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 209112
+ },
+ {
+  "albumId": 693008911,
+  "title": "DeBÍ TiRAR MáS FOToS",
+  "artist": "Bad Bunny",
+  "artistDeezerId": 10583405,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d98eaccfbb945bdf68241d6de7fe6a49/1000x1000-000000-80-0-0.jpg",
+  "year": "2025",
+  "urban": false,
+  "fans": 208479
+ },
+ {
+  "albumId": 13357219,
+  "title": "The Life Of Pablo",
+  "artist": "Kanye West",
+  "artistDeezerId": 230,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e055ecc8d01680cda0460017087728be/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 207844
+ },
+ {
+  "albumId": 13890566,
+  "title": "À contrecoeur (Pilule Violette)",
+  "artist": "GIMS",
+  "artistDeezerId": 4429712,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2fd4c4b87777b905ea7cc5787d9032ce/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 204685
+ },
+ {
+  "albumId": 14048552,
+  "title": "Birds In The Trap Sing McKnight",
+  "artist": "Travis Scott",
+  "artistDeezerId": 4495513,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a2f66f08468fb9897019e82ffb7a5fcb/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 204220
+ },
+ {
+  "albumId": 6091581,
+  "title": "L'Apogée",
+  "artist": "Sexion d'Assaut",
+  "artistDeezerId": 75001,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8039cea315e3ee29bb5c06b05c54d0a8/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 203560
+ },
+ {
+  "albumId": 12047952,
+  "title": "Abbey Road",
+  "artist": "The Beatles",
+  "artistDeezerId": 1,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/aa94ab293730bb7845d2aa8c672b2c29/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 202911
+ },
+ {
+  "albumId": 108440162,
+  "title": "Mental",
+  "artist": "PLK",
+  "artistDeezerId": 1479842,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ba1140375fa2c377325cff4629e64082/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 202852
+ },
+ {
+  "albumId": 226762,
+  "title": "Tracy Chapman",
+  "artist": "Tracy Chapman",
+  "artistDeezerId": 971,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/32069557a9c4a451638263eeb69df2b4/1000x1000-000000-80-0-0.jpg",
+  "year": "1988",
+  "urban": false,
+  "fans": 202647
+ },
+ {
+  "albumId": 12434394,
+  "title": "La hass avant le bonheur",
+  "artist": "DTF",
+  "artistDeezerId": 9884966,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a5baa12c802dd9cd08bba49588dfbf87/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 202283
+ },
+ {
+  "albumId": 49305962,
+  "title": "Lil Pump",
+  "artist": "Lil Pump",
+  "artistDeezerId": 10668131,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7ca6ccbd3b5ab5b3c1abbb0dd062d75f/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 201731
+ },
+ {
+  "albumId": 54496412,
+  "title": "Camila",
+  "artist": "Camila Cabello",
+  "artistDeezerId": 9236850,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/824145a71e397185d8a1abe57842430c/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 201698
+ },
+ {
+  "albumId": 49824082,
+  "title": "1994",
+  "artist": "Hamza",
+  "artistDeezerId": 171998,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d2cba0d91b2c02b7bd364186c4e64cf0/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 201283
+ },
+ {
+  "albumId": 586786102,
+  "title": "HIT ME HARD AND SOFT",
+  "artist": "Billie Eilish",
+  "artistDeezerId": 9635624,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5d284b31cb9ddeb1a0c79aede5a94e1c/1000x1000-000000-80-0-0.jpg",
+  "year": "2024",
+  "urban": false,
+  "fans": 200879
+ },
+ {
+  "albumId": 9100563,
+  "title": "Le monde plus gros que mes yeux",
+  "artist": "Black M",
+  "artistDeezerId": 4494623,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/289a82114c1af9aebe8ed9fbc8cc911e/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": true,
+  "fans": 200629
+ },
+ {
+  "albumId": 56202752,
+  "title": "Black Panther The Album Music From And Inspired By",
+  "artist": "SZA",
+  "artistDeezerId": 5531258,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/85a8f14b8f104b4d617cff2efd0e2e35/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 200316
+ },
+ {
+  "albumId": 424931,
+  "title": "THE E.N.D. (THE ENERGY NEVER DIES)",
+  "artist": "Black Eyed Peas",
+  "artistDeezerId": 1020109,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ea30377840f4ef9ac62406c5e16e9c4b/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 197683
+ },
+ {
+  "albumId": 242115042,
+  "title": "L'Étrange Histoire de Mr.Anderson",
+  "artist": "Laylow",
+  "artistDeezerId": 4510044,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f968eb506868df5736521217bb87ccc7/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": true,
+  "fans": 197478
+ },
+ {
+  "albumId": 8137424,
+  "title": "Fréro Delavega",
+  "artist": "Fréro Delavega",
+  "artistDeezerId": 4539853,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bf5cd7b628d80f2f58e41f31ce7bd119/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 197228
+ },
+ {
+  "albumId": 433789,
+  "title": "The Fame Monster",
+  "artist": "Lady Gaga",
+  "artistDeezerId": 75491,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/62f368993ddb68c5364cd03221d07ac6/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 196330
+ },
+ {
+  "albumId": 68346981,
+  "title": "Evolve",
+  "artist": "Imagine Dragons",
+  "artistDeezerId": 416239,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/247b228179aea3b083eef43522b78b45/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 195879
+ },
+ {
+  "albumId": 6575508,
+  "title": "Demi",
+  "artist": "Demi Lovato",
+  "artistDeezerId": 193875,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e6e49efbd01fe2cd9cfc481a5edd4da7/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 195489
+ },
+ {
+  "albumId": 46641732,
+  "title": "Journal intime",
+  "artist": "Aya Nakamura",
+  "artistDeezerId": 8909272,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/09d7ade63df532e282911464aa91fae3/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 194592
+ },
+ {
+  "albumId": 163880292,
+  "title": "Enna",
+  "artist": "PLK",
+  "artistDeezerId": 1479842,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a9abcb4841920c67e8c53af486b26eab/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 194292
+ },
+ {
+  "albumId": 10043796,
+  "title": "Fenómeno",
+  "artist": "Lartiste",
+  "artistDeezerId": 1670355,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2e42c8dcc9f8b74943fd6401d67dfb87/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 193246
+ },
+ {
+  "albumId": 1434890,
+  "title": "Toxicity",
+  "artist": "System of a Down",
+  "artistDeezerId": 458,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6baa3ad626e859f67bbddae6528fd949/1000x1000-000000-80-0-0.jpg",
+  "year": "2001",
+  "urban": false,
+  "fans": 192927
+ },
+ {
+  "albumId": 49653642,
+  "title": "Mwaka Moon",
+  "artist": "Kalash",
+  "artistDeezerId": 73018,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0069382796f9627c85c8c30069b0238c/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 191502
+ },
+ {
+  "albumId": 10047454,
+  "title": "Kendji",
+  "artist": "Kendji Girac",
+  "artistDeezerId": 5947658,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2d12f5b9d7d01aa4e96046e3b2317450/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 190924
+ },
+ {
+  "albumId": 57409942,
+  "title": "Rien à branler",
+  "artist": "Lorenzo",
+  "artistDeezerId": 123503,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4c41b4cba7b9fbcfab86b49b6a653ed2/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 190912
+ },
+ {
+  "albumId": 44696911,
+  "title": "Lust For Life",
+  "artist": "Lana Del Rey",
+  "artistDeezerId": 1424821,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7120083b059299f380eb1fe3bca0eefb/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 190691
+ },
+ {
+  "albumId": 6872923,
+  "title": "Love In The Future",
+  "artist": "John Legend",
+  "artistDeezerId": 313,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e9a170ca0ae06918f9baa6cb109fb321/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 190445
+ },
+ {
+  "albumId": 58580292,
+  "title": "Prazer, eu sou Ferrugem (Ao vivo)",
+  "artist": "Ferrugem",
+  "artistDeezerId": 4397349,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5e9c0683dc046fa21b3d7f37b295a6dd/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 190036
+ },
+ {
+  "albumId": 108447472,
+  "title": "Lover",
+  "artist": "Taylor Swift",
+  "artistDeezerId": 12246,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6111c5ab9729c8eac47883e4e50e9cf8/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 189794
+ },
+ {
+  "albumId": 151092632,
+  "title": "Chromatica",
+  "artist": "Lady Gaga",
+  "artistDeezerId": 75491,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/81572deeede9e5f691e4b1889b828197/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": false,
+  "fans": 188970
+ },
+ {
+  "albumId": 97140952,
+  "title": "IGOR",
+  "artist": "Tyler, The Creator",
+  "artistDeezerId": 1194083,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/041ab5ceb6fb6ebf9512966835be9e1b/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 188817
+ },
+ {
+  "albumId": 13329611,
+  "title": "The Getaway",
+  "artist": "Red Hot Chili Peppers",
+  "artistDeezerId": 182,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2d7eaff95342162e1e346dc8407be5d6/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 188749
+ },
+ {
+  "albumId": 11250516,
+  "title": "What A Time To Be Alive",
+  "artist": "Future",
+  "artistDeezerId": 165930,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b58feddf14dd25f87bf82c56fdf2683c/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 188696
+ },
+ {
+  "albumId": 6157078,
+  "title": "Unorthodox Jukebox",
+  "artist": "Bruno Mars",
+  "artistDeezerId": 429675,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2ae8e9f1714cc6cc9393f7873008f45c/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 187999
+ },
+ {
+  "albumId": 57437972,
+  "title": "Confidences",
+  "artist": "YL",
+  "artistDeezerId": 12490752,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ad39f91969c9ba3ba908a591400272ff/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 186859
+ },
+ {
+  "albumId": 14879699,
+  "title": "OK Computer",
+  "artist": "Radiohead",
+  "artistDeezerId": 399,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/05a186e0a859a36f9cd51cdae2158fe1/1000x1000-000000-80-0-0.jpg",
+  "year": "1997",
+  "urban": false,
+  "fans": 185469
+ },
+ {
+  "albumId": 125209,
+  "title": "Use Your Illusion I",
+  "artist": "Guns N' Roses",
+  "artistDeezerId": 663,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/546fe1eca5d3bf48c6a48fb3c0ddac63/1000x1000-000000-80-0-0.jpg",
+  "year": "1991",
+  "urban": false,
+  "fans": 185325
+ },
+ {
+  "albumId": 74606742,
+  "title": "Trench",
+  "artist": "Twenty One Pilots",
+  "artistDeezerId": 647650,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/765dc8aba0e893fc6d55af08572fc902/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 184758
+ },
+ {
+  "albumId": 47504682,
+  "title": "Bandit saleté",
+  "artist": "Sofiane",
+  "artistDeezerId": 89657,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9cb14c469aaa8906f8af40abaefc039b/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 184513
+ },
+ {
+  "albumId": 6909237,
+  "title": "Pure Heroine",
+  "artist": "Lorde",
+  "artistDeezerId": 4448485,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7bb0b356418fbb275c0c3db7259128d7/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 184354
+ },
+ {
+  "albumId": 12114248,
+  "title": "The Wall",
+  "artist": "Pink Floyd",
+  "artistDeezerId": 860,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2bea643b92a8fc6b19a23756f718cbd4/1000x1000-000000-80-0-0.jpg",
+  "year": "1979",
+  "urban": false,
+  "fans": 182825
+ },
+ {
+  "albumId": 708674,
+  "title": "Ten",
+  "artist": "Pearl Jam",
+  "artistDeezerId": 1319,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/00ee8c40862fb4e258fcbeaa17d7199e/1000x1000-000000-80-0-0.jpg",
+  "year": "1992",
+  "urban": false,
+  "fans": 181286
+ },
+ {
+  "albumId": 12470032,
+  "title": "La dictature",
+  "artist": "Jok'air",
+  "artistDeezerId": 4907510,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1cd6c2193d0aaf6c384cb1fb31b500d5/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 181145
+ },
+ {
+  "albumId": 12470032,
+  "title": "La dictature",
+  "artist": "MZ",
+  "artistDeezerId": 57423,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1cd6c2193d0aaf6c384cb1fb31b500d5/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 181145
+ },
+ {
+  "albumId": 51278932,
+  "title": "N'DA",
+  "artist": "MMZ",
+  "artistDeezerId": 1002485,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/951184f857cb851fb348966bd5a6c493/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 180436
+ },
+ {
+  "albumId": 109301,
+  "title": "Dummy",
+  "artist": "Portishead",
+  "artistDeezerId": 1069,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5942b88996f33c82790023d5d99395d3/1000x1000-000000-80-0-0.jpg",
+  "year": "1994",
+  "urban": false,
+  "fans": 179926
+ },
+ {
+  "albumId": 131498332,
+  "title": "Changes",
+  "artist": "Justin Bieber",
+  "artistDeezerId": 288166,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8d54ffac647e9e40cd91686c8a906de6/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 179227
+ },
+ {
+  "albumId": 117597672,
+  "title": "Brol La Suite",
+  "artist": "Angèle",
+  "artistDeezerId": 1042268,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/82bf238848827e7d2e7464aadc47e812/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 179026
+ },
+ {
+  "albumId": 81454932,
+  "title": "VII",
+  "artist": "Koba LaD",
+  "artistDeezerId": 14621667,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2638300f5f0645a07832872c764a0fbe/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 178414
+ },
+ {
+  "albumId": 6920784,
+  "title": "P.D.R.G. (Pouvoir, Danger, Respect & Game)",
+  "artist": "Rohff",
+  "artistDeezerId": 750,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e3aaa8b747c63118c6f49d33d89a64f6/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 177643
+ },
+ {
+  "albumId": 86560,
+  "title": "By the Way",
+  "artist": "Red Hot Chili Peppers",
+  "artistDeezerId": 182,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/49b073f55550d41055e02c493f9a7d39/1000x1000-000000-80-0-0.jpg",
+  "year": "2002",
+  "urban": false,
+  "fans": 177174
+ },
+ {
+  "albumId": 7530428,
+  "title": "Recess",
+  "artist": "Skrillex",
+  "artistDeezerId": 525643,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bd388c4043527cf69cb5675997946513/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 176708
+ },
+ {
+  "albumId": 13211120,
+  "title": "Or Game",
+  "artist": "Niro",
+  "artistDeezerId": 58624,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d577008d17b13601f7dffa18e9170bd2/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 175763
+ },
+ {
+  "albumId": 301773,
+  "title": "Mezzanine",
+  "artist": "Massive Attack",
+  "artistDeezerId": 612,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/85abbdc3ed4a7b94ace97f868fe70f63/1000x1000-000000-80-0-0.jpg",
+  "year": "1998",
+  "urban": false,
+  "fans": 174779
+ },
+ {
+  "albumId": 301775,
+  "title": "Homework",
+  "artist": "Daft Punk",
+  "artistDeezerId": 27,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b870579c8650cd59b1cce656dde2ef17/1000x1000-000000-80-0-0.jpg",
+  "year": "1997",
+  "urban": false,
+  "fans": 174649
+ },
+ {
+  "albumId": 9637530,
+  "title": "Fan of A Fan The Album",
+  "artist": "Chris Brown",
+  "artistDeezerId": 102,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5d0c305608276997df5d561a9a74cbf5/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 174594
+ },
+ {
+  "albumId": 9637530,
+  "title": "Fan of A Fan The Album",
+  "artist": "Tyga",
+  "artistDeezerId": 304545,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5d0c305608276997df5d561a9a74cbf5/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 174594
+ },
+ {
+  "albumId": 13373593,
+  "title": "Destins liés",
+  "artist": "S-Crew",
+  "artistDeezerId": 4856048,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e4066e258e4fc78959a8a39675dbb96c/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 174229
+ },
+ {
+  "albumId": 124362732,
+  "title": "JACKBOYS",
+  "artist": "Travis Scott",
+  "artistDeezerId": 4495513,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d1ed81aebe34697130d8caf2459e0d72/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 173774
+ },
+ {
+  "albumId": 124362732,
+  "title": "JACKBOYS",
+  "artist": "Jackboys",
+  "artistDeezerId": 249619382,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d1ed81aebe34697130d8caf2459e0d72/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 173774
+ },
+ {
+  "albumId": 502723,
+  "title": "Plastic Beach",
+  "artist": "Gorillaz",
+  "artistDeezerId": 14,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4ddf15e6d4fa3cf61fdc8271cdec4815/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 173748
+ },
+ {
+  "albumId": 14781033,
+  "title": "Stoney",
+  "artist": "Post Malone",
+  "artistDeezerId": 7543848,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/efd66ec02dc81074e5b3e7825db4c380/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 172321
+ },
+ {
+  "albumId": 8436154,
+  "title": "My Everything",
+  "artist": "Ariana Grande",
+  "artistDeezerId": 1562681,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b5021d5a88c44071a97416c65d4dbdd9/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 172221
+ },
+ {
+  "albumId": 11645048,
+  "title": "Comment c'est loin",
+  "artist": "Casseurs Flowters",
+  "artistDeezerId": 4944278,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c220d8041a9aaa615ad8ace82d28f6b2/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 172103
+ },
+ {
+  "albumId": 14084772,
+  "title": "&",
+  "artist": "Julien Doré",
+  "artistDeezerId": 15887,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a587dce212f2d74edeecbb40a6f4fc32/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 171986
+ },
+ {
+  "albumId": 300098017,
+  "title": "Multitude",
+  "artist": "Stromae",
+  "artistDeezerId": 310260,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/07d285aac432f1d6452da1a7694f6bf3/1000x1000-000000-80-0-0.jpg",
+  "year": "2022",
+  "urban": false,
+  "fans": 171147
+ },
+ {
+  "albumId": 6237061,
+  "title": "Rumours",
+  "artist": "Fleetwood Mac",
+  "artistDeezerId": 169,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9732751ce91d786dcf30069853697078/1000x1000-000000-80-0-0.jpg",
+  "year": "1977",
+  "urban": false,
+  "fans": 170468
+ },
+ {
+  "albumId": 6736087,
+  "title": "3.0",
+  "artist": "Marc Anthony",
+  "artistDeezerId": 112,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/704472d2cb6d5e71fc79f424f83d1956/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 170346
+ },
+ {
+  "albumId": 299931,
+  "title": "Gorillaz",
+  "artist": "Gorillaz",
+  "artistDeezerId": 14,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f4d581f4b86c869547704d7db9aa2c43/1000x1000-000000-80-0-0.jpg",
+  "year": "2001",
+  "urban": false,
+  "fans": 170321
+ },
+ {
+  "albumId": 40146561,
+  "title": "Illuminate",
+  "artist": "Shawn Mendes",
+  "artistDeezerId": 5962948,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/35d5f7dd0b398bb37287b3454f0b05b9/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 169826
+ },
+ {
+  "albumId": 6916355,
+  "title": "In Utero",
+  "artist": "Nirvana",
+  "artistDeezerId": 415,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4d0dfaf6d522f5323aebcc85903d92ac/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 169673
+ },
+ {
+  "albumId": 6950001,
+  "title": "LØVE",
+  "artist": "Julien Doré",
+  "artistDeezerId": 15887,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b4b1caef7426c5f7c240c5dc8976cb8a/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 168051
+ },
+ {
+  "albumId": 6176845,
+  "title": "Vessel",
+  "artist": "Twenty One Pilots",
+  "artistDeezerId": 647650,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b44fcb9ab89663fa6a965958cc48b177/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 167823
+ },
+ {
+  "albumId": 14466676,
+  "title": "Yuri",
+  "artist": "Dosseh",
+  "artistDeezerId": 158083,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f4dc2fb6951329d97cad2268597c3cd1/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 165651
+ },
+ {
+  "albumId": 9760264,
+  "title": "Skrillex and Diplo present Jack Ü",
+  "artist": "Skrillex",
+  "artistDeezerId": 525643,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f26a87471422a3800e576cf18bde4184/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 165597
+ },
+ {
+  "albumId": 9760264,
+  "title": "Skrillex and Diplo present Jack Ü",
+  "artist": "Diplo",
+  "artistDeezerId": 1846,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f26a87471422a3800e576cf18bde4184/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 165597
+ },
+ {
+  "albumId": 9760264,
+  "title": "Skrillex and Diplo present Jack Ü",
+  "artist": "Jack Ü",
+  "artistDeezerId": 6699381,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f26a87471422a3800e576cf18bde4184/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 165597
+ },
+ {
+  "albumId": 101490842,
+  "title": "OASIS",
+  "artist": "J Balvin",
+  "artistDeezerId": 4860761,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ef1cb84fc7b70a390d80af20768cf065/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 164773
+ },
+ {
+  "albumId": 11130386,
+  "title": "That's The Spirit",
+  "artist": "Bring Me the Horizon",
+  "artistDeezerId": 12874,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/dd6af81a0d098fdd32e824fd43f2635d/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 164322
+ },
+ {
+  "albumId": 1152698,
+  "title": "Sorry For Party Rocking",
+  "artist": "LMFAO",
+  "artistDeezerId": 167225,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/63278375978f200fb751cd63624151bb/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": true,
+  "fans": 164317
+ },
+ {
+  "albumId": 301738,
+  "title": "Le Code De L'horreur",
+  "artist": "Rohff",
+  "artistDeezerId": 750,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2b0a8d4cd9a2fa8614842c4f8809c4b6/1000x1000-000000-80-0-0.jpg",
+  "year": "2008",
+  "urban": true,
+  "fans": 163973
+ },
+ {
+  "albumId": 7034647,
+  "title": "Clandestino",
+  "artist": "Manu Chao",
+  "artistDeezerId": 6,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d8799322e229f514cc543874e7726517/1000x1000-000000-80-0-0.jpg",
+  "year": "1998",
+  "urban": false,
+  "fans": 163670
+ },
+ {
+  "albumId": 96636772,
+  "title": "Rammstein",
+  "artist": "Rammstein",
+  "artistDeezerId": 464,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4886636be143303aa0df47cd6d93983e/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 162063
+ },
+ {
+  "albumId": 319924157,
+  "title": "Harry's House",
+  "artist": "Harry Styles",
+  "artistDeezerId": 5313805,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7ca460e8c5b01391f1bdb316aff7419f/1000x1000-000000-80-0-0.jpg",
+  "year": "2022",
+  "urban": false,
+  "fans": 161708
+ },
+ {
+  "albumId": 48990672,
+  "title": "Incroyable",
+  "artist": "Naza",
+  "artistDeezerId": 7459270,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/789c52fd72982e8965445c03b4e503e1/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 158676
+ },
+ {
+  "albumId": 6774102,
+  "title": "Stars Dance",
+  "artist": "Selena Gomez",
+  "artistDeezerId": 292185,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4b5354cc5fd1dfed00ebba62b9c4efb2/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 158148
+ },
+ {
+  "albumId": 60167362,
+  "title": "FACE YOURSELF",
+  "artist": "BTS",
+  "artistDeezerId": 6982223,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/eab0e6acd1cc800485967e5379fde262/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 157846
+ },
+ {
+  "albumId": 6406302,
+  "title": "The 20/20 Experience",
+  "artist": "Justin Timberlake",
+  "artistDeezerId": 1147,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f409c33ab781a565ab46f06ba3415a31/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 156316
+ },
+ {
+  "albumId": 12047960,
+  "title": "Sgt. Pepper's Lonely Hearts Club Band",
+  "artist": "The Beatles",
+  "artistDeezerId": 1,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4fcb73352b17d47429a273c5112632b0/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 154876
+ },
+ {
+  "albumId": 46000842,
+  "title": "Odisea",
+  "artist": "Ozuna",
+  "artistDeezerId": 4937383,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/967a95a3f48cdad308c18057d2e55906/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 154808
+ },
+ {
+  "albumId": 81797,
+  "title": "The Black Parade",
+  "artist": "My Chemical Romance",
+  "artistDeezerId": 599,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0f23ab7de2b53c5298044ef1de148c50/1000x1000-000000-80-0-0.jpg",
+  "year": "2006",
+  "urban": false,
+  "fans": 154625
+ },
+ {
+  "albumId": 320556237,
+  "title": "Mélo",
+  "artist": "Tiakola",
+  "artistDeezerId": 13918545,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e760d4c6154c45759ebd2b8c0091c61d/1000x1000-000000-80-0-0.jpg",
+  "year": "2022",
+  "urban": true,
+  "fans": 154360
+ },
+ {
+  "albumId": 12707770,
+  "title": "Mind Of Mine",
+  "artist": "ZAYN",
+  "artistDeezerId": 9761322,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1224e92320d2d00568fb0327b248acf4/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 154223
+ },
+ {
+  "albumId": 42194891,
+  "title": "Dua Lipa",
+  "artist": "Dua Lipa",
+  "artistDeezerId": 8706544,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0ce25be244d0f09009da83b66b080bc4/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 154076
+ },
+ {
+  "albumId": 11603598,
+  "title": "In The Lonely Hour",
+  "artist": "Sam Smith",
+  "artistDeezerId": 1097709,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/231c66c0ed260c708163eff3bb8458da/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 153543
+ },
+ {
+  "albumId": 72839592,
+  "title": "7",
+  "artist": "David Guetta",
+  "artistDeezerId": 542,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c292dc8a43814f6617f0e24e62c33489/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 152889
+ },
+ {
+  "albumId": 49522522,
+  "title": "Beautiful Trauma",
+  "artist": "P!nk",
+  "artistDeezerId": 69925,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a0ca592cf963bdab9f8da72ff7bbec38/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 152488
+ },
+ {
+  "albumId": 6443604,
+  "title": "Paramore",
+  "artist": "Paramore",
+  "artistDeezerId": 10977,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/485d7cab7695e48f1420182647273de4/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 151961
+ },
+ {
+  "albumId": 9007781,
+  "title": "1989",
+  "artist": "Taylor Swift",
+  "artistDeezerId": 12246,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/68b4e986958b17f05b062ffa8d7ae114/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 151809
+ },
+ {
+  "albumId": 942775,
+  "title": "Les Chroniques Du 75, En Attendant L'Apogée",
+  "artist": "Sexion d'Assaut",
+  "artistDeezerId": 75001,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/374df7ff859a0da8f5de3aeeb280059c/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": true,
+  "fans": 151458
+ },
+ {
+  "albumId": 15166041,
+  "title": "Premier étage",
+  "artist": "KeBlack",
+  "artistDeezerId": 7459268,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/03c547efd8e24dbaf45eaa0ee38f45bd/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 150559
+ },
+ {
+  "albumId": 1398967,
+  "title": "Rage Against The Machine",
+  "artist": "Rage Against the Machine",
+  "artistDeezerId": 113,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a3a5690b75d3b43e3b676d7e33ccb111/1000x1000-000000-80-0-0.jpg",
+  "year": "1992",
+  "urban": false,
+  "fans": 150249
+ },
+ {
+  "albumId": 81912,
+  "title": "Dookie",
+  "artist": "Green Day",
+  "artistDeezerId": 52,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1e17054b7bfa6576f64ea867b71ef479/1000x1000-000000-80-0-0.jpg",
+  "year": "1994",
+  "urban": false,
+  "fans": 149741
+ },
+ {
+  "albumId": 136387572,
+  "title": "Colores",
+  "artist": "J Balvin",
+  "artistDeezerId": 4860761,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/38b80954bf64148690fc6047582e98c1/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": false,
+  "fans": 149572
+ },
+ {
+  "albumId": 81017372,
+  "title": "SKINS",
+  "artist": "XXXTentacion",
+  "artistDeezerId": 9822974,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/31826748d576ae33bc22632f7a95ac4f/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 148910
+ },
+ {
+  "albumId": 13200738,
+  "title": "7/27",
+  "artist": "Fifth Harmony",
+  "artistDeezerId": 4974921,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4529a3c8ec16c3e21de17a6294a6b3e1/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 148674
+ },
+ {
+  "albumId": 107231,
+  "title": "Life In Cartoon Motion",
+  "artist": "MIKA",
+  "artistDeezerId": 6603,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7d3289fd4f54de200b437a804163a6fb/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 148279
+ },
+ {
+  "albumId": 44730061,
+  "title": "Flower Boy",
+  "artist": "Tyler, The Creator",
+  "artistDeezerId": 1194083,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a7a16b8f63b1ec0e9fbd327619966737/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 148023
+ },
+ {
+  "albumId": 9426598,
+  "title": "American Beauty/American Psycho",
+  "artist": "Fall Out Boy",
+  "artistDeezerId": 404,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c0a1d1281570ad3becbb6146c6d54c0c/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 147768
+ },
+ {
+  "albumId": 13890556,
+  "title": "Encore un soir",
+  "artist": "Céline Dion",
+  "artistDeezerId": 198,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cf58cd38712048fcb112c6d56d8452bb/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 147713
+ },
+ {
+  "albumId": 299507,
+  "title": "la fierte des notres",
+  "artist": "Rohff",
+  "artistDeezerId": 750,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/334b5f93322d203db46bb1a9ec0e1b9c/1000x1000-000000-80-0-0.jpg",
+  "year": "2004",
+  "urban": true,
+  "fans": 147504
+ },
+ {
+  "albumId": 60566802,
+  "title": "C'est la loi",
+  "artist": "Naza",
+  "artistDeezerId": 7459270,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/51c7731b6b517a314ab0501d9d36db89/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 146925
+ },
+ {
+  "albumId": 137272602,
+  "title": "After Hours",
+  "artist": "The Weeknd",
+  "artistDeezerId": 4050205,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f520bf0be2e3cfc476824e75d20a164a/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 146857
+ },
+ {
+  "albumId": 85325562,
+  "title": "Polak",
+  "artist": "PLK",
+  "artistDeezerId": 1479842,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1f1126ecaf57830ab693d7b3e452ebb2/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 146799
+ },
+ {
+  "albumId": 92296222,
+  "title": "Rêves de gosse",
+  "artist": "RK",
+  "artistDeezerId": 323311,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e16dc223a82c426d3d3f90534234c775/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 146588
+ },
+ {
+  "albumId": 6088144,
+  "title": "Girl On Fire",
+  "artist": "Alicia Keys",
+  "artistDeezerId": 228,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fc44655a4f3058246ce0ab9c020b7141/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 146175
+ },
+ {
+  "albumId": 11192186,
+  "title": "Stories",
+  "artist": "Avicii",
+  "artistDeezerId": 293585,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6fe420c62b5696019b9359b689785086/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 145358
+ },
+ {
+  "albumId": 329200907,
+  "title": "KMT",
+  "artist": "Gazo",
+  "artistDeezerId": 8873540,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2bcbcb5b54085e978f3c7f7f34a80c1f/1000x1000-000000-80-0-0.jpg",
+  "year": "2022",
+  "urban": true,
+  "fans": 144762
+ },
+ {
+  "albumId": 93080032,
+  "title": "Chocolat",
+  "artist": "Roméo Elvis",
+  "artistDeezerId": 7961408,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/35c32b9d794aee8a374b9dfb625d80fe/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 143356
+ },
+ {
+  "albumId": 7500349,
+  "title": "True: Avicii By Avicii",
+  "artist": "Avicii",
+  "artistDeezerId": 293585,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4b027a2f966d8ac323ed544d5f3ceb62/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 143256
+ },
+ {
+  "albumId": 99217,
+  "title": "Suprême NTM",
+  "artist": "Suprême NTM",
+  "artistDeezerId": 752,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/529623a3281a7709098859887ddfa467/1000x1000-000000-80-0-0.jpg",
+  "year": "1998",
+  "urban": true,
+  "fans": 143149
+ },
+ {
+  "albumId": 14344820,
+  "title": "Joanne",
+  "artist": "Lady Gaga",
+  "artistDeezerId": 75491,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/614af5cb69dd52e4de82dd2cd9e217c9/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 142796
+ },
+ {
+  "albumId": 6611102,
+  "title": "Je veux du bonheur",
+  "artist": "Christophe Maé",
+  "artistDeezerId": 11907,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2cb9bd73c8225eb64cf4cac91ea4a434/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 142786
+ },
+ {
+  "albumId": 340878,
+  "title": "The Doors",
+  "artist": "The Doors",
+  "artistDeezerId": 847,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a58f4c70b9c51b8902be3f2e875155fe/1000x1000-000000-80-0-0.jpg",
+  "year": "1967",
+  "urban": false,
+  "fans": 142571
+ },
+ {
+  "albumId": 12231484,
+  "title": "Nine Track Mind",
+  "artist": "Charlie Puth",
+  "artistDeezerId": 1362735,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/948200588c813c1afd10f29b56e0ce50/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 142358
+ },
+ {
+  "albumId": 99410932,
+  "title": "Queen",
+  "artist": "Eva",
+  "artistDeezerId": 53345732,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/81ccf65d4426f968f35d672237bfa71e/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 142003
+ },
+ {
+  "albumId": 117680872,
+  "title": "Hot Pink",
+  "artist": "Doja Cat",
+  "artistDeezerId": 5578942,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1e0d4359a328f8b0ea3563e8623a09aa/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 141472
+ },
+ {
+  "albumId": 9410156,
+  "title": "Iron Man 2",
+  "artist": "AC/DC",
+  "artistDeezerId": 115,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f5cb12b6f789aeec02b245100c8f1bcc/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 141376
+ },
+ {
+  "albumId": 47131362,
+  "title": "The Miseducation of Lauryn Hill",
+  "artist": "Ms. Lauryn Hill",
+  "artistDeezerId": 1117,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/79ea9d5f45c41d82e511c59f0bd8fc5a/1000x1000-000000-80-0-0.jpg",
+  "year": "2006",
+  "urban": false,
+  "fans": 141100
+ },
+ {
+  "albumId": 6495498,
+  "title": "Save Rock And Roll",
+  "artist": "Fall Out Boy",
+  "artistDeezerId": 404,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/265ba23705271a65f0633cd7a7444bed/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 140975
+ },
+ {
+  "albumId": 117799772,
+  "title": "Drôle de mentalité",
+  "artist": "Djadja & Dinaz",
+  "artistDeezerId": 9930130,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/71d1fd374d25a9699d792f7ec14bcccf/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 140827
+ },
+ {
+  "albumId": 79482922,
+  "title": "La fosse aux lions",
+  "artist": "Kalash Criminel",
+  "artistDeezerId": 10452069,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3562c38eff3c6eb6ccdc9412e17995f4/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 139952
+ },
+ {
+  "albumId": 12107828,
+  "title": "Death of a Bachelor",
+  "artist": "Panic! At The Disco",
+  "artistDeezerId": 402,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9bc0f0530a19248354bb345e15fd4b1d/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 139126
+ },
+ {
+  "albumId": 128811032,
+  "title": "MVP",
+  "artist": "Mister V",
+  "artistDeezerId": 3638541,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3a18126bcebcb9284cc4a47740dd2d08/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 138597
+ },
+ {
+  "albumId": 50762752,
+  "title": "Without Warning",
+  "artist": "21 Savage",
+  "artistDeezerId": 6853403,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/60f13d915e92b6082617857b537f7b37/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 137870
+ },
+ {
+  "albumId": 50762752,
+  "title": "Without Warning",
+  "artist": "Metro Boomin",
+  "artistDeezerId": 4968870,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/60f13d915e92b6082617857b537f7b37/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 137870
+ },
+ {
+  "albumId": 50762752,
+  "title": "Without Warning",
+  "artist": "Offset",
+  "artistDeezerId": 68334,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/60f13d915e92b6082617857b537f7b37/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 137870
+ },
+ {
+  "albumId": 692698,
+  "title": "I Am...World Tour",
+  "artist": "Beyoncé",
+  "artistDeezerId": 145,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8ff649e4d5d0e3dad80debe6881fac63/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 137807
+ },
+ {
+  "albumId": 9495176,
+  "title": "The Wanderings Of The Avener",
+  "artist": "The Avener",
+  "artistDeezerId": 5283366,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/72a02f7727eaaa38c6faa2ed3eec9d4f/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 137746
+ },
+ {
+  "albumId": 42014431,
+  "title": "El Dorado",
+  "artist": "Shakira",
+  "artistDeezerId": 160,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c27b4d011105cd0b3c4aeb286671cbc4/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 137392
+ },
+ {
+  "albumId": 12114242,
+  "title": "Wish You Were Here",
+  "artist": "Pink Floyd",
+  "artistDeezerId": 860,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cb029c785b8d0cd624ddee9d4127ceff/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 136752
+ },
+ {
+  "albumId": 84589482,
+  "title": "Mexico",
+  "artist": "Da Uzi",
+  "artistDeezerId": 11884111,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/01e39521acc47adee08f0b823e39a116/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 136670
+ },
+ {
+  "albumId": 6088193,
+  "title": "Rage Against The Machine - XX",
+  "artist": "Rage Against the Machine",
+  "artistDeezerId": 113,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/73a4d0cb2f3ec27583b9e0bc724b50c7/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 136442
+ },
+ {
+  "albumId": 185386862,
+  "title": "AYA",
+  "artist": "Aya Nakamura",
+  "artistDeezerId": 8909272,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d3641092e29650cfa26cc53814823a70/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": false,
+  "fans": 136298
+ },
+ {
+  "albumId": 169225092,
+  "title": "100 visages",
+  "artist": "Leto",
+  "artistDeezerId": 455796,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a2abaed751bc500db774e28b3fd84393/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 136283
+ },
+ {
+  "albumId": 11271554,
+  "title": "Bang",
+  "artist": "Anitta",
+  "artistDeezerId": 4390053,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/341dd159cf40305a4b83d7d86214660d/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 136133
+ },
+ {
+  "albumId": 271489,
+  "title": "Ready to Die",
+  "artist": "The Notorious B.I.G.",
+  "artistDeezerId": 2519,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7143c2cd04a78c9c969d230c69465a03/1000x1000-000000-80-0-0.jpg",
+  "year": "1994",
+  "urban": true,
+  "fans": 135650
+ },
+ {
+  "albumId": 955475,
+  "title": "Et vous, tu m'aimes ?",
+  "artist": "Brigitte",
+  "artistDeezerId": 83110,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4c82d5b804de05fd2ba6b80a485420bf/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 135464
+ },
+ {
+  "albumId": 61744382,
+  "title": "KOD",
+  "artist": "J. Cole",
+  "artistDeezerId": 339209,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4ed078e752d9686414b3efc5190e2c82/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 135312
+ },
+ {
+  "albumId": 10463910,
+  "title": "AT.LONG.LAST.A$AP",
+  "artist": "A$AP Rocky",
+  "artistDeezerId": 1518490,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3766d448b81635824bfb85622ba679b3/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 135200
+ },
+ {
+  "albumId": 56247712,
+  "title": "Cure",
+  "artist": "Eddy de Pretto",
+  "artistDeezerId": 9030084,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/09ba945f57cb7b503fab4621aeca1bf2/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 134517
+ },
+ {
+  "albumId": 14880659,
+  "title": "In Rainbows",
+  "artist": "Radiohead",
+  "artistDeezerId": 399,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a175af9b7d329bc678cb4d26fc13d6de/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 134474
+ },
+ {
+  "albumId": 282654,
+  "title": "Mes Repères",
+  "artist": "La Fouine",
+  "artistDeezerId": 12778,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0d14d0ab4d0c45032a98f19acbd5c822/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": true,
+  "fans": 134414
+ },
+ {
+  "albumId": 69352202,
+  "title": "Swimming",
+  "artist": "Mac Miller",
+  "artistDeezerId": 632926,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5c5774a43a421d37f58ae170df87b9e8/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 133913
+ },
+ {
+  "albumId": 15498596,
+  "title": "American Teen",
+  "artist": "Khalid",
+  "artistDeezerId": 362326,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7fa1597e86f5b4283ea316f2ddb54008/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 133784
+ },
+ {
+  "albumId": 5771751,
+  "title": "Coexist",
+  "artist": "The xx",
+  "artistDeezerId": 261212,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2eb83e06e6c14e0bed87c1f441bfd9d9/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 133370
+ },
+ {
+  "albumId": 102819,
+  "title": "The Joshua Tree",
+  "artist": "U2",
+  "artistDeezerId": 163,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b255afa51b3c1af7872acb56da319c2d/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 132983
+ },
+ {
+  "albumId": 43730241,
+  "title": "Special",
+  "artist": "Siboy",
+  "artistDeezerId": 6311908,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/87fa3a46ba83eed7aeda500eb7a2493d/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 132831
+ },
+ {
+  "albumId": 13606387,
+  "title": "2001",
+  "artist": "Dr. Dre",
+  "artistDeezerId": 763,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0d9a24d054cbc5ab11843beed9f1422b/1000x1000-000000-80-0-0.jpg",
+  "year": "2008",
+  "urban": true,
+  "fans": 132738
+ },
+ {
+  "albumId": 204632312,
+  "title": "DRILL FR",
+  "artist": "Gazo",
+  "artistDeezerId": 8873540,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2e03fb9bd898ebd0870059faaef5c730/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": true,
+  "fans": 131744
+ },
+ {
+  "albumId": 711463,
+  "title": "The Beginning",
+  "artist": "Black Eyed Peas",
+  "artistDeezerId": 1020109,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9068f5d64721a5abf79636de39e3d58b/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 130959
+ },
+ {
+  "albumId": 13032820,
+  "title": "Kaos",
+  "artist": "Kalash",
+  "artistDeezerId": 73018,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/55878f509b3972d6fc1d3a064e72c8a7/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 130599
+ },
+ {
+  "albumId": 6358418,
+  "title": "OutRun",
+  "artist": "Kavinsky",
+  "artistDeezerId": 13358,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e57b7aba14f763eb61ac2ff495288d04/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 130465
+ },
+ {
+  "albumId": 9575630,
+  "title": "Reflection",
+  "artist": "Fifth Harmony",
+  "artistDeezerId": 4974921,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f7f85b17171a8b1d062dca5484c022de/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 130041
+ },
+ {
+  "albumId": 14720752,
+  "title": "Jolie garce",
+  "artist": "Shay",
+  "artistDeezerId": 314777,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/794954c654277de6bd8b487af80dd403/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 129672
+ },
+ {
+  "albumId": 44181911,
+  "title": "Issa Album",
+  "artist": "21 Savage",
+  "artistDeezerId": 6853403,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e31287495f374bc12d135a7ea344d2c5/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 129567
+ },
+ {
+  "albumId": 9152599,
+  "title": "For You",
+  "artist": "Selena Gomez",
+  "artistDeezerId": 292185,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/35b613129d9db8fb1ae47d285e139bc2/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 128888
+ },
+ {
+  "albumId": 42886601,
+  "title": "Melodrama",
+  "artist": "Lorde",
+  "artistDeezerId": 4448485,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0c424dbe627530cd06a6fd408baba3f3/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 128336
+ },
+ {
+  "albumId": 75926412,
+  "title": "Mon pays c'est l'amour",
+  "artist": "Johnny Hallyday",
+  "artistDeezerId": 1060,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9c571ab34f09da2eb8ebde0280b8b819/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 128230
+ },
+ {
+  "albumId": 356913,
+  "title": "Riot!",
+  "artist": "Paramore",
+  "artistDeezerId": 10977,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1a48b36fe9dd29b2bef2f5058cbe0c25/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 127709
+ },
+ {
+  "albumId": 51001312,
+  "title": "Master Of Puppets",
+  "artist": "Metallica",
+  "artistDeezerId": 119,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/291e2af9295ca885b154eee75dfa0432/1000x1000-000000-80-0-0.jpg",
+  "year": "1986",
+  "urban": false,
+  "fans": 127443
+ },
+ {
+  "albumId": 897590,
+  "title": "La Fouine vs Laouni",
+  "artist": "La Fouine",
+  "artistDeezerId": 12778,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1a3a60c08081d0eb05c0fd942aa41da1/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": true,
+  "fans": 127286
+ },
+ {
+  "albumId": 103115532,
+  "title": "No.6 Collaborations Project",
+  "artist": "Ed Sheeran",
+  "artistDeezerId": 384236,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1d809f545fb9ecea849cf45fc8bcc681/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 126879
+ },
+ {
+  "albumId": 1649798,
+  "title": "My Head Is An Animal",
+  "artist": "Of Monsters And Men",
+  "artistDeezerId": 1581786,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/fd269461cb1125e4d74abfc21ba39e6e/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 125867
+ },
+ {
+  "albumId": 356130,
+  "title": "Vol. 3: The Subliminal Verses",
+  "artist": "Slipknot",
+  "artistDeezerId": 117,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/35b093d22fe1539003d5d18dd8f309eb/1000x1000-000000-80-0-0.jpg",
+  "year": "2004",
+  "urban": false,
+  "fans": 125766
+ },
+ {
+  "albumId": 161513,
+  "title": "Welcome to Jamrock",
+  "artist": "Damian Marley",
+  "artistDeezerId": 254,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cad9b6f6bd1fe7b7d82d87f117d7db56/1000x1000-000000-80-0-0.jpg",
+  "year": "2005",
+  "urban": false,
+  "fans": 125645
+ },
+ {
+  "albumId": 71908602,
+  "title": "Adieu bientôt",
+  "artist": "Columbine",
+  "artistDeezerId": 7042927,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/80014690fae21c8806d5f5cb1cbb47aa/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 125278
+ },
+ {
+  "albumId": 15437802,
+  "title": "Lamomali",
+  "artist": "-M-",
+  "artistDeezerId": 867,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f603ca9837ad960efc3eec1fed4203c1/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 124654
+ },
+ {
+  "albumId": 15437802,
+  "title": "Lamomali",
+  "artist": "Toumani Diabaté",
+  "artistDeezerId": 152964,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f603ca9837ad960efc3eec1fed4203c1/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 124654
+ },
+ {
+  "albumId": 15437802,
+  "title": "Lamomali",
+  "artist": "Sidiki Diabaté",
+  "artistDeezerId": 4327376,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f603ca9837ad960efc3eec1fed4203c1/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 124654
+ },
+ {
+  "albumId": 7989512,
+  "title": "5 Seconds Of Summer",
+  "artist": "5 Seconds Of Summer",
+  "artistDeezerId": 4103408,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/607edd6e04268585206f8f42ca760de0/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 124132
+ },
+ {
+  "albumId": 1378580,
+  "title": "Lioness: Hidden Treasures",
+  "artist": "Amy Winehouse",
+  "artistDeezerId": 9052,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a3fb6cd3ee275742a9af9bf0e13e44ea/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": true,
+  "fans": 123868
+ },
+ {
+  "albumId": 188608682,
+  "title": "Stamina,",
+  "artist": "Dinos",
+  "artistDeezerId": 292949,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/535769046996845c781b8d795ec6d07f/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 123480
+ },
+ {
+  "albumId": 11680732,
+  "title": "Tranquille",
+  "artist": "RIDSA",
+  "artistDeezerId": 1651095,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5bd84c63a8d50357a0ac81aff0d73a73/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 122399
+ },
+ {
+  "albumId": 64182182,
+  "title": "TESTING",
+  "artist": "A$AP Rocky",
+  "artistDeezerId": 1518490,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f3b412a4f69c59dfb46583a93995f565/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 122310
+ },
+ {
+  "albumId": 8328076,
+  "title": "Royal Blood",
+  "artist": "Royal Blood",
+  "artistDeezerId": 1035806,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ab13b0a6a8b6290d4873967ae7d45885/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 122089
+ },
+ {
+  "albumId": 7079250,
+  "title": "The Heist",
+  "artist": "Macklemore & Ryan Lewis",
+  "artistDeezerId": 893222,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/839828adc80ae0b9844c426335356603/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 121844
+ },
+ {
+  "albumId": 14581202,
+  "title": "Hardwired…To Self-Destruct",
+  "artist": "Metallica",
+  "artistDeezerId": 119,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/22df6212ca5a43b3ec83caa814e8da16/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 121387
+ },
+ {
+  "albumId": 11654238,
+  "title": "Un monde meilleur",
+  "artist": "Kids United",
+  "artistDeezerId": 148129,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/13f3b354dca94ff9419e153d1a01720c/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 121246
+ },
+ {
+  "albumId": 356690,
+  "title": "Harvest",
+  "artist": "Neil Young",
+  "artistDeezerId": 1379,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8faf47b1704c3351a48b392e29ec80a4/1000x1000-000000-80-0-0.jpg",
+  "year": "1977",
+  "urban": false,
+  "fans": 120408
+ },
+ {
+  "albumId": 71318,
+  "title": "Oracular Spectacular",
+  "artist": "MGMT",
+  "artistDeezerId": 69627,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/751372bcbd63a38e6ec6ef8bd448d687/1000x1000-000000-80-0-0.jpg",
+  "year": "2008",
+  "urban": false,
+  "fans": 119822
+ },
+ {
+  "albumId": 107978482,
+  "title": "Sex In The City",
+  "artist": "Lorenzo",
+  "artistDeezerId": 123503,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ddc131ccbb8f93a8edbd2f73160966d4/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 119640
+ },
+ {
+  "albumId": 11539620,
+  "title": "Wiped Out!",
+  "artist": "The Neighbourhood",
+  "artistDeezerId": 296861,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/20c662d4e0f3a15d5cd8ebecb69c8181/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 119466
+ },
+ {
+  "albumId": 486213345,
+  "title": "ADC",
+  "artist": "Freeze Corleone",
+  "artistDeezerId": 13755123,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/17a6c966c1f748d55273b472c9a4095e/1000x1000-000000-80-0-0.jpg",
+  "year": "2023",
+  "urban": true,
+  "fans": 119139
+ },
+ {
+  "albumId": 7113653,
+  "title": "All This Bad Blood",
+  "artist": "Bastille",
+  "artistDeezerId": 1352097,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2c9448000e49a026ea151de606b0d46c/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": true,
+  "fans": 119040
+ },
+ {
+  "albumId": 11015718,
+  "title": "BADLANDS",
+  "artist": "Halsey",
+  "artistDeezerId": 5292512,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/47165475d4e74cd6fa98f8b83bd90b68/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 118885
+ },
+ {
+  "albumId": 8743199,
+  "title": "Songs Of Innocence",
+  "artist": "U2",
+  "artistDeezerId": 163,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b4b9471481dfdf593ac1fc1ac06be26f/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": false,
+  "fans": 118870
+ },
+ {
+  "albumId": 277015082,
+  "title": "Nonante-Cinq",
+  "artist": "Angèle",
+  "artistDeezerId": 1042268,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/489741df6a97079ffb929c7c7cb9279a/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": false,
+  "fans": 118801
+ },
+ {
+  "albumId": 12223984,
+  "title": "Monsieur Fall",
+  "artist": "Lefa",
+  "artistDeezerId": 1473902,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2822702b5f41d54aa53bd14b2dfb15cc/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 118542
+ },
+ {
+  "albumId": 8270494,
+  "title": "Blacc Hollywood",
+  "artist": "Wiz Khalifa",
+  "artistDeezerId": 74804,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/b5ade276c915893911bb4b21d21028ee/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": true,
+  "fans": 118297
+ },
+ {
+  "albumId": 132530842,
+  "title": "TRINITY",
+  "artist": "Laylow",
+  "artistDeezerId": 4510044,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6cebb13caf6dae96d49f35d856a34226/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 118139
+ },
+ {
+  "albumId": 40157471,
+  "title": "Enfants terribles",
+  "artist": "Columbine",
+  "artistDeezerId": 7042927,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6431be6fcd13124cbc56867857022a49/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 117947
+ },
+ {
+  "albumId": 438306,
+  "title": "The Element Of Freedom",
+  "artist": "Alicia Keys",
+  "artistDeezerId": 228,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/74406abeb7ba1e28ebf4a7e7a01c4e1f/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": true,
+  "fans": 117810
+ },
+ {
+  "albumId": 6505633,
+  "title": "I Love You.",
+  "artist": "The Neighbourhood",
+  "artistDeezerId": 296861,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6f55ff3cc5c478510c948024e95cf8d6/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 117325
+ },
+ {
+  "albumId": 89268692,
+  "title": "Assa Baing",
+  "artist": "Landy",
+  "artistDeezerId": 14447309,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/02c6d4a483fc8292941c0959fac49a02/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 117254
+ },
+ {
+  "albumId": 11038872,
+  "title": "Compton",
+  "artist": "Dr. Dre",
+  "artistDeezerId": 763,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5a47ea3a310488ab5dbae15eb8371aba/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 117170
+ },
+ {
+  "albumId": 10519330,
+  "title": "La cour des grands",
+  "artist": "Bigflo & Oli",
+  "artistDeezerId": 5497121,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/debf7530bfbc7edd354ec80c777ef3e4/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 117130
+ },
+ {
+  "albumId": 127402,
+  "title": "All Hope Is Gone",
+  "artist": "Slipknot",
+  "artistDeezerId": 117,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3d4d0fe601be67cb2e13654d40d7101a/1000x1000-000000-80-0-0.jpg",
+  "year": "2008",
+  "urban": false,
+  "fans": 117098
+ },
+ {
+  "albumId": 139890932,
+  "title": "The New Abnormal",
+  "artist": "The Strokes",
+  "artistDeezerId": 569,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/523ac3e61759f365b9306fc44dd53eea/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": false,
+  "fans": 117014
+ },
+ {
+  "albumId": 14780949,
+  "title": "O Grande Encontro 20 Anos: Alceu, Elba e Geraldo (Ao Vivo)",
+  "artist": "Alceu Valença",
+  "artistDeezerId": 110746,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2e0ae3cbbdb65d03840e9f87a1e3f700/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 116491
+ },
+ {
+  "albumId": 14780949,
+  "title": "O Grande Encontro 20 Anos: Alceu, Elba e Geraldo (Ao Vivo)",
+  "artist": "Elba Ramalho",
+  "artistDeezerId": 15853,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2e0ae3cbbdb65d03840e9f87a1e3f700/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 116491
+ },
+ {
+  "albumId": 14780949,
+  "title": "O Grande Encontro 20 Anos: Alceu, Elba e Geraldo (Ao Vivo)",
+  "artist": "Geraldo Azevedo",
+  "artistDeezerId": 12407,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2e0ae3cbbdb65d03840e9f87a1e3f700/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 116491
+ },
+ {
+  "albumId": 97953,
+  "title": "Audioslave",
+  "artist": "Audioslave",
+  "artistDeezerId": 843,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/66997a3babcd76fced42425e063a0b55/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 116170
+ },
+ {
+  "albumId": 94950352,
+  "title": "On s'promet",
+  "artist": "Djadja & Dinaz",
+  "artistDeezerId": 9930130,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/112e3e6455e98bbfdbbbd04962434ec1/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 115846
+ },
+ {
+  "albumId": 13012986,
+  "title": "L'attrape-rêves",
+  "artist": "Christophe Maé",
+  "artistDeezerId": 11907,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/49b42c78ce1fdb32be9c6f336b4ef3d9/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 115805
+ },
+ {
+  "albumId": 14880317,
+  "title": "The Bends",
+  "artist": "Radiohead",
+  "artistDeezerId": 399,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0d2ccaf5f7b35af57f3d9c8f4504a6e6/1000x1000-000000-80-0-0.jpg",
+  "year": "1994",
+  "urban": false,
+  "fans": 115203
+ },
+ {
+  "albumId": 82006,
+  "title": "Confessions on a Dance Floor",
+  "artist": "Madonna",
+  "artistDeezerId": 290,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/8e499d7b0e9be5b77eb6c2697e179fe3/1000x1000-000000-80-0-0.jpg",
+  "year": "2005",
+  "urban": false,
+  "fans": 114896
+ },
+ {
+  "albumId": 102188072,
+  "title": "TRAP$TAR 2",
+  "artist": "Leto",
+  "artistDeezerId": 455796,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/89262acccab705396d3b8cd2734d75c7/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 114725
+ },
+ {
+  "albumId": 124797,
+  "title": "Songs About Jane",
+  "artist": "Maroon 5",
+  "artistDeezerId": 1188,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/39fe38574c7af3181d1e56ad7c03fce3/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 114461
+ },
+ {
+  "albumId": 14794071,
+  "title": "4 Your Eyez Only",
+  "artist": "J. Cole",
+  "artistDeezerId": 339209,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/80e86e881f08ce353619567093da7544/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 114000
+ },
+ {
+  "albumId": 11603606,
+  "title": "Delirium",
+  "artist": "Ellie Goulding",
+  "artistDeezerId": 311820,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a4f27af1979fea932093403aa14e549c/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 113931
+ },
+ {
+  "albumId": 90817982,
+  "title": "Dans l'arène",
+  "artist": "Djadja & Dinaz",
+  "artistDeezerId": 9930130,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/eaa453ae8a55045d15e10caaa5004d49/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 113792
+ },
+ {
+  "albumId": 14717564,
+  "title": "Americana",
+  "artist": "The Offspring",
+  "artistDeezerId": 882,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f7d8a61b8c4b118e642acfb3db0a45a1/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 113790
+ },
+ {
+  "albumId": 74284872,
+  "title": "Tha Carter V",
+  "artist": "Lil Wayne",
+  "artistDeezerId": 74309,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/31b52d923da9434d4b9bde58b896fd97/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 113735
+ },
+ {
+  "albumId": 14400786,
+  "title": "Éternel insatisfait",
+  "artist": "Black M",
+  "artistDeezerId": 4494623,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9e85260f1446a2ef476883fd9ef28823/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 113679
+ },
+ {
+  "albumId": 42724001,
+  "title": "Ctrl",
+  "artist": "SZA",
+  "artistDeezerId": 5531258,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c2431a6ddfeaaea69562b7448e82d714/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 113558
+ },
+ {
+  "albumId": 258772832,
+  "title": "MONTERO",
+  "artist": "Lil Nas X",
+  "artistDeezerId": 15166511,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/18e6daf0a1c70c1346c44670ff70645d/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": true,
+  "fans": 113120
+ },
+ {
+  "albumId": 50607242,
+  "title": "The Thrill Of It All",
+  "artist": "Sam Smith",
+  "artistDeezerId": 1097709,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d159abf10c91611bd3c3b2789c96535f/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 112698
+ },
+ {
+  "albumId": 43485811,
+  "title": "Grateful",
+  "artist": "DJ Khaled",
+  "artistDeezerId": 5828,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7889d07266f873721f613b847323c326/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 111749
+ },
+ {
+  "albumId": 104644,
+  "title": "Bleu Pétrole",
+  "artist": "Alain Bashung",
+  "artistDeezerId": 1017,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6889c01179cf8fae192f600957e43891/1000x1000-000000-80-0-0.jpg",
+  "year": "2008",
+  "urban": false,
+  "fans": 111638
+ },
+ {
+  "albumId": 12564816,
+  "title": "À des années lumières (Les frères lumières)",
+  "artist": "Hayce Lemsi",
+  "artistDeezerId": 2845031,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4f71eec72f50ef3228b962eceede6cd6/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 111480
+ },
+ {
+  "albumId": 228610222,
+  "title": "Cœur",
+  "artist": "Clara Luciani",
+  "artistDeezerId": 4889156,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/70bac812a0e9b7cf1d724d95d37ab490/1000x1000-000000-80-0-0.jpg",
+  "year": "2021",
+  "urban": false,
+  "fans": 110958
+ },
+ {
+  "albumId": 299042,
+  "title": "21st Century Breakdown",
+  "artist": "Green Day",
+  "artistDeezerId": 52,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ebd6fc49c3c87cbd5441424f151c04f2/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 110927
+ },
+ {
+  "albumId": 148218402,
+  "title": "High Off Life",
+  "artist": "Future",
+  "artistDeezerId": 165930,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2e1fee15d10cc193b131edb91194b145/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 110912
+ },
+ {
+  "albumId": 1437691,
+  "title": "Gravé dans la roche",
+  "artist": "Sniper",
+  "artistDeezerId": 460,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4b5f39442c3d743e0e9fff603d9adf8d/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": true,
+  "fans": 110770
+ },
+ {
+  "albumId": 11591214,
+  "title": "Led Zeppelin IV",
+  "artist": "Led Zeppelin",
+  "artistDeezerId": 848,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2047754dc07232def42ec26a9a854544/1000x1000-000000-80-0-0.jpg",
+  "year": "1971",
+  "urban": false,
+  "fans": 110263
+ },
+ {
+  "albumId": 15373585,
+  "title": "Electron libre 2",
+  "artist": "Hayce Lemsi",
+  "artistDeezerId": 2845031,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/166a80cf4887396ce693e78505e4cc80/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 109767
+ },
+ {
+  "albumId": 6197819,
+  "title": "Noir D****",
+  "artist": "Youssoupha",
+  "artistDeezerId": 13020,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7513c070b04db33795e624a43ef6748a/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 109750
+ },
+ {
+  "albumId": 77963852,
+  "title": "Come Over When You're Sober, Pt. 2",
+  "artist": "Lil Peep",
+  "artistDeezerId": 11420468,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/757870ddc1211505769e2be84d165351/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 109682
+ },
+ {
+  "albumId": 14581762,
+  "title": "Ride The Lightning",
+  "artist": "Metallica",
+  "artistDeezerId": 119,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6d5f397660c6ec7a445f386edac05b9e/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 109529
+ },
+ {
+  "albumId": 9420892,
+  "title": "The Pinkprint",
+  "artist": "Nicki Minaj",
+  "artistDeezerId": 382937,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9c7a83a79ec78cfa0e4d93839d065557/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": true,
+  "fans": 109298
+ },
+ {
+  "albumId": 120441792,
+  "title": "Adios Bahamas",
+  "artist": "Népal",
+  "artistDeezerId": 308440,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ca7a7ec518e3f151b04a36ed53dc2919/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 108779
+ },
+ {
+  "albumId": 5972021,
+  "title": "Jake Bugg",
+  "artist": "Jake Bugg",
+  "artistDeezerId": 1364450,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4ea7c33138e50c736f0f4580e0e10b27/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 108732
+ },
+ {
+  "albumId": 53799832,
+  "title": "Huncho Jack, Jack Huncho",
+  "artist": "Quavo",
+  "artistDeezerId": 5059044,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6f18c8d5bdd7b675856c86163bed7f10/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 108697
+ },
+ {
+  "albumId": 53799832,
+  "title": "Huncho Jack, Jack Huncho",
+  "artist": "Huncho Jack",
+  "artistDeezerId": 13814197,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6f18c8d5bdd7b675856c86163bed7f10/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 108697
+ },
+ {
+  "albumId": 7824595,
+  "title": "Led Zeppelin II",
+  "artist": "Led Zeppelin",
+  "artistDeezerId": 848,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a5fdd04471cb7d6ec8a663621bdd9bee/1000x1000-000000-80-0-0.jpg",
+  "year": "1969",
+  "urban": false,
+  "fans": 108286
+ },
+ {
+  "albumId": 10244008,
+  "title": "V",
+  "artist": "Maroon 5",
+  "artistDeezerId": 1188,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f0a1d4442389bcd7919a7054f8c0b785/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 108249
+ },
+ {
+  "albumId": 12829654,
+  "title": "Demoniak",
+  "artist": "PSO THUG",
+  "artistDeezerId": 7607976,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ab9cfa7fecb30cb3757d93cce400ae88/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": true,
+  "fans": 107745
+ },
+ {
+  "albumId": 15384917,
+  "title": "FUTURE",
+  "artist": "Future",
+  "artistDeezerId": 165930,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/5186078c5bd5623ebec9b2753d8aaebe/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": true,
+  "fans": 107461
+ },
+ {
+  "albumId": 1610670,
+  "title": "Zaz",
+  "artist": "ZAZ",
+  "artistDeezerId": 71069,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/e1b8d63c75b2e36eaa5586ca9b8da1dd/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": false,
+  "fans": 107096
+ },
+ {
+  "albumId": 109788552,
+  "title": "K-12",
+  "artist": "Melanie Martinez",
+  "artistDeezerId": 5518450,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d88c877f5ffc7f3e8bbfa89f3fa78439/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": false,
+  "fans": 107029
+ },
+ {
+  "albumId": 101618,
+  "title": "Is This It",
+  "artist": "The Strokes",
+  "artistDeezerId": 569,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/700f0375d5ac8570f16a2c7eb128303f/1000x1000-000000-80-0-0.jpg",
+  "year": "2001",
+  "urban": false,
+  "fans": 106547
+ },
+ {
+  "albumId": 407866437,
+  "title": "Sincèrement",
+  "artist": "Hamza",
+  "artistDeezerId": 171998,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/2a429207ef802151317eee49a23a8bd8/1000x1000-000000-80-0-0.jpg",
+  "year": "2023",
+  "urban": true,
+  "fans": 106480
+ },
+ {
+  "albumId": 91810,
+  "title": "Back to Bedlam",
+  "artist": "James Blunt",
+  "artistDeezerId": 287,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/46785350b6f2a9daafacff35af8e055c/1000x1000-000000-80-0-0.jpg",
+  "year": "2005",
+  "urban": false,
+  "fans": 106264
+ },
+ {
+  "albumId": 133434292,
+  "title": "Caliente",
+  "artist": "Timal",
+  "artistDeezerId": 74463,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/a8e3e7f37d84a41dda3d4b114e2d99e3/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": true,
+  "fans": 106111
+ },
+ {
+  "albumId": 14520310,
+  "title": "Clássico (Ao Vivo / Edição Especial)",
+  "artist": "Chitãozinho & Xororó",
+  "artistDeezerId": 15355,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/45e9873f021db7694019ab61720e2411/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 106102
+ },
+ {
+  "albumId": 11205422,
+  "title": "The Rise and Fall of Ziggy Stardust and the Spiders from Mars",
+  "artist": "David Bowie",
+  "artistDeezerId": 997,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/23bdeda0503dec55e7ba6a9f56d0c3c2/1000x1000-000000-80-0-0.jpg",
+  "year": "1990",
+  "urban": false,
+  "fans": 106100
+ },
+ {
+  "albumId": 302029,
+  "title": "Premiere consultation",
+  "artist": "Doc Gynéco",
+  "artistDeezerId": 974,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d341f51cee249dafd63447c63797c000/1000x1000-000000-80-0-0.jpg",
+  "year": "1996",
+  "urban": true,
+  "fans": 105978
+ },
+ {
+  "albumId": 940646,
+  "title": "Femme Fatale",
+  "artist": "Britney Spears",
+  "artistDeezerId": 483,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/be502f78a0b035b5a8f366d2f26d080c/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 105914
+ },
+ {
+  "albumId": 92471,
+  "title": "Mon paradis",
+  "artist": "Christophe Maé",
+  "artistDeezerId": 11907,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/213be29ac257cea4f89698f4e13b7b75/1000x1000-000000-80-0-0.jpg",
+  "year": "2007",
+  "urban": false,
+  "fans": 105610
+ },
+ {
+  "albumId": 91985,
+  "title": "Three Cheers for Sweet Revenge",
+  "artist": "My Chemical Romance",
+  "artistDeezerId": 599,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9aba5b418a311c0bbefb6699ebc58a4b/1000x1000-000000-80-0-0.jpg",
+  "year": "2004",
+  "urban": false,
+  "fans": 105371
+ },
+ {
+  "albumId": 51252052,
+  "title": "Hit Sale",
+  "artist": "Therapie TAXI",
+  "artistDeezerId": 10806366,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/0bb30d5a22e0fa69e169f8bdaa448dcd/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": false,
+  "fans": 105278
+ },
+ {
+  "albumId": 67001352,
+  "title": "Youth",
+  "artist": "BTS",
+  "artistDeezerId": 6982223,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/21264b41d0af3d12bdfd9146cfbadf64/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 104840
+ },
+ {
+  "albumId": 10272234,
+  "title": "NGRTD",
+  "artist": "Youssoupha",
+  "artistDeezerId": 13020,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/711a39a2d58451389119e88380176753/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 104661
+ },
+ {
+  "albumId": 13082674,
+  "title": "Cloud Nine",
+  "artist": "Kygo",
+  "artistDeezerId": 4768753,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/862fd3783290bde0cd5662f643644242/1000x1000-000000-80-0-0.jpg",
+  "year": "2016",
+  "urban": false,
+  "fans": 104659
+ },
+ {
+  "albumId": 6120370,
+  "title": "Pink Friday: Roman Reloaded The Re-Up",
+  "artist": "Nicki Minaj",
+  "artistDeezerId": 382937,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1d7d038fff8c50b3a2f064f49fc46c73/1000x1000-000000-80-0-0.jpg",
+  "year": "2012",
+  "urban": true,
+  "fans": 104177
+ },
+ {
+  "albumId": 438441,
+  "title": "D'eux - Édition 15ème Anniversaire",
+  "artist": "Céline Dion",
+  "artistDeezerId": 198,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/bc5cd6526b7b34cfc0eb5a6ed46b5524/1000x1000-000000-80-0-0.jpg",
+  "year": "2009",
+  "urban": false,
+  "fans": 104120
+ },
+ {
+  "albumId": 6856704,
+  "title": "London Calling",
+  "artist": "The Clash",
+  "artistDeezerId": 2,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1dbb7d7bee08ed2b18deabffd675bd36/1000x1000-000000-80-0-0.jpg",
+  "year": "2001",
+  "urban": false,
+  "fans": 104075
+ },
+ {
+  "albumId": 1318764,
+  "title": "Mutter",
+  "artist": "Rammstein",
+  "artistDeezerId": 464,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/6eabee34f76bd01d2562469d41c63c4d/1000x1000-000000-80-0-0.jpg",
+  "year": "2010",
+  "urban": false,
+  "fans": 104016
+ },
+ {
+  "albumId": 707980,
+  "title": "Bright Lights",
+  "artist": "Ellie Goulding",
+  "artistDeezerId": 311820,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cb4a76e1fb185d26eb52758588cc0266/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 104008
+ },
+ {
+  "albumId": 10115580,
+  "title": "Johnny Niuum ne meurt jamais",
+  "artist": "Sadek",
+  "artistDeezerId": 1270444,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/3e6f27acec7bd3984fb1007d9754975d/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 103649
+ },
+ {
+  "albumId": 291023182,
+  "title": "V",
+  "artist": "Vald",
+  "artistDeezerId": 5175734,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c0755944d17141e4c66ad00a9d1a15a8/1000x1000-000000-80-0-0.jpg",
+  "year": "2022",
+  "urban": true,
+  "fans": 103564
+ },
+ {
+  "albumId": 936365,
+  "title": "The English Riviera",
+  "artist": "Metronomy",
+  "artistDeezerId": 13570,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/9f672642bc8b1813bc682edc07078a82/1000x1000-000000-80-0-0.jpg",
+  "year": "2011",
+  "urban": false,
+  "fans": 103494
+ },
+ {
+  "albumId": 10170070,
+  "title": "Affaire de famille",
+  "artist": "Jok'air",
+  "artistDeezerId": 4907510,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d17604105b984deb80e09bfd80f4a7b6/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 103470
+ },
+ {
+  "albumId": 10170070,
+  "title": "Affaire de famille",
+  "artist": "MZ",
+  "artistDeezerId": 57423,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d17604105b984deb80e09bfd80f4a7b6/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": true,
+  "fans": 103470
+ },
+ {
+  "albumId": 55693122,
+  "title": "Loud",
+  "artist": "Marwa Loud",
+  "artistDeezerId": 9134960,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/7414b26f341bc07c860c9d05f39d6850/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 103202
+ },
+ {
+  "albumId": 10297388,
+  "title": "How Big, How Blue, How Beautiful",
+  "artist": "Florence + The Machine",
+  "artistDeezerId": 183716,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/730c7634e102efc799010464bc8fa3cc/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 102965
+ },
+ {
+  "albumId": 6872781,
+  "title": "Hail to the King",
+  "artist": "Avenged Sevenfold",
+  "artistDeezerId": 406,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c87dc0f243749f7a7c6cd37c9f429be7/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 102842
+ },
+ {
+  "albumId": 226069,
+  "title": "Dire Straits",
+  "artist": "Dire Straits",
+  "artistDeezerId": 176,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/1bf2bc47623db2ec36a38be064131ce5/1000x1000-000000-80-0-0.jpg",
+  "year": "1983",
+  "urban": false,
+  "fans": 102310
+ },
+ {
+  "albumId": 80193982,
+  "title": "Queen",
+  "artist": "Nicki Minaj",
+  "artistDeezerId": 382937,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/c2589471cf573703d56075440c2a1412/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 102289
+ },
+ {
+  "albumId": 88631082,
+  "title": "Paradise",
+  "artist": "Hamza",
+  "artistDeezerId": 171998,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/64eef4026816d404a6b1217fb773d52d/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 102087
+ },
+ {
+  "albumId": 7811259,
+  "title": "Native",
+  "artist": "OneRepublic",
+  "artistDeezerId": 74398,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/63bb716faf92942d967f5c053fc8720c/1000x1000-000000-80-0-0.jpg",
+  "year": "2014",
+  "urban": true,
+  "fans": 101918
+ },
+ {
+  "albumId": 78301112,
+  "title": "Projet Blue Beam",
+  "artist": "Freeze Corleone",
+  "artistDeezerId": 13755123,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/cddd8dd5d90a6087f06f25c60599d916/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 101051
+ },
+ {
+  "albumId": 81337242,
+  "title": "Goodbye & Good Riddance",
+  "artist": "Juice WRLD",
+  "artistDeezerId": 14456487,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f8c4db1b0f346d6e4b1558f734ad4523/1000x1000-000000-80-0-0.jpg",
+  "year": "2018",
+  "urban": true,
+  "fans": 101035
+ },
+ {
+  "albumId": 6394998,
+  "title": "Sempiternal",
+  "artist": "Bring Me the Horizon",
+  "artistDeezerId": 12874,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/38b98355bf62d69e8955ed5719535efc/1000x1000-000000-80-0-0.jpg",
+  "year": "2013",
+  "urban": false,
+  "fans": 100917
+ },
+ {
+  "albumId": 182811182,
+  "title": "Future Nostalgia",
+  "artist": "Dua Lipa",
+  "artistDeezerId": 8706544,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/f8364f090ba04f1b19b381ec0390f3e4/1000x1000-000000-80-0-0.jpg",
+  "year": "2020",
+  "urban": false,
+  "fans": 100883
+ },
+ {
+  "albumId": 10333912,
+  "title": "Everything Is 4",
+  "artist": "Jason Derulo",
+  "artistDeezerId": 249599,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4e438c2f2ad8cde2ff67009ce311df06/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 100757
+ },
+ {
+  "albumId": 39431341,
+  "title": "Memories...Do Not Open",
+  "artist": "The Chainsmokers",
+  "artistDeezerId": 4104927,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/d4451405fea03536f6788fa806045141/1000x1000-000000-80-0-0.jpg",
+  "year": "2017",
+  "urban": false,
+  "fans": 100706
+ },
+ {
+  "albumId": 9412338,
+  "title": "Title",
+  "artist": "Meghan Trainor",
+  "artistDeezerId": 1181430,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4cd0050ad6354f0ad78ed0aa820759d1/1000x1000-000000-80-0-0.jpg",
+  "year": "2015",
+  "urban": false,
+  "fans": 100641
+ },
+ {
+  "albumId": 121836132,
+  "title": "Please Excuse Me for Being Antisocial",
+  "artist": "Roddy Ricch",
+  "artistDeezerId": 13594287,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/4cecb47ae25837b9dd022004b5cacbdc/1000x1000-000000-80-0-0.jpg",
+  "year": "2019",
+  "urban": true,
+  "fans": 100377
+ },
+ {
+  "albumId": 6415260,
+  "title": "L.A. Woman",
+  "artist": "The Doors",
+  "artistDeezerId": 847,
+  "cover": "https://cdn-images.dzcdn.net/images/cover/03f8ae4438cbf73c1e1cc435123deb72/1000x1000-000000-80-0-0.jpg",
+  "year": "1971",
+  "urban": false,
+  "fans": 100252
+ }
+]

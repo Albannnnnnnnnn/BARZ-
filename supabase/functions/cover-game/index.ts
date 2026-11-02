@@ -1,6 +1,6 @@
 // Fonction Supabase « cover-game » (Deno) : jeu du jour « Pochette floue » (src/pages/jeux/pochette.astro).
-// Chaque jour, la même pochette pour tout le monde : l'album le plus populaire sur Deezer d'un grand artiste du
-// catalogue, choisi au premier passage de la journée (heure de Paris) et gardé dans daily_games (supabase/daily-games.sql).
+// Chaque jour, la même pochette pour tout le monde : un album très connu de pool.json (scripts/cover-pool.ts),
+// choisi au premier passage de la journée (heure de Paris) et gardé dans daily_games (supabase/daily-games.sql).
 // La réponse ne quitte la fonction qu'avec l'action « answer », appelée par la page une fois la partie finie.
 //
 // Appelée par le navigateur, même sans compte : supabase.functions.invoke('cover-game', { body: { action, ... } })
@@ -11,17 +11,16 @@
 //
 // Déploiement : supabase functions deploy cover-game --use-api --no-verify-jwt
 import { createClient } from 'npm:@supabase/supabase-js@2';
+// Albums connus (au moins 100 000 fans Deezer), préparés par scripts/cover-pool.ts
+import pool from './pool.json' with { type: 'json' };
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ORIGINS = ['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322', 'http://localhost:4322'];
 const GAME = 'pochette';
 const FIRST_DAY = '2026-10-31'; // partie n° 1
-// 6 jours sur 10 : rap et R&B (dès 300 000 auditeurs) ; les autres jours, les très grands noms des autres genres
-const URBAN = ['rap', 'rnb'];
-const MIN_AUDIENCE_URBAN = 300_000;
-const MIN_AUDIENCE_OTHER = 1_000_000;
-const MIN_FANS = 40_000; // fans Deezer de l'album : assez connu (en France surtout) pour qu'on ait une chance de le reconnaître
-const NOT_AN_ALBUM = /\blive\b|best of|greatest hits|\bhits\b|\bgold\b|collection|anthology|essentials|karaoke|instrumental|remix|playlist/i;
+// 6 jours sur 10 : rap et R&B. Un album ne revient pas avant un an, un artiste pas avant trois semaines.
+const ALBUM_GAP_DAYS = 365;
+const ARTIST_GAP_DAYS = 21;
 
 type Answer = { albumId: number; title: string; artist: string; artistDeezerId: number; cover: string; year: string; genre: string | null; link: string };
 
@@ -55,43 +54,29 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-async function pickAnswer(day: string): Promise<Answer | null> {
-  const since = new Date(Date.parse(day) - 120 * 86400_000).toISOString().slice(0, 10);
-  const [{ data: artists }, { data: recent }] = await Promise.all([
-    admin.from('artists').select('id, name, deezer_id, genres, audience').gte('audience', MIN_AUDIENCE_URBAN).not('deezer_id', 'is', null).limit(5000),
-    admin.from('daily_games').select('data').eq('game', GAME).gte('day', since),
-  ]);
-  const used = new Set((recent ?? []).map((r) => (r.data as Answer).artistDeezerId));
-  const urbanDay = hash(day) % 10 < 6;
-  const pool = ((artists ?? []) as { id: string; deezer_id: number; genres: string[] | null; audience: number }[])
-    .filter((a) => {
-      const genres = a.genres ?? [];
-      const urban = genres.some((g) => URBAN.includes(g));
-      if (used.has(a.deezer_id) || genres.includes('classical')) return false;
-      return urbanDay ? urban : !urban && a.audience >= MIN_AUDIENCE_OTHER;
-    })
-    .sort((a, b) => hash(day + a.id) - hash(day + b.id));
+type PoolEntry = { albumId: number; title: string; artist: string; artistDeezerId: number; cover: string; year: string; urban: boolean; fans: number };
 
-  for (const artist of pool.slice(0, 12)) {
-    const albums: any[] = (await deezer(`/artist/${artist.deezer_id}/albums?limit=100`))?.data ?? [];
-    const best = albums
-      .filter((al) => al.record_type === 'album' && al.cover_xl && (al.fans ?? 0) >= MIN_FANS && !NOT_AN_ALBUM.test(al.title))
-      .sort((x, y) => y.fans - x.fans)[0];
-    if (!best) continue;
-    const detail = await deezer(`/album/${best.id}`);
-    if (!detail?.artist?.name || detail.artist.id !== artist.deezer_id) continue; // album d'un autre artiste (feat., compilation)
-    return {
-      albumId: best.id,
-      title: cleanTitle(best.title),
-      artist: detail.artist.name,
-      artistDeezerId: artist.deezer_id,
-      cover: best.cover_xl,
-      year: (best.release_date ?? '').slice(0, 4),
-      genre: detail.genres?.data?.[0]?.name ?? null,
-      link: best.link ?? `https://www.deezer.com/album/${best.id}`,
-    };
-  }
-  return null;
+async function pickAnswer(day: string): Promise<Answer | null> {
+  const daysAgo = (n: number) => new Date(Date.parse(day) - n * 86400_000).toISOString().slice(0, 10);
+  const { data: recent } = await admin.from('daily_games').select('day, data').eq('game', GAME).gte('day', daysAgo(ALBUM_GAP_DAYS));
+  const usedAlbums = new Set((recent ?? []).map((r) => (r.data as Answer).albumId));
+  const recentArtists = new Set((recent ?? []).filter((r) => r.day >= daysAgo(ARTIST_GAP_DAYS)).map((r) => (r.data as Answer).artistDeezerId));
+  const free = (pool as PoolEntry[]).filter((p) => !usedAlbums.has(p.albumId) && !recentArtists.has(p.artistDeezerId));
+  const urbanDay = hash(day) % 10 < 6;
+  const candidates = free.filter((p) => p.urban === urbanDay);
+  const choice = (candidates.length ? candidates : free).sort((x, y) => hash(day + x.albumId) - hash(day + y.albumId))[0];
+  if (!choice) return null;
+  const detail = await deezer(`/album/${choice.albumId}`); // le genre, pour l'indice
+  return {
+    albumId: choice.albumId,
+    title: choice.title,
+    artist: choice.artist,
+    artistDeezerId: choice.artistDeezerId,
+    cover: choice.cover,
+    year: choice.year,
+    genre: detail?.genres?.data?.[0]?.name ?? null,
+    link: detail?.link ?? `https://www.deezer.com/album/${choice.albumId}`,
+  };
 }
 
 // La partie du jour : lue, ou choisie au premier passage (deux premiers passages simultanés gardent le même choix)
