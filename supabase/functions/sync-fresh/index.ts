@@ -2,7 +2,8 @@
 // (supabase/fresh.sql) :
 // - veille  : toutes les 5 min, les sorties du jour des artistes qui comptent le plus (watchlist, artistes suivis
 //             par les membres, les plus écoutés, nouveautés Deezer). Les nouvelles sont enregistrées tout de suite
-//             et le site est reconstruit (au plus une fois toutes les 30 min). La synchro complète
+//             avec une notification immédiate aux membres qui suivent l'artiste, et le site est reconstruit
+//             (au plus une fois toutes les 30 min). La synchro complète
 //             (scripts/sync-releases.ts) repasse ensuite derrière et complète les lignes.
 // - minuit  : lance la synchro complète sur GitHub à minuit heure de Paris, à l'heure (les tâches programmées de
 //             GitHub partent avec beaucoup de retard). pg_cron appelle à 22h05 et 23h05 UTC ; seul l'appel qui
@@ -197,9 +198,19 @@ async function veille() {
   const unique = [...new Map(rows.map((r) => [r.slug, r])).values()];
   const known = new Set(((await admin.from('releases').select('slug').in('slug', unique.map((r) => r.slug))).data ?? []).map((r: any) => r.slug));
   const fresh = unique.filter((r) => !known.has(r.slug));
+  let notified: unknown = null;
   if (fresh.length) {
     const { error } = await admin.from('releases').upsert(fresh, { onConflict: 'slug', ignoreDuplicates: true });
     if (error) throw new Error(`Enregistrement : ${error.message}`);
+    // Notification tout de suite à ceux qui suivent l'artiste, sans attendre le passage de notify (toutes les 15 min).
+    // notify garde ses règles (pas la nuit, vendredi matin réservé à la notification de 9h, une seule fois par sortie).
+    notified = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'releases' }),
+    })
+      .then((r) => r.json())
+      .catch((err) => ({ error: String(err) }));
   }
 
   // Reconstruction du site : dès qu’il y a du nouveau, au plus une fois toutes les 30 min (minutes GitHub comptées)
@@ -211,7 +222,7 @@ async function veille() {
   }
   await admin.from('sync_state').upsert({ id: 1, pending: pending && !deployed, ...(deployed ? { last_deploy: new Date().toISOString() } : {}) });
 
-  return { artistes: artists.size, candidats: candidates.size, nouvelles: fresh.map((r) => r.title), site_reconstruit: deployed };
+  return { artistes: artists.size, candidats: candidates.size, nouvelles: fresh.map((r) => r.title), notifications: notified, site_reconstruit: deployed };
 }
 
 // Rôle du jeton : sa signature est déjà vérifiée par la passerelle Supabase (verify_jwt, actif par défaut)
