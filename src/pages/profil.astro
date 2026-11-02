@@ -93,8 +93,12 @@ import InstallApp from '../components/InstallApp.astro';
             <p class="bz-notice" id="push-notice" hidden></p>
           </section>
 
-          <section class="lastfm" id="p-spotify" hidden aria-labelledby="spotify-title">
-            <div class="bz-section-head"><h2 id="spotify-title" class="bz-h2">Spotify</h2></div>
+          <!-- Comptes de musique reliés, regroupés : une ligne par service, dépliée au besoin -->
+          <section class="accounts" id="p-accounts" hidden aria-labelledby="accounts-title">
+            <div class="bz-section-head"><h2 id="accounts-title" class="bz-h2">Comptes reliés</h2></div>
+            <p class="accounts-note">Tes artistes Spotify, Deezer ou Last.fm servent à tes recommandations.</p>
+            <details class="lastfm account" id="p-spotify" hidden>
+              <summary><span class="acc-name">Spotify</span><span class="acc-state" data-account="spotify">À relier</span></summary>
             <p id="spotify-status">Relie ton compte Spotify : tes artistes préférés serviront à tes recommandations, et tu pourras montrer à tes amis ce que tu écoutes en ce moment.</p>
             <div class="spotify-actions">
               <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="spotify-connect">Connecter Spotify</button>
@@ -106,10 +110,10 @@ import InstallApp from '../components/InstallApp.astro';
               <span>Partager mon écoute en direct avec mes amis</span>
             </label>
             <p class="bz-notice" id="spotify-notice" hidden></p>
-          </section>
+            </details>
 
-          <section class="lastfm" id="p-deezer" hidden aria-labelledby="deezer-title">
-            <div class="bz-section-head"><h2 id="deezer-title" class="bz-h2">Deezer</h2></div>
+            <details class="lastfm account" id="p-deezer" hidden>
+              <summary><span class="acc-name">Deezer</span><span class="acc-state" data-account="deezer">À relier</span></summary>
             <p>Colle le lien de ton profil Deezer : tes artistes favoris serviront à tes recommandations. Dans Deezer : ton profil → Partager → Copier le lien. Tes favoris doivent être publics.</p>
             <form id="deezer-form" class="lastfm-form">
               <label class="sr-only" for="deezer-input">Lien du profil Deezer</label>
@@ -121,10 +125,10 @@ import InstallApp from '../components/InstallApp.astro';
               <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="deezer-unlink">Délier</button>
             </div>
             <p class="bz-notice" id="deezer-status" hidden></p>
-          </section>
+            </details>
 
-          <section class="lastfm" id="p-lastfm" hidden aria-labelledby="lastfm-title">
-            <div class="bz-section-head"><h2 id="lastfm-title" class="bz-h2">Last.fm</h2></div>
+            <details class="lastfm account" id="p-lastfm" hidden>
+              <summary><span class="acc-name">Last.fm</span><span class="acc-state" data-account="lastfm">À relier</span></summary>
             <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait le lundi et le vendredi matin.</p>
             <form id="lastfm-form" class="lastfm-form">
               <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
@@ -132,6 +136,7 @@ import InstallApp from '../components/InstallApp.astro';
               <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
             </form>
             <p class="bz-notice" id="lastfm-status" hidden></p>
+            </details>
           </section>
         </div>
 
@@ -296,6 +301,7 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
     $('p-own-footer').hidden = !isMe;
+    $('p-accounts').hidden = !isMe;
     // Le bilan du mois qui vient de finir, mis en avant les 4 premiers jours du mois ; ensuite dans l'onglet Bilans
     const today = new Date();
     const bilanHref = (d: Date) => `${BASE}bilan?m=${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}&u=${encodeURIComponent(profile.username)}`;
@@ -376,6 +382,7 @@ import InstallApp from '../components/InstallApp.astro';
       const target = document.querySelector<HTMLElement>(location.hash);
       let tries = 0;
       const reveal = () => {
+        if (target instanceof HTMLDetailsElement) target.open = true;
         if (target && !target.hidden) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         else if (tries++ < 20) setTimeout(reveal, 150);
       };
@@ -822,6 +829,22 @@ import InstallApp from '../components/InstallApp.astro';
 
   $('p-logout').addEventListener('click', signOut);
 
+  // Comptes reliés : l'état de chaque service, d'après ce que ses propres scripts affichent
+  function paintAccounts() {
+    const linked: Record<string, boolean> = {
+      spotify: !$('spotify-disconnect').hidden,
+      deezer: !$('deezer-linked').hidden,
+      lastfm: !!(document.getElementById('lastfm-input') as HTMLInputElement).value.trim() && !$('lastfm-status').hidden,
+    };
+    document.querySelectorAll<HTMLElement>('[data-account]').forEach((el) => {
+      const on = linked[el.dataset.account!];
+      const text = on ? 'Relié' : 'À relier';
+      if (el.textContent !== text) el.textContent = text;
+      el.classList.toggle('is-on', on);
+    });
+  }
+  new MutationObserver(paintAccounts).observe($('p-accounts'), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden'] });
+
   $('lastfm-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const value = (document.getElementById('lastfm-input') as HTMLInputElement).value.trim();
@@ -1033,6 +1056,78 @@ import InstallApp from '../components/InstallApp.astro';
 
   .lastfm {
     margin-top: 48px;
+  }
+
+  .accounts {
+    margin-top: 48px;
+  }
+
+  .accounts[hidden] {
+    display: none;
+  }
+
+  .accounts-note {
+    margin-bottom: 14px;
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .accounts .account {
+    margin-top: 10px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+  }
+
+  .account > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .account > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .account > summary::after {
+    content: '▾';
+    font-size: 14px;
+    transition: transform var(--transition-fast);
+  }
+
+  .account[open] > summary::after {
+    transform: rotate(180deg);
+  }
+
+  .acc-name {
+    flex: 1;
+    font: 800 15px/1 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .acc-state {
+    font: 600 13px/1 var(--font-sans);
+    color: var(--color-text-muted);
+  }
+
+  .acc-state.is-on {
+    color: var(--color-accent);
+  }
+
+  .acc-state.is-on::before {
+    content: '● ';
+  }
+
+  .account > :not(summary) {
+    margin-inline: 16px;
+  }
+
+  .account[open] {
+    padding-bottom: 16px;
   }
 
   .own-actions :global(.friend-state),
