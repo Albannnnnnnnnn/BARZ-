@@ -60,7 +60,7 @@ import Layout from '../../layouts/Layout.astro';
 
   type Result = 'miss' | 'artist' | 'found' | 'skip';
   type Try = { title: string; artist: string; result: Result };
-  type State = { tries: Try[]; done: boolean; won: boolean; saved?: boolean };
+  type State = { tries: Try[]; done: boolean; won: boolean; saved?: boolean; cover?: string };
   type Today = { day: string; number: number; cover: string; hints: { year: string; genre: string | null; initial: string } };
   type Answer = { title: string; artist: string; year: string; cover: string; link: string };
 
@@ -263,7 +263,9 @@ import Layout from '../../layouts/Layout.astro';
       .then(async (t) => {
         today = t;
         $('g-number').textContent = `· n° ${t.number}`;
-        state = load() ?? state;
+        // Une partie gardée pour une autre pochette (pochette du jour remplacée) ne compte pas
+        const kept = load();
+        state = kept && kept.cover === t.cover ? kept : { ...state, cover: t.cover };
         cover.src = t.cover;
         status.hidden = true;
         $('g-board').hidden = false;
