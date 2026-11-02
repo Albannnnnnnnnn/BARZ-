@@ -261,7 +261,7 @@
   right: 8%;
   bottom: 10%;
   text-align: center;
-  font: italic 400 22px/1 var(--font-serif);
+  font: 700 22px/1 var(--font-sans);
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
@@ -323,8 +323,8 @@
 }
 
 .barz-text {
-  margin: 22px 0;
-  font: 400 clamp(26px, 2.4vw, 36px) / 1.15 var(--font-serif);
+  margin: 18px 0;
+  font: 700 clamp(18px, 1.6vw, 22px) / 1.4 var(--font-sans);
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
@@ -527,7 +527,8 @@
 }
 
 .bz-artist-initial {
-  font: 400 56px/1 var(--font-serif);
+  font: 900 56px/1 var(--font-display);
+  font-stretch: 105%;
   color: var(--color-text-muted);
 }
 
@@ -613,4 +614,190 @@
   a.back {
     padding: 10px 0;
   }
+}
+
+/* ============================================================================
+   Style « Affiche » (novembre 2026, maquettes validées par Alban) : titres Archivo très grasse en capitales,
+   contours noirs de 2 px, coins à peine arrondis, ombres franches décalées, accent bleu électrique.
+   Les règles ci-dessous remplacent l'ancien habillage « Papier marine » des briques communes.
+   ============================================================================ */
+
+.bz-eyebrow {
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.bz-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 110%;
+  font-size: clamp(44px, 5.6vw, 88px);
+  line-height: 0.88;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.bz-display em,
+.bz-h2 em {
+  font-style: normal;
+  color: var(--color-accent);
+}
+
+.bz-h2 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 110%;
+  font-size: clamp(22px, 2.4vw, 32px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.bz-section-head {
+  border-bottom: var(--line);
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+}
+
+.bz-link {
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bz-chip {
+  border: var(--line);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font: 800 13px/1.2 var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bz-chip:hover {
+  border-color: var(--color-ink);
+  background: var(--color-bg-elevated);
+}
+
+.bz-chip.is-active {
+  border-color: var(--color-ink);
+  font-weight: 800;
+}
+
+.bz-btn {
+  border: var(--line);
+  border-radius: 10px;
+  padding: 13px 22px;
+  font: 900 14px/1 var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bz-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard-sm);
+  filter: none;
+}
+
+.bz-btn--small {
+  padding: 9px 14px;
+  font-size: 12px;
+}
+
+.bz-btn--outline {
+  border: var(--line);
+  background: var(--color-paper);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.bz-listen-main {
+  border-radius: 10px 4px 4px 10px;
+}
+
+.bz-listen-more > summary {
+  border-radius: 4px 10px 10px 4px;
+}
+
+.bz-listen-menu {
+  border: var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow-hard);
+}
+
+.bz-listen-menu a:hover,
+.bz-listen-menu a:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.bz-score {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 900;
+}
+
+.bz-empty {
+  border: 2px dashed var(--color-ink);
+  border-radius: 12px;
+}
+
+.bz-cover {
+  border: var(--line);
+  border-radius: 10px;
+}
+
+.bz-cover span {
+  font: 900 18px/1 var(--font-sans);
+  text-transform: uppercase;
+}
+
+.bz-ctile-row {
+  font: 800 15px/1.2 var(--font-sans);
+}
+
+.bz-ctile:hover .bz-cover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard);
+}
+
+.bz-ctile .bz-cover {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.bz-reason {
+  font-weight: 800;
+}
+
+.barz-card {
+  border: var(--line);
+  border-radius: 14px;
+  background: var(--color-paper);
+}
+
+.bz-input {
+  border: var(--line);
+  border-radius: 10px;
+  background: var(--color-paper);
+}
+
+.bz-input:focus {
+  outline: 3px solid var(--color-accent-line);
+  outline-offset: 0;
+}
+
+.bz-follow {
+  border: var(--line);
+  border-radius: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.bz-follow.is-on {
+  border-color: var(--color-ink);
+}
+
+.bz-artist-photo {
+  border: var(--line);
 }

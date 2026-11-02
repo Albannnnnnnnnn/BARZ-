@@ -4,8 +4,8 @@
   "description": "Les sorties musicales du vendredi, de quoi sortir de ta bulle, et tes potes.",
   "start_url": "/BARZ-/",
   "display": "standalone",
-  "background_color": "#f3ecdc",
-  "theme_color": "#1f3468",
+  "background_color": "#ffffff",
+  "theme_color": "#3d5afe",
   "categories": [
     "music",
     "entertainment"

@@ -150,8 +150,8 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     align-items: center;
     gap: 32px;
     padding: 22px 56px;
-    border-bottom: 1px solid var(--color-border);
-    background: rgba(243, 236, 220, 0.9);
+    border-bottom: var(--line);
+    background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
@@ -167,12 +167,12 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
 
   .search input {
     width: 100%;
-    padding: 15px 26px;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
+    padding: 14px 18px;
+    border: var(--line);
+    border-radius: 10px;
     background: var(--color-paper);
     color: var(--color-text);
-    font: 400 16px/1 var(--font-sans);
+    font: 600 16px/1 var(--font-sans);
     outline: none;
     transition: border-color var(--transition-fast);
   }
@@ -193,7 +193,9 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   }
 
   .date {
-    font: 700 14px/1 var(--font-sans);
+    font: 900 13px/1 var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     letter-spacing: 0.14em;
     color: var(--color-text-muted);
     white-space: nowrap;
@@ -216,7 +218,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     min-width: 20px;
     height: 20px;
     padding: 0 5px;
-    border-radius: 999px;
+    border-radius: 10px;
     background: var(--color-orange);
     color: #fff;
     font: 700 12px/20px var(--font-sans);
@@ -232,9 +234,10 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     max-height: min(70vh, 560px);
     overflow-y: auto;
     padding: 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 18px;
+    border: var(--line);
+    border-radius: 12px;
     background: var(--color-paper);
+    box-shadow: var(--shadow-hard);
     box-shadow: 0 16px 40px rgba(20, 24, 60, 0.18);
   }
 
@@ -304,11 +307,11 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     position: relative;
     width: 48px;
     height: 48px;
-    border-radius: 50%;
-    border: 0;
+    border-radius: 10px;
+    border: var(--line);
     display: grid;
     place-items: center;
-    background: var(--color-bg-elevated);
+    background: var(--color-paper);
     color: var(--color-text);
     cursor: pointer;
   }
@@ -316,13 +319,14 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   .account {
     width: 50px;
     height: 50px;
-    border-radius: 50%;
+    border: var(--line);
+    border-radius: 10px;
     overflow: hidden;
     display: grid;
     place-items: center;
     background: var(--color-accent);
     color: var(--color-on-accent) !important;
-    font: 400 26px/1 var(--font-serif);
+    font: 900 22px/1 var(--font-display);
   }
 
   .account :global(img) {
@@ -334,9 +338,11 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   .account.is-guest {
     width: auto;
     height: auto;
-    padding: 13px 20px;
-    border-radius: 999px;
-    font: 700 15px/1 var(--font-sans);
+    padding: 13px 18px;
+    border-radius: 10px;
+    font: 900 14px/1 var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
   @media (max-width: 900px) {
@@ -352,7 +358,8 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
       display: block;
       width: 40px;
       height: 40px;
-      border-radius: 11px;
+      border: var(--line);
+      border-radius: 10px;
     }
     .search {
       min-width: 0;
@@ -378,7 +385,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
       width: auto;
     }
     .search input {
-      padding: 12px 18px;
+      padding: 11px 14px;
       font-size: 15px;
     }
     .account {

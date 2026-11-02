@@ -40,19 +40,12 @@ const [c1, c2, c3] = PALETTES[(palette ?? hash) % PALETTES.length];
     position: relative;
     aspect-ratio: 1;
     overflow: hidden;
-    border-radius: 6px;
+    border: var(--line);
+    border-radius: 10px;
     background:
       radial-gradient(circle at 32% 28%, var(--c1) 0%, transparent 55%),
       radial-gradient(circle at 70% 80%, var(--c3) 0%, transparent 70%),
       linear-gradient(140deg, var(--c2), var(--c3));
-  }
-
-  .cover::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 7px);
-    pointer-events: none;
   }
 
   img {
@@ -69,9 +62,10 @@ const [c1, c2, c3] = PALETTES[(palette ?? hash) % PALETTES.length];
     bottom: 10%;
     padding: 0 10%;
     text-align: center;
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: clamp(16px, 1.6vw, 26px);
+    font-family: var(--font-display);
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: clamp(14px, 1.4vw, 22px);
     line-height: 1;
     color: #fff;
     text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);

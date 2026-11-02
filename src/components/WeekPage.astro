@@ -67,8 +67,11 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   description={current ? 'Les sorties musicales de la semaine, triées pour toi.' : `Les sorties musicales de la semaine du ${format(friday, 'd MMMM yyyy', { locale: fr })}.`}
 >
   <div class="bz-page" data-current-week={current ? '' : undefined}>
-    <span class="bz-eyebrow">{eyebrow}</span>
-    <h1 class="bz-display">Sorties</h1>
+    <header class="week-hero">
+      <span class="bz-eyebrow">{eyebrow}</span>
+      <h1 class="bz-display">{count} sortie{count > 1 ? 's' : ''}</h1>
+      {current && <span class="week-sticker" aria-hidden="true">Ce vendredi</span>}
+    </header>
     <SortiesTabs active={current ? 'semaine' : undefined} weekCount={current ? count : undefined} upcomingCount={upcomingCount} />
 
     <nav class="week-nav" aria-label="Semaines">
@@ -91,8 +94,8 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       <a class="daily-game" href="/BARZ-/jeux" id="daily-game">
         <span class="daily-game-icon" aria-hidden="true">🎲</span>
         <span class="daily-game-text">
-          <b>Jeux du jour · Pochette floue, L’artiste mystère</b>
-          <span id="daily-game-sub">Une minute chacun, nouveaux chaque jour à minuit.</span>
+          <b>Jeux du jour</b>
+          <span id="daily-game-sub">Pochette floue · L’artiste mystère</span>
         </span>
         <span class="daily-game-go" id="daily-game-go">Jouer →</span>
       </a>
@@ -488,10 +491,41 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     cursor: pointer;
   }
 
+  /* Bandeau bleu de la semaine : nombre de sorties en très gros, étiquette penchée (style « Affiche ») */
+  .week-hero {
+    position: relative;
+    padding: 22px 24px 24px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .week-hero .bz-eyebrow,
+  .week-hero .bz-display {
+    color: var(--color-on-accent);
+  }
+
+  .week-sticker {
+    position: absolute;
+    top: -12px;
+    right: 18px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--color-ink);
+    color: #ffffff;
+    font: 900 12px/1 var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transform: rotate(6deg);
+  }
+
   .day-head {
     grid-column: 1 / -1;
     margin-top: 20px;
-    font: 400 30px/1 var(--font-serif);
+    font: 900 24px/1 var(--font-display);
+    font-stretch: 110%;
+    text-transform: uppercase;
     color: var(--color-text);
   }
 
@@ -520,8 +554,8 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   .visit {
     margin-top: 28px;
     padding: 20px 22px;
-    border: 1px solid var(--color-accent-line);
-    border-radius: 18px;
+    border: var(--line);
+    border-radius: 14px;
   }
 
   .visit .label {
@@ -561,14 +595,16 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     gap: 14px;
     margin-top: 16px;
     padding: 14px 18px;
-    border: 1px solid var(--color-border);
-    border-radius: 18px;
+    border: var(--line);
+    border-radius: 14px;
     background: var(--color-paper);
     color: var(--color-text);
+    box-shadow: var(--shadow-hard);
+    transition: transform var(--transition-fast);
   }
 
   .daily-game:hover {
-    border-color: var(--color-accent-line);
+    transform: translate(-1px, -1px);
   }
 
   .daily-game-icon {
@@ -586,13 +622,16 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
   .daily-game-text b {
     font-size: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
     color: var(--color-text);
   }
 
   .daily-game-go {
     margin-left: auto;
     flex-shrink: 0;
-    font: 600 14px/1 var(--font-sans);
+    font: 900 13px/1 var(--font-sans);
+    text-transform: uppercase;
     color: var(--color-accent);
   }
 
@@ -603,10 +642,9 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     align-items: center;
     margin-top: 28px;
     padding: 22px;
-    border-radius: 22px;
-    background:
-      radial-gradient(ellipse 70% 140% at 100% 0%, var(--color-accent-soft) 0%, transparent 70%),
-      var(--color-bg-elevated);
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent-soft);
   }
 
   .challenge :global(.bz-cover) {
@@ -622,7 +660,9 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
   .challenge :global(h2) {
     margin: 12px 0 6px;
-    font: 400 clamp(28px, 3vw, 40px) / 1.05 var(--font-serif);
+    font: 900 clamp(24px, 2.6vw, 34px) / 1 var(--font-display);
+    font-stretch: 110%;
+    text-transform: uppercase;
     color: var(--color-text);
   }
 
@@ -692,7 +732,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     height: 72px;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow: 0 0 0 1px var(--color-border);
+    box-shadow: 0 0 0 2px var(--color-ink);
     transition: transform var(--transition-fast);
   }
 
@@ -700,7 +740,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     display: grid;
     place-items: center;
     background: var(--color-bg-hover);
-    font: 400 28px/1 var(--font-serif);
+    font: 900 26px/1 var(--font-display);
   }
 
   .stories :global(.story.is-new img),
@@ -762,8 +802,8 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     gap: 16px 32px;
     margin: 36px 0 28px;
     padding: 16px 0;
-    border-top: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-border);
+    border-top: var(--line);
+    border-bottom: var(--line);
   }
 
   .tool-group {
@@ -775,10 +815,10 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   }
 
   .tool-label {
-    font: 600 11px/1 var(--font-sans);
+    font: 900 11px/1 var(--font-sans);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--color-text-dim);
+    color: var(--color-text);
   }
 
   .sorts {
@@ -787,8 +827,8 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     max-width: 100%;
     gap: 2px;
     padding: 3px;
-    border: 1px solid var(--color-border-hover);
-    border-radius: 999px;
+    border: var(--line);
+    border-radius: 10px;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -819,12 +859,13 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
   .select {
     appearance: none;
-    padding: 8px 34px 8px 15px;
-    border: 1px solid var(--color-border-hover);
-    border-radius: 999px;
-    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a09a' stroke-width='3'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 13px center;
+    padding: 8px 34px 8px 12px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230a0a0a' stroke-width='3.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
     color: var(--color-text);
-    font: 500 14px/1.2 var(--font-sans);
+    font: 800 13px/1.2 var(--font-sans);
+    text-transform: uppercase;
     cursor: pointer;
   }
 

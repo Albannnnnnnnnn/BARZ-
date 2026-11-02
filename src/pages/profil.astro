@@ -827,11 +827,27 @@ import InstallApp from '../components/InstallApp.astro';
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 44px;
-    padding: 56px;
-    border-radius: 28px;
-    background:
-      radial-gradient(ellipse 60% 120% at 90% 10%, var(--color-accent-line) 0%, transparent 70%),
-      linear-gradient(100deg, var(--color-accent-soft) 0%, var(--color-paper) 55%, var(--color-accent-soft) 100%);
+    padding: 48px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    box-shadow: var(--shadow-hard);
+    color: var(--color-on-accent);
+  }
+
+  /* Sur le bandeau bleu : texte blanc, boutons blancs (style « Affiche ») */
+  .hero .identity h1,
+  .hero .identity p,
+  .hero .identity .bio,
+  .hero .bilan-link,
+  .hero .stats :global(dd),
+  .hero .stats :global(dt) {
+    color: var(--color-on-accent) !important;
+  }
+
+  .hero .bz-btn--lime {
+    background: var(--color-paper);
+    color: var(--color-ink) !important;
   }
 
   .avatar :global(img) {
@@ -844,16 +860,22 @@ import InstallApp from '../components/InstallApp.astro';
     overflow: hidden;
     width: 196px;
     height: 196px;
-    border-radius: 50%;
+    border: var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow-hard);
     display: grid;
     place-items: center;
-    background: var(--color-accent);
-    color: var(--color-on-accent);
-    font: 400 110px/1 var(--font-serif);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font: 900 110px/1 var(--font-display);
+    font-stretch: 105%;
   }
 
   .identity h1 {
-    font: 400 clamp(64px, 6vw, 96px) / 1 var(--font-serif);
+    font: 900 clamp(40px, 5vw, 72px) / 0.92 var(--font-display);
+    font-stretch: 110%;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
     color: var(--color-text);
     overflow-wrap: anywhere;
   }
@@ -1057,7 +1079,7 @@ import InstallApp from '../components/InstallApp.astro';
     gap: 16px;
     max-width: 560px;
     padding: 14px;
-    border-radius: 18px;
+    border-radius: 14px;
     background: var(--color-paper);
     box-shadow: 0 0 0 1px var(--color-border);
     color: var(--color-text);
@@ -1086,7 +1108,8 @@ import InstallApp from '../components/InstallApp.astro';
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font: 400 24px/1.1 var(--font-serif);
+    font: 900 24px/1.1 var(--font-display);
+    font-stretch: 105%;
     color: var(--color-text);
   }
 
@@ -1168,7 +1191,7 @@ import InstallApp from '../components/InstallApp.astro';
 
   .stats :global(div:hover),
   .stats :global(div:focus-visible) {
-    background: var(--color-bg-hover);
+    background: rgba(255, 255, 255, 0.16);
   }
 
   .stats :global(dd) {
@@ -1193,7 +1216,7 @@ import InstallApp from '../components/InstallApp.astro';
 
   .dna {
     padding: 36px 32px;
-    border-radius: 22px;
+    border-radius: 14px;
     background: var(--color-paper);
     color: var(--color-ink);
   }
@@ -1228,7 +1251,7 @@ import InstallApp from '../components/InstallApp.astro';
 
   .dna :global(.bar) {
     height: 12px;
-    border-radius: 999px;
+    border-radius: 10px;
     background: #dcd7cc;
     overflow: hidden;
   }
@@ -1343,6 +1366,9 @@ import InstallApp from '../components/InstallApp.astro';
       width: 110px;
       height: 110px;
       font-size: 64px;
+    }
+    .identity h1 {
+      font-size: clamp(30px, 9vw, 44px);
     }
     .identity p {
       margin-inline: auto;

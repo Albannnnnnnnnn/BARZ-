@@ -135,7 +135,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
   .feature {
     position: relative;
     min-height: 600px;
-    border-radius: 24px;
+    border-radius: 14px;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
@@ -172,7 +172,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
   .tag {
     display: inline-block;
     padding: 6px 14px;
-    border-radius: 999px;
+    border-radius: 10px;
     background: var(--color-accent);
     color: var(--color-on-accent);
     font: 700 14px/1 var(--font-sans);
@@ -182,7 +182,8 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
   .feature h2 {
     max-width: 680px;
     margin: 18px 0 14px;
-    font: 400 clamp(38px, 3.8vw, 60px) / 1 var(--font-serif);
+    font: 900 clamp(38px, 3.8vw, 60px) / 1 var(--font-display);
+    font-stretch: 105%;
     color: #fff;
   }
 
@@ -230,7 +231,8 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
   .brief h3,
   .card h3 {
     margin: 12px 0 10px;
-    font: 400 26px/1.12 var(--font-serif);
+    font: 900 26px/1.12 var(--font-display);
+    font-stretch: 105%;
     color: var(--color-text);
   }
 
@@ -288,7 +290,7 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
 
   .concert {
     border: 1px solid var(--color-border);
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -324,7 +326,8 @@ const meta = (n: NewsItem) => `${n.source} · ${when(n)}`;
 
   .date b {
     margin-bottom: 6px;
-    font: 400 38px/1 var(--font-serif);
+    font: 900 38px/1 var(--font-display);
+    font-stretch: 105%;
     letter-spacing: 0;
     color: var(--color-text);
   }

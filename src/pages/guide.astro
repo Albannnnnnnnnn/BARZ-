@@ -304,7 +304,7 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
   .progress-dot span {
     display: block;
     height: 5px;
-    border-radius: 999px;
+    border-radius: 10px;
     background: var(--color-border);
     transition: background 0.3s ease;
   }
@@ -328,7 +328,7 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
     gap: 48px;
     padding: 40px;
     border: 1px solid var(--color-border);
-    border-radius: 28px;
+    border-radius: 14px;
     background: var(--color-paper);
   }
 
@@ -402,7 +402,7 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
     width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
-    border-radius: 24px;
+    border-radius: 14px;
     object-fit: cover;
     background: rgba(255, 255, 255, 0.25); /* pendant le chargement */
     box-shadow: 0 18px 40px rgba(20, 26, 46, 0.22);
@@ -418,7 +418,8 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
 
   .step-title {
     margin: 14px 0 0;
-    font: 400 clamp(40px, 4.6vw, 64px) / 1 var(--font-serif);
+    font: 900 clamp(40px, 4.6vw, 64px) / 1 var(--font-display);
+    font-stretch: 105%;
     letter-spacing: -0.02em;
     color: var(--color-text);
     outline: none;
@@ -488,7 +489,7 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
     gap: 16px;
     padding: 16px 18px;
     border: 1px solid var(--color-border);
-    border-radius: 18px;
+    border-radius: 14px;
     background: var(--color-bg);
   }
 
@@ -528,7 +529,7 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
 
   .tag {
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: 10px;
     background: var(--color-bg-elevated);
     color: var(--color-text-muted);
     font: 600 12px/1 var(--font-sans);
@@ -561,15 +562,15 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
       grid-template-columns: minmax(0, 1fr);
       gap: 24px;
       padding: 22px;
-      border-radius: 22px;
+      border-radius: 14px;
     }
     .visual {
       max-width: 220px;
       padding: 7px;
-      border-radius: 26px;
+      border-radius: 14px;
     }
     .visual img {
-      border-radius: 20px;
+      border-radius: 14px;
     }
     .points li {
       font-size: 16px;

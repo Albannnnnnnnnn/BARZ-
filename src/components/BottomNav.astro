@@ -20,32 +20,30 @@ const active = activeNav(Astro.props.currentPath);
 </nav>
 
 <style>
+  /* Bandeau noir collé en bas, onglet actif en bleu (style « Affiche ») */
   .bottom-nav {
     position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 60;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    padding: 6px;
-    border: 1px solid var(--color-border);
-    border-radius: 22px;
-    background: rgba(232, 226, 210, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--color-ink);
   }
 
   a {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 8px 2px;
-    border-radius: 16px;
-    font: 600 11px/1 var(--font-sans);
-    color: var(--color-text-muted) !important;
+    justify-content: center;
+    gap: 5px;
+    min-height: 62px;
+    font: 900 11px/1 var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #ffffff !important;
   }
 
   a.is-active {

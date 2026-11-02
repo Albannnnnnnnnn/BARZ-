@@ -68,10 +68,11 @@ const GAMES = [
     align-items: center;
     gap: 18px;
     padding: 20px;
-    border: 1px solid var(--color-border);
-    border-radius: 22px;
+    border: var(--line);
+    border-radius: 14px;
     background: var(--color-paper);
     color: var(--color-text);
+    box-shadow: var(--shadow-hard);
   }
 
   .game-card:hover {
@@ -90,7 +91,9 @@ const GAMES = [
   }
 
   .body b {
-    font: 400 26px/1.1 var(--font-display);
+    font: 900 22px/1.05 var(--font-display);
+    font-stretch: 110%;
+    text-transform: uppercase;
   }
 
   .text {
