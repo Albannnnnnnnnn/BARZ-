@@ -17,7 +17,7 @@ const base64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).rep
 const randomString = (size: number) => base64url(crypto.getRandomValues(new Uint8Array(size)));
 
 // Étape 1 : vers la page d'autorisation de Spotify
-export async function startSpotifyLogin(next = `${BASE}profil`) {
+export async function startSpotifyLogin(next = `${BASE}parametres`) {
   const verifier = randomString(48);
   const state = randomString(16);
   const challenge = base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));

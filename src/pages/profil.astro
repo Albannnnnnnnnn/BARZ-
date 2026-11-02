@@ -3,7 +3,6 @@
 // Les vraies données sont lues par le navigateur (src/scripts/social.ts).
 // Amis : demande puis acceptation (supabase/friends.sql) ; entre amis, la section « Pour vous deux ».
 import Layout from '../layouts/Layout.astro';
-import InstallApp from '../components/InstallApp.astro';
 ---
 
 <Layout title="Profil" description="Ton ADN musical, ta spin list, tes Barz.">
@@ -34,6 +33,7 @@ import InstallApp from '../components/InstallApp.astro';
           <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan" hidden>Bilan du mois →</a>
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
+            <a class="bz-btn bz-btn--outline" href="/BARZ-/parametres">Paramètres</a>
           </div>
           <div class="own-actions" id="p-friend" hidden></div>
         </div>
@@ -82,62 +82,7 @@ import InstallApp from '../components/InstallApp.astro';
             <ul class="friend-list" id="friend-list"></ul>
           </section>
 
-          <section class="lastfm" id="p-push" hidden aria-labelledby="push-title">
-            <div class="bz-section-head"><h2 id="push-title" class="bz-h2">Notifications</h2></div>
-            <p id="push-status">Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, quand un ami publie un Barz, et le vendredi matin pour les nouveautés.</p>
-            <div class="spotify-actions">
-              <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="push-on" hidden>Activer sur cet appareil</button>
-              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-test" hidden>Envoyer un test</button>
-              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-off" hidden>Désactiver</button>
-            </div>
-            <p class="bz-notice" id="push-notice" hidden></p>
-          </section>
 
-          <!-- Comptes de musique reliés, regroupés : une ligne par service, dépliée au besoin -->
-          <section class="accounts" id="p-accounts" hidden aria-labelledby="accounts-title">
-            <div class="bz-section-head"><h2 id="accounts-title" class="bz-h2">Comptes reliés</h2></div>
-            <p class="accounts-note">Tes artistes Spotify, Deezer ou Last.fm servent à tes recommandations.</p>
-            <details class="lastfm account" id="p-spotify" hidden>
-              <summary><span class="acc-name">Spotify</span><span class="acc-state" data-account="spotify">À relier</span></summary>
-            <p id="spotify-status">Relie ton compte Spotify : tes artistes préférés serviront à tes recommandations, et tu pourras montrer à tes amis ce que tu écoutes en ce moment.</p>
-            <div class="spotify-actions">
-              <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="spotify-connect">Connecter Spotify</button>
-              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="spotify-import" hidden>Mettre à jour mes artistes</button>
-              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="spotify-disconnect" hidden>Déconnecter</button>
-            </div>
-            <label class="share-toggle" id="share-toggle" hidden>
-              <input type="checkbox" id="share-listening" />
-              <span>Partager mon écoute en direct avec mes amis</span>
-            </label>
-            <p class="bz-notice" id="spotify-notice" hidden></p>
-            </details>
-
-            <details class="lastfm account" id="p-deezer" hidden>
-              <summary><span class="acc-name">Deezer</span><span class="acc-state" data-account="deezer">À relier</span></summary>
-            <p>Colle le lien de ton profil Deezer : tes artistes favoris serviront à tes recommandations. Dans Deezer : ton profil → Partager → Copier le lien. Tes favoris doivent être publics.</p>
-            <form id="deezer-form" class="lastfm-form">
-              <label class="sr-only" for="deezer-input">Lien du profil Deezer</label>
-              <input id="deezer-input" class="bz-input" name="deezer" maxlength="300" placeholder="https://www.deezer.com/fr/profile/…" autocomplete="off" />
-              <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" id="deezer-submit">Relier</button>
-            </form>
-            <div class="spotify-actions" id="deezer-linked" hidden>
-              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="deezer-refresh">Mettre à jour mes artistes</button>
-              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="deezer-unlink">Délier</button>
-            </div>
-            <p class="bz-notice" id="deezer-status" hidden></p>
-            </details>
-
-            <details class="lastfm account" id="p-lastfm" hidden>
-              <summary><span class="acc-name">Last.fm</span><span class="acc-state" data-account="lastfm">À relier</span></summary>
-            <p>Relie ton compte Last.fm : tes artistes les plus écoutés de l’année serviront à tes recommandations. L’import se fait le lundi et le vendredi matin.</p>
-            <form id="lastfm-form" class="lastfm-form">
-              <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
-              <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
-              <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
-            </form>
-            <p class="bz-notice" id="lastfm-status" hidden></p>
-            </details>
-          </section>
         </div>
 
         <section class="collection" aria-label="Collections">
@@ -152,15 +97,6 @@ import InstallApp from '../components/InstallApp.astro';
         </section>
       </div>
 
-      <!-- Aide, retours, appli et déconnexion : en bas de son propre profil, pour garder le bandeau compact -->
-      <footer class="own-footer" id="p-own-footer" hidden>
-        <nav class="own-links" aria-label="Aide et compte">
-          <a href="/BARZ-/guide">Comment ça marche ?</a>
-          <a href="/BARZ-/retours?depuis=/BARZ-/profil">Un bug, une idée ?</a>
-          <button type="button" id="p-logout">Se déconnecter</button>
-        </nav>
-        <InstallApp compact />
-      </footer>
     </div>
   </div>
 </Layout>
@@ -187,9 +123,7 @@ import InstallApp from '../components/InstallApp.astro';
     searchMembers,
     sendFriendRequest,
     shelfOf,
-    signOut,
     supabase,
-    updateMyProfile,
     wireBarzActions,
     wireFollowButtons,
     type ArtistLite,
@@ -199,9 +133,7 @@ import InstallApp from '../components/InstallApp.astro';
   } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
   import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
-  import { nowPlaying, nowPlayingHtml, spotifyAvailable, spotifyDisconnect, spotifyImport, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
-  import { deezerLink, deezerRefresh, deezerUnlink, type DeezerImport } from '../scripts/deezer';
-  import { disablePush, enablePush, pushState, testPush } from '../scripts/push';
+  import { nowPlaying, nowPlayingHtml, spotifyAvailable } from '../scripts/spotify';
 
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
@@ -274,19 +206,6 @@ import InstallApp from '../components/InstallApp.astro';
     const artists = ((follows.data ?? []) as any[]).map((f) => f.artist).filter(Boolean) as ArtistLite[];
     const iFollow = new Set(mine.map((a) => a.id));
 
-    if (isMe) {
-      renderDeezer(profile).catch(() => {});
-      $('p-lastfm').hidden = false;
-      (document.getElementById('lastfm-input') as HTMLInputElement).value = profile.lastfm_username ?? '';
-      if (profile.lastfm_username) {
-        const { count } = await supabase.from('lastfm_artists').select('*', { count: 'exact', head: true }).eq('user_id', profile.id);
-        $('lastfm-status').textContent = count
-          ? `${count} artistes importés depuis Last.fm (@${profile.lastfm_username}).`
-          : `Pseudo enregistré : l’import se fera à la prochaine synchronisation.`;
-        $('lastfm-status').hidden = false;
-      }
-    }
-
     $('p-avatar').innerHTML = profile.avatar_path
       ? `<img src="${escapeHtml(avatarUrl(profile.avatar_path))}" alt="" />`
       : escapeHtml(profile.display_name.slice(0, 1).toUpperCase());
@@ -300,8 +219,6 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-bio').textContent = profile.bio?.trim() ?? '';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
-    $('p-own-footer').hidden = !isMe;
-    $('p-accounts').hidden = !isMe;
     // Le bilan du mois qui vient de finir, mis en avant les 4 premiers jours du mois ; ensuite dans l'onglet Bilans
     const today = new Date();
     const bilanHref = (d: Date) => `${BASE}bilan?m=${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}&u=${encodeURIComponent(profile.username)}`;
@@ -374,20 +291,7 @@ import InstallApp from '../components/InstallApp.astro';
     const theirTaste = loadTasteOf(profile.id);
     renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
     renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
-    if (isMe) renderSpotify(profile).catch((err) => console.warn('Spotify indisponible :', err));
-    if (isMe) renderPush().catch((err) => console.warn('Notifications indisponibles :', err));
     watchNowPlaying(profile, isMe, !!session);
-    // Lien du guide (#p-push, #p-lastfm, #p-spotify) : ces sections n'apparaissent qu'une fois chargées
-    if (isMe && /^#p-[a-z]+$/.test(location.hash)) {
-      const target = document.querySelector<HTMLElement>(location.hash);
-      let tries = 0;
-      const reveal = () => {
-        if (target instanceof HTMLDetailsElement) target.open = true;
-        if (target && !target.hidden) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        else if (tries++ < 20) setTimeout(reveal, 150);
-      };
-      reveal();
-    }
 
     if (!wired) {
       wired = true;
@@ -418,190 +322,7 @@ import InstallApp from '../components/InstallApp.astro';
       wireFollowButtons($('p-picks-artists'));
       wireFollowButtons($('p-blend-artists'));
       wireFriendActions();
-      wireSpotify();
-      wirePush();
     }
-  }
-
-  // ============================================================
-  // NOTIFICATIONS (src/scripts/push.ts)
-  // ============================================================
-  const PUSH_TEXT = {
-    'needs-install': 'Sur iPhone, les notifications marchent seulement dans l’appli installée : touche Partager dans Safari, puis « Sur l’écran d’accueil », et ouvre BARZ¡ depuis son icône.',
-    unsupported: 'Ce navigateur ne gère pas les notifications.',
-    denied: 'Les notifications sont bloquées pour BARZ¡ dans les réglages de ton navigateur.',
-    off: 'Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, quand un ami publie un Barz, et le vendredi matin pour les nouveautés.',
-    on: 'Activées sur cet appareil : sorties de tes artistes, demandes d’ami, Barz de tes amis et nouveautés du vendredi.',
-  } as const;
-
-  async function renderPush() {
-    const state = await pushState();
-    $('p-push').hidden = false;
-    $('push-status').textContent = PUSH_TEXT[state];
-    $('push-on').hidden = state !== 'off';
-    $('push-test').hidden = state !== 'on';
-    $('push-off').hidden = state !== 'on';
-  }
-
-  function showPush(text: string, kind: 'ok' | 'error') {
-    $('push-notice').textContent = text;
-    $('push-notice').className = `bz-notice bz-notice--${kind}`;
-    $('push-notice').hidden = false;
-  }
-
-  function wirePush() {
-    $('push-on').addEventListener('click', async () => {
-      try {
-        await enablePush();
-        await renderPush();
-        showPush('Notifications activées. Essaie « Envoyer un test ».', 'ok');
-      } catch (err) {
-        showPush(errorText(err), 'error');
-        renderPush();
-      }
-    });
-    $('push-off').addEventListener('click', async () => {
-      try {
-        await disablePush();
-        await renderPush();
-        showPush('Notifications désactivées sur cet appareil.', 'ok');
-      } catch (err) {
-        showPush(errorText(err), 'error');
-      }
-    });
-    $('push-test').addEventListener('click', async () => {
-      try {
-        const sent = await testPush();
-        showPush(sent ? 'Notification de test envoyée.' : 'Aucun appareil abonné trouvé : désactive puis réactive.', sent ? 'ok' : 'error');
-      } catch (err) {
-        showPush(errorText(err), 'error');
-      }
-    });
-  }
-
-  // ============================================================
-  // SPOTIFY : connexion, partage et écoute en direct
-  // ============================================================
-  let currentProfile: Profile | null = null;
-
-  async function renderSpotify(profile: Profile) {
-    currentProfile = profile;
-    if (!spotifyAvailable()) return;
-    $('p-spotify').hidden = false;
-    if (new URLSearchParams(location.search).get('spotify') === 'ok') showSpotify('Compte Spotify relié ! Active le partage pour que tes amis voient ce que tu écoutes.', 'ok');
-    let status: { connected: boolean; name: string | null; importedAt: string | null };
-    try {
-      status = await spotifyStatus();
-    } catch {
-      $('spotify-status').textContent = 'La connexion Spotify n’est pas encore disponible.';
-      $('spotify-connect').hidden = true;
-      return;
-    }
-    $('spotify-status').textContent = status.connected
-      ? `Relié au compte Spotify${status.name ? ` « ${status.name} »` : ''}.`
-      : 'Relie ton compte Spotify pour montrer à tes amis ce que tu écoutes en ce moment.';
-    $('spotify-connect').hidden = status.connected;
-    $('spotify-import').hidden = !status.connected;
-    $('spotify-disconnect').hidden = !status.connected;
-    // Import de ses artistes : juste après la connexion, puis au plus une fois par semaine
-    const stale = !status.importedAt || Date.now() - Date.parse(status.importedAt) > 7 * 86400_000;
-    if (status.connected && stale) importSpotify(true);
-    $('share-toggle').hidden = !status.connected;
-    (document.getElementById('share-listening') as HTMLInputElement).checked = !!profile.share_listening;
-  }
-
-  async function importSpotify(silent = false) {
-    const button = $('spotify-import') as HTMLButtonElement;
-    button.disabled = true;
-    try {
-      const { matched } = await spotifyImport();
-      if (!silent || new URLSearchParams(location.search).get('spotify') === 'ok')
-        showSpotify(matched ? `${matched} artistes importés depuis Spotify : ils servent maintenant à tes recommandations.` : 'Aucun de tes artistes Spotify n’est encore dans le catalogue.', 'ok');
-    } catch (err) {
-      // Compte relié avant l'import : une reconnexion ajoute l'autorisation qui manque
-      showSpotify(errorText(err), 'error');
-      if (/reconnecte/i.test(errorText(err))) $('spotify-connect').hidden = false;
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  // Deezer : lien du profil, favoris importés (src/scripts/deezer.ts)
-  async function renderDeezer(profile: Profile) {
-    if (!supabase) return;
-    $('p-deezer').hidden = false;
-    const linked = !!profile.deezer_user_id;
-    $('deezer-linked').hidden = !linked;
-    (document.getElementById('deezer-input') as HTMLInputElement).value = linked ? `https://www.deezer.com/fr/profile/${profile.deezer_user_id}` : '';
-    if (linked) {
-      const { count } = await supabase.from('imported_artists').select('*', { count: 'exact', head: true }).eq('user_id', profile.id).eq('source', 'deezer');
-      showDeezer(`Profil relié : ${count ?? 0} de tes artistes favoris sont dans le catalogue et servent à tes recommandations.`, 'ok');
-    }
-  }
-
-  function showDeezer(text: string, kind: 'ok' | 'error') {
-    $('deezer-status').textContent = text;
-    $('deezer-status').className = `bz-notice bz-notice--${kind}`;
-    $('deezer-status').hidden = false;
-  }
-
-  async function runDeezer(button: HTMLButtonElement, action: () => Promise<DeezerImport>) {
-    button.disabled = true;
-    showDeezer('Import de tes favoris…', 'ok');
-    try {
-      const result = await action();
-      $('deezer-linked').hidden = !result.linked;
-      if (!result.linked) {
-        (document.getElementById('deezer-input') as HTMLInputElement).value = '';
-        showDeezer('Profil Deezer délié.', 'ok');
-      } else {
-        showDeezer(`${result.matched} artistes importés sur ${result.favorites} favoris (seuls ceux du catalogue BARZ¡ sont gardés).`, 'ok');
-      }
-    } catch (err) {
-      showDeezer(errorText(err), 'error');
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  function showSpotify(text: string, kind: 'ok' | 'error') {
-    $('spotify-notice').textContent = text;
-    $('spotify-notice').className = `bz-notice bz-notice--${kind}`;
-    $('spotify-notice').hidden = false;
-  }
-
-  function wireSpotify() {
-    $('spotify-connect').addEventListener('click', () => startSpotifyLogin(`${BASE}profil`));
-    $('spotify-import').addEventListener('click', () => importSpotify());
-    $('deezer-form').addEventListener('submit', (event) => {
-      event.preventDefault();
-      const value = (document.getElementById('deezer-input') as HTMLInputElement).value.trim();
-      if (value) runDeezer($('deezer-submit') as HTMLButtonElement, () => deezerLink(value));
-    });
-    $('deezer-refresh').addEventListener('click', (event) => runDeezer(event.currentTarget as HTMLButtonElement, deezerRefresh));
-    $('deezer-unlink').addEventListener('click', (event) => {
-      if (confirm('Délier ton profil Deezer ? Tes artistes importés ne serviront plus à tes recommandations.')) runDeezer(event.currentTarget as HTMLButtonElement, deezerUnlink);
-    });
-    $('spotify-disconnect').addEventListener('click', async () => {
-      if (!confirm('Déconnecter ton compte Spotify ? Tes amis ne verront plus ce que tu écoutes.')) return;
-      try {
-        await spotifyDisconnect();
-        await load();
-      } catch (err) {
-        showSpotify(errorText(err), 'error');
-      }
-    });
-    $('share-listening').addEventListener('change', async (event) => {
-      const box = event.target as HTMLInputElement;
-      try {
-        await updateMyProfile({ share_listening: box.checked });
-        if (currentProfile) currentProfile.share_listening = box.checked;
-        showSpotify(box.checked ? 'Tes amis voient maintenant ce que tu écoutes.' : 'Ton écoute n’est plus partagée.', 'ok');
-      } catch (err) {
-        box.checked = !box.checked;
-        showSpotify(errorText(err), 'error');
-      }
-    });
   }
 
   // Carte « En écoute » : relue toutes les 15 secondes (et dès qu'on revient sur l'onglet),
@@ -827,38 +548,6 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-blend-artists-title').hidden = !shared.length;
   }
 
-  $('p-logout').addEventListener('click', signOut);
-
-  // Comptes reliés : l'état de chaque service, d'après ce que ses propres scripts affichent
-  function paintAccounts() {
-    const linked: Record<string, boolean> = {
-      spotify: !$('spotify-disconnect').hidden,
-      deezer: !$('deezer-linked').hidden,
-      lastfm: !!(document.getElementById('lastfm-input') as HTMLInputElement).value.trim() && !$('lastfm-status').hidden,
-    };
-    document.querySelectorAll<HTMLElement>('[data-account]').forEach((el) => {
-      const on = linked[el.dataset.account!];
-      const text = on ? 'Relié' : 'À relier';
-      if (el.textContent !== text) el.textContent = text;
-      el.classList.toggle('is-on', on);
-    });
-  }
-  new MutationObserver(paintAccounts).observe($('p-accounts'), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden'] });
-
-  $('lastfm-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const value = (document.getElementById('lastfm-input') as HTMLInputElement).value.trim();
-    const status = $('lastfm-status');
-    try {
-      await updateMyProfile({ lastfm_username: value || null });
-      status.textContent = value ? `C’est noté : tes écoutes Last.fm (@${value}) seront importées à la prochaine synchronisation.` : 'Compte Last.fm retiré.';
-      status.className = 'bz-notice bz-notice--ok';
-    } catch (err) {
-      status.textContent = errorText(err);
-      status.className = 'bz-notice bz-notice--error';
-    }
-    status.hidden = false;
-  });
   load().catch((err) => {
     $('profile-error').textContent = errorText(err);
     $('profile-error').hidden = false;
@@ -1001,48 +690,12 @@ import InstallApp from '../components/InstallApp.astro';
     margin-top: 20px;
   }
 
-  .own-footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px 24px;
-    margin-top: 56px;
-    padding-top: 20px;
-    border-top: var(--line);
-  }
 
-  .own-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
-  }
 
-  .own-links a,
-  .own-links button {
-    padding: 6px 0;
-    border: 0;
-    background: none;
-    color: var(--color-text-muted);
-    font: 600 15px/1.2 var(--font-sans);
-    text-decoration: underline;
-    text-decoration-color: var(--color-text-dim);
-    text-underline-offset: 4px;
-    cursor: pointer;
-  }
 
-  .own-links a:hover,
-  .own-links button:hover {
-    color: var(--color-accent);
-  }
 
-  .own-footer[hidden],
   .own-actions[hidden],
-  .lastfm[hidden],
-  #p-push [hidden],
   #p-np[hidden],
-  .share-toggle[hidden],
-  .spotify-actions [hidden],
   .friends[hidden],
   .block[hidden],
   .sub[hidden] {
@@ -1054,81 +707,19 @@ import InstallApp from '../components/InstallApp.astro';
     font-size: 14px;
   }
 
-  .lastfm {
-    margin-top: 48px;
-  }
 
-  .accounts {
-    margin-top: 48px;
-  }
 
-  .accounts[hidden] {
-    display: none;
-  }
 
-  .accounts-note {
-    margin-bottom: 14px;
-    font-size: 15px;
-    color: var(--color-text-muted);
-  }
 
-  .accounts .account {
-    margin-top: 10px;
-    border: var(--line);
-    border-radius: 12px;
-    background: var(--color-paper);
-  }
 
-  .account > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    cursor: pointer;
-    list-style: none;
-  }
 
-  .account > summary::-webkit-details-marker {
-    display: none;
-  }
 
-  .account > summary::after {
-    content: '▾';
-    font-size: 14px;
-    transition: transform var(--transition-fast);
-  }
 
-  .account[open] > summary::after {
-    transform: rotate(180deg);
-  }
 
-  .acc-name {
-    flex: 1;
-    font: 800 15px/1 var(--font-display);
-    text-transform: uppercase;
-  }
 
-  .acc-state {
-    font: 600 13px/1 var(--font-sans);
-    color: var(--color-text-muted);
-  }
 
-  .acc-state.is-on {
-    color: var(--color-accent);
-  }
 
-  .acc-state.is-on::before {
-    content: '● ';
-  }
 
-  .account > :not(summary) {
-    margin-inline: 16px;
-  }
-
-  .account[open] {
-    padding-bottom: 16px;
-  }
 
   .own-actions :global(.friend-state),
   .friends :global(.friend-state) {
@@ -1233,32 +824,9 @@ import InstallApp from '../components/InstallApp.astro';
     font-size: 15px;
   }
 
-  .lastfm p {
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--color-text-muted);
-  }
 
-  .spotify-actions {
-    display: flex;
-    gap: 10px;
-    margin: 18px 0 14px;
-  }
 
-  .share-toggle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 44px;
-    font-size: 15px;
-    cursor: pointer;
-  }
 
-  .share-toggle input {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--color-accent);
-  }
 
   .friend-list :global(.friend-np) {
     flex-basis: 100%;
