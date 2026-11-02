@@ -655,8 +655,14 @@ import Layout from '../layouts/Layout.astro';
     font: 800 90px/1 var(--font-display);
   }
 
+  /* Le nom suit la largeur de sa colonne (Unbounded est une police large) */
+  .identity {
+    container-type: inline-size;
+    width: 100%; /* un conteneur ne prend pas la largeur de son contenu : on lui donne celle de sa colonne */
+  }
+
   .identity h1 {
-    font: 800 clamp(33px, 5vw, 59px) / 0.92 var(--font-display);
+    font: 800 clamp(28px, 10cqi, 59px) / 0.92 var(--font-display);
     text-transform: uppercase;
     letter-spacing: -0.03em;
     color: var(--color-text);
