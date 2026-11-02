@@ -34,10 +34,6 @@ import InstallApp from '../components/InstallApp.astro';
           <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan" hidden>Bilan du mois →</a>
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
-            <button type="button" class="bz-btn bz-btn--outline" id="p-logout">Se déconnecter</button>
-            <a class="bz-btn bz-btn--outline" href="/BARZ-/guide">Comment ça marche ?</a>
-            <a class="bz-btn bz-btn--outline" href="/BARZ-/retours?depuis=/BARZ-/profil">Un bug, une idée ?</a>
-            <InstallApp compact />
           </div>
           <div class="own-actions" id="p-friend" hidden></div>
         </div>
@@ -150,6 +146,16 @@ import InstallApp from '../components/InstallApp.astro';
           <div class="spin" id="p-collection"></div>
         </section>
       </div>
+
+      <!-- Aide, retours, appli et déconnexion : en bas de son propre profil, pour garder le bandeau compact -->
+      <footer class="own-footer" id="p-own-footer" hidden>
+        <nav class="own-links" aria-label="Aide et compte">
+          <a href="/BARZ-/guide">Comment ça marche ?</a>
+          <a href="/BARZ-/retours?depuis=/BARZ-/profil">Un bug, une idée ?</a>
+          <button type="button" id="p-logout">Se déconnecter</button>
+        </nav>
+        <InstallApp compact />
+      </footer>
     </div>
   </div>
 </Layout>
@@ -289,6 +295,7 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-bio').textContent = profile.bio?.trim() ?? '';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
+    $('p-own-footer').hidden = !isMe;
     // Le bilan du mois qui vient de finir, mis en avant les 4 premiers jours du mois ; ensuite dans l'onglet Bilans
     const today = new Date();
     const bilanHref = (d: Date) => `${BASE}bilan?m=${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}&u=${encodeURIComponent(profile.username)}`;
@@ -971,6 +978,42 @@ import InstallApp from '../components/InstallApp.astro';
     margin-top: 20px;
   }
 
+  .own-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: var(--line);
+  }
+
+  .own-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+  }
+
+  .own-links a,
+  .own-links button {
+    padding: 6px 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font: 600 15px/1.2 var(--font-sans);
+    text-decoration: underline;
+    text-decoration-color: var(--color-text-dim);
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+
+  .own-links a:hover,
+  .own-links button:hover {
+    color: var(--color-accent);
+  }
+
+  .own-footer[hidden],
   .own-actions[hidden],
   .lastfm[hidden],
   #p-push [hidden],
