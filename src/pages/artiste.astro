@@ -282,6 +282,14 @@ import Layout from '../layouts/Layout.astro';
     margin-top: 80px;
   }
 
+  /* Petits écrans d'ordinateur : photo plus petite pour laisser la place au nom */
+  @media (max-width: 1280px) {
+    .hero {
+      grid-template-columns: 200px minmax(0, 1fr);
+      gap: 32px;
+    }
+  }
+
   @media (max-width: 900px) {
     .back {
       margin-bottom: 16px;
