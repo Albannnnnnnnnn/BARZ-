@@ -22,11 +22,13 @@ ALTER TABLE release_seen ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "release_seen lecture" ON release_seen;
 CREATE POLICY "release_seen lecture" ON release_seen FOR SELECT USING (true);
 
--- Bilan, une fois un vendredi passé : qui a publié en premier, et de combien de minutes
+-- Bilan, une fois un vendredi passé : qui a publié en premier, et de combien de minutes.
+-- Ne compter que les sorties vues pour la première fois après la mise en route (identifiants Apple tous trouvés
+-- vers le 03/11) : les lignes du premier passage marquent seulement ce qui existait déjà.
 -- SELECT
 --   count(*) FILTER (WHERE apple_seen_at < deezer_seen_at) AS apple_avant,
 --   count(*) FILTER (WHERE deezer_seen_at < apple_seen_at) AS deezer_avant,
 --   count(*) FILTER (WHERE deezer_seen_at IS NULL) AS apple_seulement,
 --   count(*) FILTER (WHERE apple_seen_at IS NULL) AS deezer_seulement,
 --   round(avg(extract(epoch FROM deezer_seen_at - apple_seen_at) / 60) FILTER (WHERE apple_seen_at < deezer_seen_at)) AS minutes_avance_apple
--- FROM release_seen WHERE created_at > now() - interval '7 days';
+-- FROM release_seen WHERE created_at > '2026-11-03';
