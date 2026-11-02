@@ -57,19 +57,19 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
         <span class="bz-eyebrow">Découvrir</span>
         <h1 class="bz-display">Sors de <em>ta bulle.</em></h1>
       </div>
-      <nav class="tabs" aria-label="Modes d’exploration">
-        <a class="bz-chip is-active" href="/BARZ-/search" aria-current="page">Découverte</a>
-        <a class="bz-chip" href="/BARZ-/artistes">Artistes</a>
-      </nav>
+      <a class="bz-link by-genre" href="/BARZ-/artistes">Artistes par genre →</a>
     </div>
-
-    <DailyPlay />
 
     <section id="results" class="results" hidden aria-live="polite">
       <div class="bz-section-head">
         <h2 class="bz-h2">Résultats pour « <em id="results-query"></em> »</h2>
         <a class="bz-link" href="/BARZ-/search">Effacer</a>
       </div>
+      <div id="results-artists-block" hidden>
+        <h3 class="results-label">Artistes</h3>
+        <div class="results-artists" id="results-artists"></div>
+      </div>
+      <h3 class="results-label" id="results-releases-label" hidden>Sorties</h3>
       <div class="bz-tiles" id="results-grid">
         {catalog.map((r) => (
           <div class="result" data-search={searchText(r)} hidden>
@@ -79,6 +79,9 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
       </div>
       <p id="results-empty" class="bz-empty" hidden>Rien trouvé. Essaie un nom d’artiste, un titre ou un genre (rap, jazz, électro…).</p>
     </section>
+
+    <DailyPlay />
+
 
     <section class="explorer" aria-labelledby="cursor-title">
       <div class="cursor">
@@ -111,7 +114,7 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
 </Layout>
 
 <script>
-  import { ARTIST_LITE, BASE, escapeHtml, releaseTileHtml, supabase, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, escapeHtml, myFollows, releaseTileHtml, searchArtists, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { audience, formatAudience } from '../lib/audience';
   import { loadTaste, rank, type RecoRelease, type Taste } from '../scripts/reco';
   import { GENRE_CHIPS } from '../lib/genres';
@@ -238,8 +241,21 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
       if (match) found++;
     }
     document.getElementById('results-query')!.textContent = query;
+    document.getElementById('results-releases-label')!.hidden = found === 0;
     document.getElementById('results-empty')!.hidden = found > 0;
     results.hidden = false;
+    // Artistes d'abord : tout le catalogue d'artistes, pas seulement ceux qui ont sorti quelque chose récemment
+    Promise.all([searchArtists(query, { limit: 12 }), myFollows().catch(() => [])])
+      .then(([artists, follows]) => {
+        if (!artists.length) return;
+        const followed = new Set(follows.map((a) => a.id));
+        const box = document.getElementById('results-artists')!;
+        box.innerHTML = artists.map((a) => artistCardHtml(a, followed.has(a.id))).join('');
+        wireFollowButtons(box);
+        document.getElementById('results-artists-block')!.hidden = false;
+        document.getElementById('results-empty')!.hidden = true;
+      })
+      .catch(() => {});
     const input = document.getElementById('topbar-q') as HTMLInputElement | null;
     if (input) input.value = query;
   }
@@ -254,10 +270,36 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
     flex-wrap: wrap;
   }
 
-  .tabs {
-    display: flex;
-    gap: 8px;
+  .by-genre {
     padding-bottom: 12px;
+  }
+
+  .results-label {
+    margin: 28px 0 16px;
+    font: 800 16px/1 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  #results-artists-block[hidden],
+  .results-label[hidden] {
+    display: none;
+  }
+
+  /* Artistes trouvés : une rangée qui défile sur le côté */
+  .results-artists {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .results-artists :global(.bz-artist) {
+    flex: 0 0 132px;
+  }
+
+  .results-artists :global(.bz-artist-name) {
+    font-size: 15px;
   }
 
   .results {
