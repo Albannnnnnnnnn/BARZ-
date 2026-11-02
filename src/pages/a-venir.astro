@@ -28,6 +28,8 @@ for (let m = startOfMonth(today); m <= lastDate || months.length < 3; m = addMon
 const todayIso = format(today, 'yyyy-MM-dd');
 const announcedOnly = (r: ReleaseRow) => !r.deezer_url && !r.spotify_url;
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+// « Date par date » : les prochaines dates d'abord, les suivantes derrière un bouton (ou un clic dans le calendrier)
+const DATES_SHOWN = 4;
 ---
 
 <Layout title="À venir" description="Le calendrier des sorties musicales annoncées pour les prochains mois.">
@@ -81,7 +83,7 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     </div>
 
     {releases.length > 0 && (
-      <section class="list" aria-labelledby="list-title">
+      <section class:list={['list', { 'is-capped': byDate.size > DATES_SHOWN }]} id="date-list" aria-labelledby="list-title">
         <div class="bz-section-head"><h2 id="list-title" class="bz-h2">Date <em>par date</em></h2></div>
         {[...byDate.entries()].map(([date, list]) => (
           <section class="date-block" id={`jour-${date}`}>
@@ -101,6 +103,9 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
             </div>
           </section>
         ))}
+        {byDate.size > DATES_SHOWN && (
+          <button type="button" class="bz-btn bz-btn--outline more-dates" id="more-dates">Voir les {byDate.size} dates</button>
+        )}
       </section>
     )}
   </div>
@@ -108,6 +113,19 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 <script>
   import { escapeHtml, myFollows } from '../scripts/social';
+
+  // Toutes les dates : bouton, ou clic sur un jour du calendrier qui vise une date encore masquée
+  const dateList = document.getElementById('date-list');
+  const showAllDates = () => {
+    dateList?.classList.remove('is-capped');
+    document.getElementById('more-dates')?.remove();
+  };
+  document.getElementById('more-dates')?.addEventListener('click', showAllDates);
+  document.querySelectorAll<HTMLAnchorElement>('a.day[href^="#jour-"]').forEach((day) => day.addEventListener('click', showAllDates));
+  if (location.hash.startsWith('#jour-')) {
+    showAllDates();
+    document.querySelector(location.hash)?.scrollIntoView();
+  }
 
   // Connecté : les sorties de ses artistes suivis sont mises en avant
   myFollows()
@@ -138,6 +156,15 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     margin-top: 6px;
     font-size: 14px;
     color: var(--color-text-dim);
+  }
+
+  .list.is-capped > :global(.date-block:nth-of-type(n + 5)) {
+    display: none;
+  }
+
+  .more-dates {
+    display: block;
+    margin: 32px auto 0;
   }
 
   .months {
