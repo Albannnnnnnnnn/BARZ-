@@ -35,3 +35,14 @@ export function releaseScore(r: { title: string; metadata?: { fans?: number | nu
   const compilation = (r.metadata?.featuring?.length ?? 0) >= 6 ? 2 : 0;
   return Math.log10(audience(r.artist) + 1) + Math.log10((r.metadata?.fans ?? 0) + 1) - reissue - compilation;
 }
+
+// Peut-on recommander cette sortie ? Pas les compilations ni les « Various Artists » (nom générique, 6 invités ou
+// plus), ni les artistes presque inconnus : ils restent dans Sorties, mais ne sont pas mis en avant par les recos.
+const VARIOUS = /^(various artists|multi-interprètes|artistes divers|varios artistas|verschiedene interpreten|various)$/i;
+export const RECO_MIN_AUDIENCE = 2_000;
+export function recommendable(r: { releaseType?: string | null; artistName?: string | null; featuring?: string[] | null; fans?: number | null }): boolean {
+  if (r.releaseType === 'compilation') return false;
+  if (VARIOUS.test((r.artistName ?? '').trim())) return false;
+  if ((r.featuring?.length ?? 0) >= 6) return false;
+  return (r.fans ?? 0) >= RECO_MIN_AUDIENCE;
+}

@@ -7,7 +7,7 @@ import DailyPlay from '../components/DailyPlay.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
-import { audience } from '../lib/audience';
+import { audience, recommendable, releaseScore } from '../lib/audience';
 import { normalizeSearch } from '../lib/fuzzy';
 
 const today = getToday();
@@ -26,10 +26,13 @@ const ZONES = [
 ];
 const DEFAULT_ZONE = 2;
 
-const pick = (genres: string[]) => {
-  const matching = recent.filter((r) => r.genres?.some((g) => genres.includes(g)));
-  return matching.slice(0, 4);
-};
+// Sans compte : les sorties les plus écoutées de ces genres, sans compilation ni artiste presque inconnu
+const pick = (genres: string[]) =>
+  recent
+    .filter((r) => r.genres?.some((g) => genres.includes(g)))
+    .filter((r) => recommendable({ releaseType: r.release_type, artistName: r.artist?.name, featuring: r.metadata?.featuring, fans: audience(r.artist) }))
+    .sort((a, b) => releaseScore(b) - releaseScore(a))
+    .slice(0, 4);
 const zoneTiles = ZONES.map((z) => pick(z.genres));
 
 const subtitleOf = (r: ReleaseRow) => releaseSubtitle(r);
@@ -44,6 +47,7 @@ const exploreData = recent.map((r) => ({
   slug: r.slug,
   cover_url: r.cover_url,
   release_type: r.release_type,
+  releaseType: r.release_type,
   featuring: r.metadata?.featuring ?? [],
 }));
 // On trouve aussi une sortie en cherchant un artiste invité (feat.)
@@ -116,7 +120,7 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
 <script>
   import { ARTIST_LITE, BASE, artistCardHtml, escapeHtml, myFollows, releaseTileHtml, searchArtists, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { audience, formatAudience } from '../lib/audience';
-  import { loadTaste, rank, type RecoRelease, type Taste } from '../scripts/reco';
+  import { dismissButtonHtml, loadTaste, rank, wireDismiss, type RecoRelease, type Taste } from '../scripts/reco';
   import { GENRE_CHIPS } from '../lib/genres';
   import { searchScore } from '../lib/fuzzy';
 
@@ -146,7 +150,13 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
       // Plus on explore, plus on écarte ce qu'on connaît déjà
       const ranked = rank(exploreData, taste, explore).filter((s) => explore < 0.5 || !(s.item.artistId && taste!.followed.has(s.item.artistId)));
       const picks = ranked.slice(0, 4);
-      livePicks.innerHTML = picks.map((s) => releaseTileHtml({ ...s.item, artist: { name: s.item.artistName } }, { reason: s.reason })).join('');
+      livePicks.innerHTML = picks
+        .map((s) => {
+          const html = releaseTileHtml({ ...s.item, artist: { name: s.item.artistName } }, { reason: s.reason });
+          const canDismiss = s.item.artistId && !taste!.followed.has(s.item.artistId);
+          return canDismiss ? html.replace('</a>', `${dismissButtonHtml(s.item.artistId!, s.item.artistName)}</a>`) : html;
+        })
+        .join('');
       livePicks.hidden = false;
       const reason = picks.find((s) => s.reason)?.reason;
       if (why) why.textContent = reason ? `${reason}. Bouge le curseur pour t’éloigner ou te rapprocher de tes habitudes.` : active?.dataset.why ?? '';
@@ -156,6 +166,8 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
     if (why && active) why.textContent = active.dataset.why ?? '';
   };
   slider?.addEventListener('input', paint);
+  // « Pas pour moi » : l'artiste est écarté, le curseur propose autre chose
+  wireDismiss(livePicks, () => setTimeout(paint, 0));
   paint();
   loadTaste().then((t) => {
     if (t && !t.empty && exploreData.length) {

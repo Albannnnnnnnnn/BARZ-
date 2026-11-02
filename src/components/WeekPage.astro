@@ -69,6 +69,7 @@ const weekData = sorted.map((r, i) => ({
   slug: r.slug,
   date: r.release_date,
   group: groupOf(r, i),
+  releaseType: r.release_type,
 }));
 // Titres de jour du tri « Plus récentes » (placés et affichés par le script de la page)
 const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
@@ -199,7 +200,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
 <script>
   import { BASE, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
-  import { loadTaste, rank, scoreRelease, type RecoRelease, type Scored } from '../scripts/reco';
+  import { canRecommend, dismissButtonHtml, loadTaste, rank, scoreRelease, wireDismiss, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit } from '../scripts/engage';
   import { normName } from '../lib/feat';
 
@@ -388,7 +389,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     const usedArtists = new Set<string>();
     const usedReasons = new Set<string>();
     const candidates = week
-      .filter((r) => !taken.has(r.id) && (r.fans ?? 0) >= OUTSIDE_MIN_AUDIENCE)
+      .filter((r) => !taken.has(r.id) && (r.fans ?? 0) >= OUTSIDE_MIN_AUDIENCE && canRecommend(r, taste))
       .map((r) => scoreRelease(r, taste, 0.6))
       .filter((s) => !s.familiar && s.reason.startsWith('Hors de ta bulle'))
       .sort((a, b) => b.score - a.score);
@@ -406,8 +407,19 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     for (const s of picks) {
       const tile = tiles.get(s.item.id);
       if (s.reason && tile && !tile.querySelector('.bz-reason')) tile.insertAdjacentHTML('beforeend', `<span class="bz-reason">${escapeHtml(s.reason)}</span>`);
+      // « Pas pour moi » : sur les recos, pas sur les artistes que l'on suit
+      if (tile && s.item.artistId && !taste.followed.has(s.item.artistId)) tile.querySelector('.tile-cover')?.insertAdjacentHTML('beforeend', dismissButtonHtml(s.item.artistId, s.item.artistName));
     }
-    document.getElementById('reco-count')!.textContent = `Ta sélection : ${picks.length} sorties sur ${week.length}.`;
+    const countText = () => `Ta sélection : ${orders.reco.length} sorties sur ${week.length}.`;
+    document.getElementById('reco-count')!.textContent = countText();
+    // L'artiste écarté sort de la sélection (toutes ses sorties)
+    wireDismiss(grid, (artistId) => {
+      const gone = new Set(week.filter((r) => r.artistId === artistId).map((r) => r.id));
+      orders.reco = orders.reco.filter((id) => !gone.has(id));
+      gone.forEach((id) => tiles.get(id)?.querySelector('.bz-dismiss')?.remove());
+      document.getElementById('reco-count')!.textContent = countText();
+      if (currentSort === 'reco') applySort('reco');
+    });
     document.querySelector<HTMLElement>('[data-sort="reco"]')!.hidden = false;
     document.querySelector<HTMLOptionElement>('#sort-select option[value="reco"]')!.hidden = false;
     applySort('reco');

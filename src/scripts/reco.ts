@@ -3,6 +3,7 @@
 // 1. Profil de goûts d'un membre, à partir de ce qu'il fait dans BARZ¡ :
 //    artistes suivis (fort), genres choisis à l'inscription, écoutés, spin list,
 //    notes de ses Barz (un 9/10 compte en positif, un 3/10 en négatif) et import Last.fm.
+//    Écoutés, spin list et Barz perdent la moitié de leur poids tous les 6 mois ; « Pas pour moi » compte en négatif.
 // 2. Voisins : les artistes similaires (Deezer) de ce qu'il aime, pondérés.
 // 3. Score de chaque sortie, réglé par le curseur d'exploration :
 //    0 = mes habitudes (proximité), 1 = inconnu total (genres éloignés, artistes moins connus).
@@ -11,7 +12,7 @@
 import { GENRE_CHIPS } from '../lib/genres';
 import { getMyProfile, getSession, supabase } from './social';
 import { followedInFeat, normName } from '../lib/feat';
-import { audience } from '../lib/audience';
+import { audience, recommendable } from '../lib/audience';
 
 export type RecoRelease = {
   id: string;
@@ -20,6 +21,7 @@ export type RecoRelease = {
   genres: string[];
   fans: number | null;
   featuring?: string[];
+  releaseType?: string | null;
 };
 
 export type Taste = {
@@ -31,10 +33,63 @@ export type Taste = {
   relatedVia: Map<string, string>; // artiste recommandé → nom de l'artiste aimé qui y mène
   genreWeights: Map<string, number>; // somme = 1
   listened: Set<string>;
+  dismissed: Set<string>; // artistes écartés avec « Pas pour moi »
   names: Map<string, string>;
 };
 
 const RELATED_FROM_TOP = 60; // nombre d'artistes aimés dont on charge les voisins
+const HALF_LIFE_DAYS = 180; // un geste (écouté, spin list, Barz) pèse moitié moins au bout de 6 mois
+const decay = (createdAt: string | null | undefined) =>
+  createdAt ? Math.pow(0.5, Math.max(0, Date.now() - Date.parse(createdAt)) / 86_400_000 / HALF_LIFE_DAYS) : 1;
+
+// ============================================================
+// « PAS POUR MOI » (supabase/reco-dismissed.sql) : l'artiste n'est plus recommandé et compte en négatif.
+// Sans la table, le choix est gardé sur l'appareil.
+// ============================================================
+const DISMISSED_KEY = 'barz-dismissed';
+const localDismissed = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
+
+// Petit bouton « × » posé sur une vignette recommandée (dans le lien : le clic est intercepté par wireDismiss)
+export function dismissButtonHtml(artistId: string, artistName: string): string {
+  const label = `Pas pour moi : ne plus me recommander ${artistName}`.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return `<button type="button" class="bz-dismiss" data-dismiss="${artistId}" aria-label="${label}" title="Pas pour moi">×</button>`;
+}
+
+// Clic sur « × » : on ne suit pas le lien, l'artiste est écarté, puis la page retire la vignette (after)
+export function wireDismiss(container: HTMLElement, after: (artistId: string, tile: HTMLElement | null) => void) {
+  container.addEventListener(
+    'click',
+    (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLElement>('[data-dismiss]');
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const id = button.dataset.dismiss!;
+      dismissArtist(id).catch(() => {});
+      after(id, button.closest<HTMLElement>('.tile, .bz-ctile'));
+    },
+    true
+  );
+}
+
+export async function dismissArtist(artistId: string) {
+  tastePromise?.then((t) => t?.dismissed.add(artistId));
+  const session = await getSession();
+  const saved = session && supabase ? !(await supabase.from('reco_dismissed').upsert({ user_id: session.user.id, artist_id: artistId })).error : false;
+  if (!saved) {
+    try {
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify([...new Set([...localDismissed(), artistId])].slice(-500)));
+    } catch {
+      // stockage indisponible : le choix vaut pour cette visite
+    }
+  }
+}
 
 function chipOf(genre: string): string | null {
   return GENRE_CHIPS.find((c) => c.genres.includes(genre))?.label ?? null;
@@ -74,15 +129,16 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   const ARTIST = 'artist:artists(id, name, genres)';
   const RELEASE = `release:releases(id, genres, artist:artists!artist_id(id, name, genres))`;
 
-  const [profile, follows, listened, spin, barz, lastfm, imported] = await Promise.all([
+  const [profile, follows, listened, spin, barz, lastfm, imported, dismissed] = await Promise.all([
     isMe ? getMyProfile() : supabase.from('profiles').select('favorite_genres').eq('id', uid).maybeSingle().then((r) => r.data as { favorite_genres?: string[] } | null),
     supabase.from('follows').select(ARTIST).eq('user_id', uid),
-    supabase.from('listened').select(RELEASE).eq('user_id', uid),
-    supabase.from('spin_list').select(RELEASE).eq('user_id', uid),
-    supabase.from('barz').select(`score, ${RELEASE}`).eq('user_id', uid),
+    supabase.from('listened').select(`created_at, ${RELEASE}`).eq('user_id', uid),
+    supabase.from('spin_list').select(`created_at, ${RELEASE}`).eq('user_id', uid),
+    supabase.from('barz').select(`score, created_at, ${RELEASE}`).eq('user_id', uid),
     isMe ? supabase.from('lastfm_artists').select(`playcount, ${ARTIST}`).eq('user_id', uid).not('artist_id', 'is', null) : Promise.resolve({ data: [] }),
     // Artistes importés de Deezer et de Spotify (supabase/music-imports.sql), privés comme Last.fm
     isMe ? supabase.from('imported_artists').select(`weight, ${ARTIST}`).eq('user_id', uid) : Promise.resolve({ data: [] }),
+    isMe ? supabase.from('reco_dismissed').select(`${ARTIST}`).eq('user_id', uid).then((res) => (res.error ? { data: [] } : res)) : Promise.resolve({ data: [] }),
   ]);
 
   const taste: Taste = {
@@ -94,6 +150,7 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
     relatedVia: new Map(),
     genreWeights: new Map(),
     listened: new Set(),
+    dismissed: new Set(),
     names: new Map(),
   };
   const genreRaw = new Map<string, number>();
@@ -115,15 +172,15 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
   }
   for (const l of (listened.data ?? []) as any[]) {
     taste.listened.add(l.release?.id);
-    addArtist(l.release?.artist, 1);
-    addGenres(l.release?.genres, 1);
+    addArtist(l.release?.artist, decay(l.created_at));
+    addGenres(l.release?.genres, decay(l.created_at));
   }
   for (const s of (spin.data ?? []) as any[]) {
-    addArtist(s.release?.artist, 0.5);
-    addGenres(s.release?.genres, 0.5);
+    addArtist(s.release?.artist, 0.5 * decay(s.created_at));
+    addGenres(s.release?.genres, 0.5 * decay(s.created_at));
   }
   for (const b of (barz.data ?? []) as any[]) {
-    const w = (Number(b.score) - 5) / 2.5; // -2 … +2
+    const w = ((Number(b.score) - 5) / 2.5) * decay(b.created_at); // -2 … +2, puis vieillit
     addArtist(b.release?.artist, w);
     addGenres(b.release?.genres, w);
   }
@@ -135,6 +192,15 @@ async function buildTaste(uid: string, isMe: boolean): Promise<Taste | null> {
     addArtist(i.artist, Math.min(3, Number(i.weight) || 1));
     addGenres(i.artist?.genres, 0.5);
   }
+
+  // « Pas pour moi » : l'artiste en négatif, son genre un peu moins
+  const dismissedArtists = [...((dismissed.data ?? []) as any[]).map((d) => d.artist).filter(Boolean)];
+  for (const a of dismissedArtists) {
+    taste.dismissed.add(a.id);
+    addArtist(a, -2);
+    addGenres(a.genres, -0.3);
+  }
+  if (isMe) for (const id of localDismissed()) taste.dismissed.add(id);
 
   // Genres : on ne garde que les poids positifs, normalisés
   const positive = [...genreRaw.entries()].filter(([, w]) => w > 0);
@@ -206,8 +272,18 @@ export function scoreRelease<T extends RecoRelease>(r: T, taste: Taste, explore 
   return { item: r, score, reason, familiar: followed || !!featFollowed || direct > 0 || related > 0 || genre > 0.2 };
 }
 
+// Ce qui peut être recommandé : les artistes suivis toujours, sinon ni compilation, ni artiste écarté ou presque inconnu
+export function canRecommend(r: RecoRelease, taste: Taste): boolean {
+  if (r.artistId && taste.followed.has(r.artistId)) return true;
+  if (r.artistId && taste.dismissed.has(r.artistId)) return false;
+  return recommendable(r);
+}
+
 export function rank<T extends RecoRelease>(items: T[], taste: Taste, explore = 0.15): Scored<T>[] {
-  return items.map((r) => scoreRelease(r, taste, explore)).sort((a, b) => b.score - a.score);
+  return items
+    .filter((r) => canRecommend(r, taste))
+    .map((r) => scoreRelease(r, taste, explore))
+    .sort((a, b) => b.score - a.score);
 }
 
 // Artistes aimés par les deux, du plus partagé au moins partagé
@@ -226,6 +302,7 @@ export function rankForTwo<T extends RecoRelease>(items: T[], a: Taste, b: Taste
     return g ? chipOf(g) : null;
   };
   return items
+    .filter((r) => canRecommend(r, a) && canRecommend(r, b))
     .map((r) => {
       const sa = scoreRelease(r, a);
       const sb = scoreRelease(r, b);
@@ -260,7 +337,7 @@ export function recentReleases(): Promise<RecentRelease[]> {
       .order('release_date', { ascending: false })
       .limit(1500)
   ).then(({ data }) =>
-    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: audience(r.artist) || (r.metadata?.fans ?? null), featuring: r.metadata?.featuring ?? [] }))
+    ((data ?? []) as any[]).map((r) => ({ ...r, artistId: r.artist?.id ?? null, artistName: r.artist?.name ?? '', genres: r.genres ?? [], fans: audience(r.artist) || (r.metadata?.fans ?? null), featuring: r.metadata?.featuring ?? [], releaseType: r.release_type }))
   );
   return recentPromise;
 }

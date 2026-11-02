@@ -894,3 +894,34 @@
 .bz-artist-photo {
   border: var(--line);
 }
+
+/* « Pas pour moi » : petit « × » en haut à droite d'une pochette recommandée (src/scripts/reco.ts) */
+.bz-ctile {
+  position: relative;
+}
+
+.bz-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: 700 18px/1 var(--font-sans);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.bz-dismiss:hover,
+.bz-dismiss:focus-visible {
+  opacity: 1;
+  background: var(--color-ink);
+  color: #fff;
+}

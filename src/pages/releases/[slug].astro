@@ -11,6 +11,7 @@ import { GENRE_CHIPS, fetchReleasesBetween, type ReleaseRow } from '../../lib/re
 import { getReleaseTypeLabel, releaseSubtitle } from '../../lib/utils';
 import { listenMenuHtml } from '../../lib/listen';
 import { normName } from '../../lib/feat';
+import { audience, recommendable, releaseScore } from '../../lib/audience';
 
 export async function getStaticPaths() {
   const supabase = getSupabaseServerSafe();
@@ -26,13 +27,43 @@ export async function getStaticPaths() {
       if (!current || (a.audience ?? 0) > current.audience) guestSlugs.set(a.search_name, { slug: a.slug, audience: a.audience ?? 0 });
     }
   }
+  // Artistes proches (Deezer, supabase/discovery.sql), dans les deux sens : proximité de 0 à 1 (1 = le plus proche)
+  const closeness = new Map<string, number>();
+  const artistIds = [...new Set(all.map((r) => r.artist?.id).filter((id): id is string => !!id))];
+  const CHUNK = 30; // 30 artistes × 25 voisins : sous la limite de 1 000 lignes par requête
+  const chunks = Array.from({ length: Math.ceil(artistIds.length / CHUNK) }, (_, i) => artistIds.slice(i * CHUNK, (i + 1) * CHUNK));
+  for (let i = 0; supabase && i < chunks.length; i += 10) {
+    const pages = await Promise.all(
+      chunks.slice(i, i + 10).map((ids) => supabase!.from('artist_relations').select('artist_id, related_id, rank').in('artist_id', ids))
+    );
+    for (const { data } of pages) {
+      for (const e of (data ?? []) as { artist_id: string; related_id: string; rank: number }[]) {
+        const c = Math.max(0, 1 - e.rank / 25);
+        for (const key of [`${e.artist_id}|${e.related_id}`, `${e.related_id}|${e.artist_id}`]) closeness.set(key, Math.max(closeness.get(key) ?? 0, c));
+      }
+    }
+  }
+  const candidates = all.filter((r) =>
+    recommendable({ releaseType: r.release_type, artistName: r.artist?.name, featuring: r.metadata?.featuring, fans: audience(r.artist) })
+  );
+  const logAudience = (r: ReleaseRow) => Math.log10(audience(r.artist) + 1);
+
   return all.map((release) => {
-    // Sorties proches : genres en commun d'abord, puis dates voisines
+    // Sorties proches : d'abord les artistes proches (Deezer), puis les genres en commun et une audience comparable ;
+    // jamais le même artiste, une seule sortie par artiste, pas de compilation ni d'artiste presque inconnu
+    const artistId = release.artist?.id;
     const shared = (r: ReleaseRow) => r.genres?.filter((g) => release.genres?.includes(g)).length ?? 0;
-    const related = all
-      .filter((r) => r.id !== release.id)
-      .map((r) => ({ r, score: shared(r) * 1000 - Math.abs(Date.parse(r.release_date) - Date.parse(release.release_date)) / 86_400_000 }))
+    const sameLevel = (r: ReleaseRow) => 1 - Math.min(1, Math.abs(logAudience(r) - logAudience(release)) / 2);
+    const seen = new Set<string>();
+    const related = candidates
+      .filter((r) => r.id !== release.id && r.artist?.id && r.artist.id !== artistId)
+      .map((r) => {
+        const near = artistId ? closeness.get(`${artistId}|${r.artist!.id}`) ?? 0 : 0;
+        const days = Math.abs(Date.parse(r.release_date) - Date.parse(release.release_date)) / 86_400_000;
+        return { r, score: near * 100 + shared(r) * 10 + sameLevel(r) * 8 + releaseScore(r) * 0.5 - days / 365 };
+      })
       .sort((a, b) => b.score - a.score)
+      .filter(({ r }) => !seen.has(r.artist!.id) && !!seen.add(r.artist!.id))
       .slice(0, 6)
       .map(({ r }) => r);
     const featLinks = (release.metadata?.featuring ?? []).map((name) => ({ name, slug: guestSlugs.get(normName(name))?.slug ?? null }));
