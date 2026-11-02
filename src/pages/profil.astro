@@ -134,6 +134,7 @@ import InstallApp from '../components/InstallApp.astro';
             <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="listened">Écoutés</button>
             <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="barz">Barz</button>
             <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="artists">Artistes</button>
+            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="bilans">Bilans</button>
           </div>
           <div class="spin" id="p-collection"></div>
         </section>
@@ -179,6 +180,8 @@ import InstallApp from '../components/InstallApp.astro';
   import { nowPlaying, nowPlayingHtml, spotifyAvailable, spotifyDisconnect, spotifyImport, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
   import { deezerLink, deezerRefresh, deezerUnlink, type DeezerImport } from '../scripts/deezer';
   import { disablePush, enablePush, pushState, testPush } from '../scripts/push';
+
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
   const $ = (id: string) => document.getElementById(id)!;
   const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
@@ -275,15 +278,15 @@ import InstallApp from '../components/InstallApp.astro';
     $('p-bio').textContent = profile.bio?.trim() ?? '';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
-    // Le bilan, seulement la première semaine du mois : celui du mois qui vient de finir
+    // Le bilan du mois qui vient de finir, mis en avant les 4 premiers jours du mois ; ensuite dans l'onglet Bilans
     const today = new Date();
-    if (today.getDate() <= 7) {
+    const bilanHref = (d: Date) => `${BASE}bilan?m=${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}&u=${encodeURIComponent(profile.username)}`;
+    const monthOf = (d: Date) => `${/^[aeiou]/.test(MONTHS[d.getMonth()]) ? 'd’' : 'de '}${MONTHS[d.getMonth()]}`;
+    if (today.getDate() <= 4) {
       const last = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const month = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][last.getMonth()];
-      const key = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
       const bilan = $('p-bilan') as HTMLAnchorElement;
-      bilan.href = `${BASE}bilan?m=${key}&u=${encodeURIComponent(profile.username)}`;
-      bilan.textContent = `${isMe ? 'Ton bilan' : 'Son bilan'} ${/^[aeiou]/.test(month) ? 'd’' : 'de '}${month} →`;
+      bilan.href = bilanHref(last);
+      bilan.textContent = `${isMe ? 'Ton bilan' : 'Son bilan'} ${monthOf(last)} →`;
       bilan.hidden = false;
     }
     // Chaque compteur ouvre la liste correspondante plus bas
@@ -323,6 +326,15 @@ import InstallApp from '../components/InstallApp.astro';
         return;
       }
       collection.classList.remove('is-artists');
+      if (tab === 'bilans') {
+        const months: Date[] = [];
+        const first = new Date(profile.created_at);
+        for (let d = new Date(today.getFullYear(), today.getMonth(), 1); d >= new Date(first.getFullYear(), first.getMonth(), 1); d = new Date(d.getFullYear(), d.getMonth() - 1, 1)) months.push(d);
+        collection.innerHTML = `<div class="bilans">${months
+          .map((d, i) => `<a class="bilan-month" href="${bilanHref(d)}"><b>${MONTHS[d.getMonth()]} ${d.getFullYear()}</b><span>${i === 0 ? 'En cours' : 'Voir le bilan →'}</span></a>`)
+          .join('')}</div>`;
+        return;
+      }
       if (tab === 'barz') {
         collection.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, session?.user.id ?? null)).join('') : '<p class="bz-empty">Aucun Barz pour l’instant.</p>';
         return;
@@ -1192,6 +1204,42 @@ import InstallApp from '../components/InstallApp.astro';
   }
 
   /* La barre du haut reste collée en haut : les onglets s'arrêtent juste en dessous */
+  /* Onglet Bilans : un lien par mois depuis l'inscription */
+  .collection :global(.bilans) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+  }
+
+  .collection :global(.bilan-month) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    color: var(--color-text) !important;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .collection :global(.bilan-month:hover) {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-hard-sm);
+  }
+
+  .collection :global(.bilan-month b) {
+    font: 800 16px/1.1 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .collection :global(.bilan-month span) {
+    font-size: 14px;
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+
   #p-tabs {
     scroll-margin-top: 110px;
   }

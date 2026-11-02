@@ -383,9 +383,9 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     if (news?.requests) {
       items.push(`<li><a href="${BASE}profil"><b>${plural(news.requests, 'demande')} d’ami</b> en attente →</a></li>`);
     }
-    // La première semaine du mois, le bilan du mois précédent
+    // Les 4 premiers jours du mois, le bilan du mois précédent (ensuite dans l'onglet Bilans du profil)
     const now = new Date();
-    if (now.getDate() <= 7) {
+    if (now.getDate() <= 4) {
       const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const key = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
       const name = MONTHS[last.getMonth()];
