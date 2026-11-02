@@ -46,7 +46,19 @@ const genres = GENRE_CHIPS.filter((c) => sorted.some((r) => chipIdsFor(r.genres)
 const eyebrow = `Semaine ${getISOWeek(friday)} · vendredi ${format(friday, 'd MMMM', { locale: fr })}`;
 const subtitleOf = (r: ReleaseRow) => releaseSubtitle(r);
 // Données des sorties de la semaine pour le reclassement personnalisé (src/scripts/reco.ts)
-const weekData = sorted.map((r) => ({
+// Ordre « Populaires » rangé en sections : « À la une » (les plus attendues), puis albums et EP, singles, le reste
+const TOP_SIZE = count > 16 ? 8 : 0;
+const groupOf = (r: ReleaseRow, i: number) =>
+  i < TOP_SIZE ? 'top' : ['album', 'ep'].includes(r.release_type) ? 'albums' : r.release_type === 'single' ? 'singles' : 'others';
+const GROUPS = [
+  { id: 'top', title: 'À la une', unit: '' },
+  { id: 'albums', title: 'Albums et EP', unit: 'albums et EP' },
+  { id: 'singles', title: 'Singles', unit: 'singles' },
+  { id: 'others', title: 'Live, compils et BO', unit: 'sorties' },
+];
+const GROUP_CAP = 12;
+const byGroup = Object.fromEntries(GROUPS.map((g) => [g.id, sorted.filter((r, i) => groupOf(r, i) === g.id)]));
+const weekData = sorted.map((r, i) => ({
   id: r.id,
   artistId: r.artist?.id ?? null,
   artistName: r.artist?.name ?? '',
@@ -56,8 +68,8 @@ const weekData = sorted.map((r) => ({
   title: r.title,
   slug: r.slug,
   date: r.release_date,
+  group: groupOf(r, i),
 }));
-const dateOf = (r: ReleaseRow) => format(parseISO(r.release_date), 'EEE d MMM', { locale: fr });
 // Titres de jour du tri « Plus récentes » (placés et affichés par le script de la page)
 const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 ---
@@ -91,7 +103,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
 
     <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
-      <h2 id="artists-title" class="label">{current ? 'Ils ont sorti cette semaine' : 'Ils ont sorti cette semaine-là'}</h2>
+      <h2 id="artists-title" class="label">{current ? 'Les artistes de la semaine' : 'Les artistes de cette semaine-là'}</h2>
       <ul class="stories" id="stories">
         {[...spotlight.values()].map((a) => (
           <li>
@@ -106,50 +118,64 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
     {count > 0 ? (
       <section aria-label="Toutes les sorties de la semaine">
+        <!-- Tri et filtres sur une seule ligne, qui reste sous la barre du haut en faisant défiler -->
         <div class="toolbar">
-          <div class="tool-group">
-            <span class="tool-label" id="sort-label">Trier</span>
-            <div class="sorts" role="group" aria-labelledby="sort-label">
-              <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
-              <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
-              <button type="button" class="bz-chip" data-sort="date" aria-pressed="false">Plus récentes</button>
-              <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
-            </div>
+          <div class="sorts" role="group" aria-label="Trier">
+            <button type="button" class="bz-chip" data-sort="reco" aria-pressed="false" hidden>Pour toi</button>
+            <button type="button" class="bz-chip is-active" data-sort="popular" aria-pressed="true">Populaires</button>
+            <button type="button" class="bz-chip" data-sort="date" aria-pressed="false">Récentes</button>
+            <button type="button" class="bz-chip" data-sort="alpha" aria-pressed="false">A → Z</button>
           </div>
-          <div class="tool-group">
-            <span class="tool-label" aria-hidden="true">Filtrer</span>
-            <div class="filters">
-              <label class="sr-only" for="filter-genre">Genre</label>
-              <select id="filter-genre" class="select">
-                <option value="">Tous les genres</option>
-                {genres.map((c) => <option value={c.id}>{c.label}</option>)}
+          <!-- Sur mobile, le tri passe dans un menu pour que les filtres tiennent sur la ligne -->
+          <label class="sr-only" for="sort-select">Trier</label>
+          <select id="sort-select" class="select sort-select">
+            <option value="reco" hidden>Pour toi</option>
+            <option value="popular" selected>Populaires</option>
+            <option value="date">Récentes</option>
+            <option value="alpha">A → Z</option>
+          </select>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <label class="sr-only" for="filter-genre">Genre</label>
+          <select id="filter-genre" class="select">
+            <option value="">Genre</option>
+            {genres.map((c) => <option value={c.id}>{c.label}</option>)}
+          </select>
+          {types.length > 1 && (
+            <>
+              <label class="sr-only" for="filter-type">Format</label>
+              <select id="filter-type" class="select">
+                <option value="">Format</option>
+                {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
               </select>
-              {types.length > 1 && (
-                <>
-                  <label class="sr-only" for="filter-type">Type</label>
-                  <select id="filter-type" class="select">
-                    <option value="">Tous les formats</option>
-                    {types.map((t) => <option value={t}>{getReleaseTypeLabel(t)}</option>)}
-                  </select>
-                </>
-              )}
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
-        <div id="all-grid" class="bz-tiles grid is-capped">
-          {sorted.map((r) => (
-            <AlbumTile
-              title={r.title}
-              subtitle={subtitleOf(r)}
-              cover={r.cover_url}
-              href={`/BARZ-/releases/${r.slug}`}
-              chips={chipIdsFor(r.genres)}
-              releaseId={r.id}
-              type={r.release_type}
-              date={dateOf(r)}
-            />
+        <div id="groups">
+          {GROUPS.map((g) => (
+            <section class="group" data-group={g.id} data-unit={g.unit} hidden={!byGroup[g.id].length} aria-labelledby={`group-${g.id}`}>
+              <h2 class="group-title" id={`group-${g.id}`}>{g.title}</h2>
+              <div class:list={['bz-tiles', 'grid', { 'is-capped': g.id !== 'top' }]}>
+                {byGroup[g.id].map((r) => (
+                  <AlbumTile
+                    title={r.title}
+                    subtitle={subtitleOf(r)}
+                    cover={r.cover_url}
+                    href={`/BARZ-/releases/${r.slug}`}
+                    chips={chipIdsFor(r.genres)}
+                    releaseId={r.id}
+                    type={r.release_type}
+                  />
+                ))}
+              </div>
+              {g.id !== 'top' && byGroup[g.id].length > GROUP_CAP && (
+                <button type="button" class="bz-btn bz-btn--outline more group-more">Voir les {byGroup[g.id].length} {g.unit}</button>
+              )}
+            </section>
           ))}
+        </div>
+
+        <div id="all-grid" class="bz-tiles grid is-capped" hidden>
           {days.map((d) => (
             <h3 class="day-head" data-day={d} hidden>{format(parseISO(d), 'EEEE d MMMM', { locale: fr })}</h3>
           ))}
@@ -159,7 +185,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
           <span id="reco-count"></span>
           <button type="button" class="reco-all">Voir toutes les sorties</button>
         </p>
-        {count > 24 && <button type="button" class="bz-btn bz-btn--outline more" id="show-all">Voir les {count} sorties</button>}
+        {count > 24 && <button type="button" class="bz-btn bz-btn--outline more" id="show-all" hidden>Voir les {count} sorties</button>}
         <script type="application/json" id="week-data" set:html={JSON.stringify(weekData)} />
       </section>
     ) : (
@@ -177,14 +203,22 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   import { newsSince, previousVisit } from '../scripts/engage';
   import { normName } from '../lib/feat';
 
-  type WeekRelease = RecoRelease & { title: string; slug: string; date: string };
+  type WeekRelease = RecoRelease & { title: string; slug: string; date: string; group: string };
 
   const grid = document.getElementById('all-grid');
   const week: WeekRelease[] = JSON.parse(document.getElementById('week-data')?.textContent || '[]');
   const heads = new Map([...(grid?.querySelectorAll<HTMLElement>('.day-head') ?? [])].map((h) => [h.dataset.day!, h]));
   const dateOfId = new Map(week.map((r) => [r.id, r.date]));
   let currentSort = 'popular';
-  const tiles = new Map([...(grid?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
+  const groupsBox = document.getElementById('groups');
+  const groupOfId = new Map(week.map((r) => [r.id, r.group]));
+  const groupGrid = (id: string) => groupsBox?.querySelector<HTMLElement>(`[data-group="${id}"] .grid`);
+  const tiles = new Map([...(groupsBox?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
+  const GROUP_CAP = 12;
+
+  // La barre de tri reste juste sous la barre du haut, quelle que soit sa hauteur
+  const topbar = document.querySelector<HTMLElement>('.topbar');
+  if (topbar) new ResizeObserver(() => document.documentElement.style.setProperty('--topbar-h', `${topbar.offsetHeight}px`)).observe(topbar);
   const orders: Record<string, string[]> = {
     popular: week.map((r) => r.id),
     // Les plus récentes d'abord ; le même jour, dans l'ordre « Populaires » (tri stable)
@@ -198,13 +232,20 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       b.setAttribute('aria-pressed', String(b.dataset.sort === sort));
     });
     currentSort = sort;
+    const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
+    if (sortSelect) sortSelect.value = sort;
     // « Pour toi » : seulement la sélection ; les autres sorties sont masquées et rangées après
     const order = orders[sort] ?? [];
     const picked = new Set(order);
     tiles.forEach((tile, id) => tile.classList.toggle('is-out', sort === 'reco' && !picked.has(id)));
-    // « Plus récentes » : un titre avant les sorties de chaque jour, comme dans « À venir »
+    // « Populaires » : les sections ; les autres tris, une seule grille
+    const grouped = sort === 'popular';
+    if (groupsBox) groupsBox.hidden = !grouped;
+    if (grid) grid.hidden = grouped;
+    if (grouped) for (const id of order) groupGrid(groupOfId.get(id)!)?.appendChild(tiles.get(id)!);
+    // « Récentes » : un titre avant les sorties de chaque jour, comme dans « À venir »
     let day = '';
-    for (const id of sort === 'reco' ? [...order, ...orders.popular.filter((i) => !picked.has(i))] : order) {
+    for (const id of grouped ? [] : sort === 'reco' ? [...order, ...orders.popular.filter((i) => !picked.has(i))] : order) {
       const tile = tiles.get(id);
       if (!tile) continue;
       const head = sort === 'date' && dateOfId.get(id) !== day ? heads.get((day = dateOfId.get(id)!)) : undefined;
@@ -214,7 +255,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     const note = document.querySelector<HTMLElement>('.reco-note');
     if (note) note.hidden = sort !== 'reco';
     const showAll = document.getElementById('show-all');
-    if (showAll) showAll.hidden = sort === 'reco';
+    if (showAll) showAll.hidden = grouped || sort === 'reco' || !grid?.classList.contains('is-capped');
     applyFilters();
   }
 
@@ -246,6 +287,19 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     const empty = document.querySelector<HTMLElement>('.filter-empty');
     if (empty) empty.hidden = visible > 0;
     updateHeads();
+    updateGroups();
+  }
+
+  // Une section sans sortie visible disparaît ; son bouton annonce ce qui reste à voir
+  function updateGroups() {
+    groupsBox?.querySelectorAll<HTMLElement>('.group').forEach((group) => {
+      const shown = group.querySelectorAll('.tile:not([hidden])').length;
+      group.hidden = shown === 0;
+      const more = group.querySelector<HTMLElement>('.group-more');
+      if (!more) return;
+      more.hidden = shown <= GROUP_CAP || !group.querySelector('.grid.is-capped');
+      more.textContent = `Voir les ${shown} ${group.dataset.unit}`;
+    });
   }
 
   document.querySelector('.reco-all')?.addEventListener('click', () => applySort('popular'));
@@ -253,8 +307,15 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sort]');
     if (button) applySort(button.dataset.sort!);
   });
+  document.getElementById('sort-select')?.addEventListener('change', (event) => applySort((event.target as HTMLSelectElement).value));
   document.getElementById('filter-genre')?.addEventListener('change', applyFilters);
   document.getElementById('filter-type')?.addEventListener('change', applyFilters);
+  groupsBox?.addEventListener('click', (event) => {
+    const more = (event.target as HTMLElement).closest<HTMLElement>('.group-more');
+    if (!more) return;
+    more.closest('.group')?.querySelector('.grid')?.classList.remove('is-capped');
+    more.remove();
+  });
   document.getElementById('show-all')?.addEventListener('click', (event) => {
     grid?.classList.remove('is-capped');
     (event.currentTarget as HTMLElement).remove();
@@ -347,6 +408,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     }
     document.getElementById('reco-count')!.textContent = `Ta sélection : ${picks.length} sorties sur ${week.length}.`;
     document.querySelector<HTMLElement>('[data-sort="reco"]')!.hidden = false;
+    document.querySelector<HTMLOptionElement>('#sort-select option[value="reco"]')!.hidden = false;
     applySort('reco');
   }
 
@@ -406,8 +468,29 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 </script>
 
 <style>
-  .grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden], .is-out))) {
+  #all-grid.is-capped > :global(:nth-child(n + 25 of .tile:not([hidden], .is-out))),
+  .group .grid.is-capped > :global(:nth-child(n + 13 of .tile:not([hidden]))) {
     display: none;
+  }
+
+  #groups[hidden],
+  #all-grid[hidden],
+  .group[hidden],
+  .group-more[hidden] {
+    display: none;
+  }
+
+  .group + .group {
+    margin-top: 48px;
+  }
+
+  .group-title {
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: var(--line);
+    font: 800 22px/1 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-text);
   }
 
   .grid > :global(.is-out) {
@@ -628,46 +711,39 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   }
 
   .toolbar {
+    position: sticky;
+    top: var(--topbar-h, 0px);
+    z-index: 30;
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px 32px;
-    margin: 36px 0 28px;
-    padding: 16px 0;
-    border-top: var(--line);
-    border-bottom: var(--line);
-  }
-
-  .tool-group {
-    display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 8px;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .tool-label {
-    font: 900 11px/1 var(--font-sans);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--color-text);
-  }
-
-  .sorts {
-    display: inline-flex;
-    align-self: flex-start;
-    max-width: 100%;
-    gap: 2px;
-    padding: 3px;
-    border: var(--line);
-    border-radius: 10px;
+    margin: 32px 0 28px;
+    padding: 12px 0;
+    border-bottom: var(--line);
+    background: var(--color-bg);
     overflow-x: auto;
     scrollbar-width: none;
   }
 
-  .sorts::-webkit-scrollbar {
+  .toolbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .tool-sep {
+    flex-shrink: 0;
+    width: 2px;
+    height: 24px;
+    margin: 0 4px;
+    background: var(--color-ink);
+  }
+
+  .sorts {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 2px;
+    padding: 3px;
+    border: var(--line);
+    border-radius: 10px;
   }
 
   .sorts .bz-chip {
@@ -685,12 +761,12 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     display: none;
   }
 
-  .filters {
-    display: flex;
-    gap: 8px;
+  .sort-select {
+    display: none;
   }
 
   .select {
+    flex-shrink: 0;
     appearance: none;
     padding: 8px 34px 8px 12px;
     border: var(--line);
@@ -742,14 +818,24 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       height: 60px;
     }
     .toolbar {
-      flex-direction: column;
-      align-items: stretch;
-      margin: 24px 0 20px;
+      margin: 24px -16px 20px;
+      padding: 10px 16px;
     }
-    .filters .select {
-      flex: 1;
-      min-width: 0;
-      text-overflow: ellipsis;
+    .sorts,
+    .tool-sep {
+      display: none;
+    }
+    .sort-select {
+      display: block;
+      background-color: var(--color-ink);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      color: #fff;
+    }
+    .group + .group {
+      margin-top: 36px;
+    }
+    .group-title {
+      font-size: 18px;
     }
   }
 </style>
