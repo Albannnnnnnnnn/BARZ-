@@ -1,0 +1,223 @@
+---
+// Jeux du jour et défi « Sors de ta bulle », dans l'onglet Découvrir (src/pages/search.astro).
+// Les jeux : où on en est aujourd'hui (src/scripts/daily-games.ts). Le défi : un disque hors de la bulle,
+// relevé quand on l'écoute ou qu'on le note (src/scripts/engage.ts).
+const GAMES = [
+  { id: 'pochette', href: '/BARZ-/jeux/pochette', title: 'Pochette floue', text: 'Retrouve l’album, en 6 essais' },
+  { id: 'artiste', href: '/BARZ-/jeux/artiste', title: 'L’artiste mystère', text: 'Devine qui c’est' },
+];
+---
+
+<section class="play" aria-labelledby="play-title">
+  <div class="games">
+    <div class="games-head">
+      <h2 id="play-title" class="games-title">Jeux du jour</h2>
+      <a class="games-all" href="/BARZ-/jeux">Tous les jeux →</a>
+    </div>
+    <div class="games-grid">
+      {GAMES.map((g) => (
+        <a class="game" href={g.href} data-game={g.id}>
+          <b>{g.title}</b>
+          <span data-state>{g.text}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <section class="challenge" id="challenge" hidden aria-label="Défi de la semaine"></section>
+</section>
+
+<script>
+  import { BASE, coverHtml, escapeHtml } from '../scripts/social';
+  import { weeklyChallenge } from '../scripts/engage';
+  import { dailyGameStatus } from '../scripts/daily-games';
+
+  const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+
+  // Jeux déjà joués aujourd'hui sur cet appareil
+  document.querySelectorAll<HTMLElement>('[data-game]').forEach((card) => {
+    const status = dailyGameStatus(card.dataset.game as 'pochette' | 'artiste');
+    if (!status) return;
+    card.classList.add('is-done');
+    card.querySelector('[data-state]')!.textContent = status;
+  });
+
+  // Défi de la semaine
+  async function showChallenge() {
+    const c = await weeklyChallenge();
+    if (!c) return;
+    const href = `${BASE}releases/${encodeURIComponent(c.release.slug)}`;
+    const status = c.done
+      ? `<p class="challenge-done">Défi relevé ✓</p>`
+      : `${c.previous ? `<p class="challenge-done">« ${escapeHtml(c.previous)} » : défi relevé ✓ Voici le suivant.</p>` : ''}<p class="challenge-how">Écoute-le, puis marque-le comme écouté ou note-le pour relever le défi.</p>`;
+    document.getElementById('challenge')!.innerHTML = `
+      <a class="challenge-cover" href="${href}">${coverHtml(c.release.title, c.release.cover_url)}</a>
+      <div class="challenge-body">
+        <span class="challenge-eyebrow">Défi · Sors de ta bulle</span>
+        <h2><a href="${href}">${escapeHtml(c.release.title)}</a></h2>
+        <p class="challenge-artist">${escapeHtml(c.release.artistName)}${c.reason ? ` · ${escapeHtml(c.reason)}` : ''}</p>
+        ${status}
+        <div class="challenge-actions">
+          <a class="bz-btn bz-btn--lime bz-btn--small" href="${href}">${c.done ? 'Revoir la fiche' : 'Écouter'}</a>
+          ${c.doneCount ? `<span>${plural(c.doneCount, 'défi')} relevé${c.doneCount > 1 ? 's' : ''} au total</span>` : ''}
+        </div>
+      </div>`;
+    document.getElementById('challenge')!.hidden = false;
+  }
+
+  showChallenge().catch((err) => console.warn('Défi indisponible :', err));
+  // Retour sur la page (bouton précédent, appli rouverte) : le défi a pu être relevé ou changer de semaine entre-temps
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) showChallenge().catch(() => {});
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') showChallenge().catch(() => {});
+  });
+</script>
+
+<style>
+  .play {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 28px;
+  }
+
+  .games {
+    padding: 18px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .games-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .games-title {
+    font: 800 20px/1 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-on-accent);
+  }
+
+  .games-all {
+    font: 700 11px/1 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-on-accent) !important;
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .game {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper);
+    color: var(--color-text) !important;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .game:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-hard-sm);
+  }
+
+  .game b {
+    font: 700 13px/1.2 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .game span {
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+
+  .game.is-done span {
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  .challenge {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 20px;
+    align-items: center;
+    padding: 18px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent-soft);
+  }
+
+  .challenge[hidden] {
+    display: none;
+  }
+
+  .challenge :global(.challenge-eyebrow) {
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .challenge :global(h2) {
+    margin: 10px 0 6px;
+    font: 800 clamp(18px, 2vw, 24px) / 1.05 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .challenge :global(h2 a) {
+    color: inherit !important;
+  }
+
+  .challenge :global(.challenge-artist),
+  .challenge :global(.challenge-how) {
+    font-size: 15px;
+    color: var(--color-text-muted);
+  }
+
+  .challenge :global(.challenge-how),
+  .challenge :global(.challenge-done) {
+    margin-top: 8px;
+  }
+
+  .challenge :global(.challenge-done) {
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  .challenge :global(.challenge-actions) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 900px) {
+    .play {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .challenge {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+  }
+</style>

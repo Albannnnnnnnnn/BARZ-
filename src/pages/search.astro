@@ -3,6 +3,7 @@
 import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
+import DailyPlay from '../components/DailyPlay.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
@@ -59,9 +60,10 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
       <nav class="tabs" aria-label="Modes d’exploration">
         <a class="bz-chip is-active" href="/BARZ-/search" aria-current="page">Découverte</a>
         <a class="bz-chip" href="/BARZ-/artistes">Artistes</a>
-        <a class="bz-chip" href="/BARZ-/jeux">Jeux</a>
       </nav>
     </div>
+
+    <DailyPlay />
 
     <section id="results" class="results" hidden aria-live="polite">
       <div class="bz-section-head">

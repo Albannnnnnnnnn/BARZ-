@@ -1,6 +1,6 @@
 ---
 // PAGE D'UNE SEMAINE DE SORTIES (du vendredi au jeudi) : la semaine en cours (src/pages/index.astro), avec
-// nouveautés depuis la dernière visite, défi et artistes suivis, ou une semaine passée (src/pages/semaine/[vendredi].astro).
+// nouveautés depuis la dernière visite et artistes suivis, ou une semaine passée (src/pages/semaine/[vendredi].astro).
 // Sorties triées et filtrables, navigation vers les semaines voisines.
 import { addDays, format, getISOWeek, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -88,18 +88,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
       <ul class="visit-items" id="visit-items"></ul>
     </section>
 
-    <section class="challenge" id="challenge" hidden aria-label="Défi de la semaine"></section>
 
-    {current && (
-      <a class="daily-game" href="/BARZ-/jeux" id="daily-game">
-        <span class="daily-game-icon" aria-hidden="true">🎲</span>
-        <span class="daily-game-text">
-          <b>Jeux du jour</b>
-          <span id="daily-game-sub">Pochette floue · L’artiste mystère</span>
-        </span>
-        <span class="daily-game-go" id="daily-game-go">Jouer →</span>
-      </a>
-    )}
 
     <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
       <h2 id="artists-title" class="label">{current ? 'Ils ont sorti cette semaine' : 'Ils ont sorti cette semaine-là'}</h2>
@@ -183,11 +172,10 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 </Layout>
 
 <script>
-  import { BASE, coverHtml, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
+  import { BASE, escapeHtml, getSession, myFollows, supabase, timeAgo } from '../scripts/social';
   import { loadTaste, rank, scoreRelease, type RecoRelease, type Scored } from '../scripts/reco';
-  import { newsSince, previousVisit, weeklyChallenge } from '../scripts/engage';
+  import { newsSince, previousVisit } from '../scripts/engage';
   import { normName } from '../lib/feat';
-  import { dailyGameStatus } from '../scripts/daily-games';
 
   type WeekRelease = RecoRelease & { title: string; slug: string; date: string };
 
@@ -409,52 +397,10 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
     document.getElementById('visit')!.hidden = false;
   }
 
-  // Défi de la semaine : un disque hors de la bulle, relevé quand on l'écoute ou qu'on le note
-  async function showChallenge() {
-    const c = await weeklyChallenge();
-    if (!c) return;
-    const href = `${BASE}releases/${encodeURIComponent(c.release.slug)}`;
-    const status = c.done
-      ? `<p class="challenge-done">Défi relevé ✓</p>`
-      : `${c.previous ? `<p class="challenge-done">« ${escapeHtml(c.previous)} » : défi relevé ✓ Voici le suivant.</p>` : ''}<p class="challenge-how">Écoute-le, puis marque-le comme écouté ou note-le pour relever le défi.</p>`;
-    document.getElementById('challenge')!.innerHTML = `
-      <a class="challenge-cover" href="${href}">${coverHtml(c.release.title, c.release.cover_url)}</a>
-      <div class="challenge-body">
-        <span class="challenge-eyebrow">Défi · Sors de ta bulle</span>
-        <h2><a href="${href}">${escapeHtml(c.release.title)}</a></h2>
-        <p class="challenge-artist">${escapeHtml(c.release.artistName)}${c.reason ? ` · ${escapeHtml(c.reason)}` : ''}</p>
-        ${status}
-        <div class="challenge-actions">
-          <a class="bz-btn bz-btn--lime bz-btn--small" href="${href}">${c.done ? 'Revoir la fiche' : 'Écouter'}</a>
-          ${c.doneCount ? `<span>${plural(c.doneCount, 'défi')} relevé${c.doneCount > 1 ? 's' : ''} au total</span>` : ''}
-        </div>
-      </div>`;
-    document.getElementById('challenge')!.hidden = false;
-  }
-
-  // Jeux du jour déjà joués sur cet appareil
-  if (document.getElementById('daily-game')) {
-    const played = (['pochette', 'artiste'] as const).filter((g) => dailyGameStatus(g)).length;
-    if (played === 2) {
-      document.getElementById('daily-game-sub')!.textContent = 'Les deux jeux sont faits. Rendez-vous demain !';
-      document.getElementById('daily-game-go')!.textContent = 'Voir →';
-    } else if (played === 1) {
-      document.getElementById('daily-game-sub')!.textContent = 'Plus qu’un jeu à faire aujourd’hui.';
-    }
-  }
-
-  // Nouveautés, défi et artistes suivis : seulement sur la semaine en cours
+  // Nouveautés et artistes suivis : seulement sur la semaine en cours (le défi et les jeux sont dans Découvrir)
   if (document.querySelector('[data-current-week]')) {
     showVisit().catch((err) => console.warn('Nouveautés indisponibles :', err));
-    showChallenge().catch((err) => console.warn('Défi indisponible :', err));
     showFollowed().catch(() => {});
-    // Retour sur l'accueil (bouton précédent, appli rouverte) : le défi a pu être relevé ou changer de semaine entre-temps
-    window.addEventListener('pageshow', (event) => {
-      if (event.persisted) showChallenge().catch(() => {});
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') showChallenge().catch(() => {});
-    });
   }
   personalize().catch((err) => console.warn('Personnalisation indisponible :', err));
 </script>
@@ -545,8 +491,7 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
   }
 
   .artists[hidden],
-  .visit[hidden],
-  .challenge[hidden] {
+  .visit[hidden] {
     display: none;
   }
 
@@ -586,116 +531,6 @@ const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
 
   .visit-items :global(a:hover) {
     text-decoration-color: var(--color-accent);
-  }
-
-  .daily-game {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 16px;
-    padding: 14px 18px;
-    border: var(--line);
-    border-radius: 14px;
-    background: var(--color-paper);
-    color: var(--color-text);
-    box-shadow: var(--shadow-hard);
-    transition: transform var(--transition-fast);
-  }
-
-  .daily-game:hover {
-    transform: translate(-1px, -1px);
-  }
-
-  .daily-game-icon {
-    font-size: 26px;
-  }
-
-  .daily-game-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    font-size: 14px;
-    color: var(--color-text-muted);
-  }
-
-  .daily-game-text b {
-    font-size: 15px;
-    font-weight: 900;
-    text-transform: uppercase;
-    color: var(--color-text);
-  }
-
-  .daily-game-go {
-    margin-left: auto;
-    flex-shrink: 0;
-    font: 700 13px/1 var(--font-display);
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
-
-  .challenge {
-    display: grid;
-    grid-template-columns: 148px minmax(0, 1fr);
-    gap: 26px;
-    align-items: center;
-    margin-top: 28px;
-    padding: 22px;
-    border: var(--line);
-    border-radius: 14px;
-    background: var(--color-accent-soft);
-  }
-
-  .challenge :global(.bz-cover) {
-    border-radius: 12px;
-  }
-
-  .challenge :global(.challenge-eyebrow) {
-    font: 700 12px/1 var(--font-sans);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
-
-  .challenge :global(h2) {
-    margin: 12px 0 6px;
-    font: 800 clamp(20px, 2.6vw, 28px) / 1 var(--font-display);
-    text-transform: uppercase;
-    color: var(--color-text);
-  }
-
-  .challenge :global(.challenge-artist),
-  .challenge :global(.challenge-how) {
-    font-size: 15px;
-    color: var(--color-text-muted);
-  }
-
-  .challenge :global(.challenge-how),
-  .challenge :global(.challenge-done) {
-    margin-top: 10px;
-  }
-
-  .challenge :global(.challenge-done) {
-    font-weight: 700;
-    color: var(--color-accent);
-  }
-
-  .challenge :global(.challenge-actions) {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 14px;
-    margin-top: 16px;
-    font-size: 14px;
-    color: var(--color-text-muted);
-  }
-
-  @media (max-width: 640px) {
-    .challenge {
-      grid-template-columns: 96px minmax(0, 1fr);
-      gap: 16px;
-      padding: 16px;
-    }
   }
 
   .label {
