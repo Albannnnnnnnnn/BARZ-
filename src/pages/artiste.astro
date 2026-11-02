@@ -175,6 +175,7 @@ import Layout from '../layouts/Layout.astro';
     document.title = `${a.name} | BARZ¡`;
     $('a-photo').innerHTML = a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" />` : `<span class="bz-artist-initial">${escapeHtml(a.name[0])}</span>`;
     $('a-name').textContent = a.name;
+    $('a-name').style.setProperty('--mot', String(Math.max(6, ...a.name.split(/\s+/).map((w) => w.length))));
     $('a-genres').textContent = GENRE_CHIPS.filter((c) => c.genres.some((g) => a.genres?.includes(g))).map((c) => c.label).join(' · ') || 'Artiste';
     const nbFollowers = followers.count ?? 0;
     $('a-meta').textContent = [formatAudience(a), nbFollowers ? `${nbFollowers} membre${nbFollowers > 1 ? 's' : ''} le suive${nbFollowers > 1 ? 'nt' : ''} sur BARZ¡` : '']
@@ -217,13 +218,18 @@ import Layout from '../layouts/Layout.astro';
     gap: 56px;
   }
 
-  /* Les noms longs (« Gesaffelstein ») passent à la ligne au lieu de déborder */
+  /* Le nom suit la largeur de sa colonne (police large) : « Gesaffelstein » tient sur une ligne au lieu d'être coupé ;
+     un mot n'est coupé que s'il ne tient vraiment pas */
   .info {
     min-width: 0;
+    container-type: inline-size;
+    width: 100%;
   }
 
   #a-name {
-    overflow-wrap: anywhere;
+    /* --mot : longueur du mot le plus long du nom (posée par le script) ; Unbounded fait ~0,85 em par lettre */
+    font-size: clamp(26px, calc(100cqi / (var(--mot, 8) * 0.9)), 96px);
+    overflow-wrap: break-word;
   }
 
   .hero[hidden],
