@@ -1,0 +1,369 @@
+---
+// PAGE D'UN DISQUE DE LA DISCOGRAPHIE (album?d=<id Deezer>) : un ancien disque qui n'a pas de fiche construite.
+// Tout est lu dans le navigateur : le disque et ses titres chez Deezer (JSONP), ses Barz dans Supabase.
+// Le premier membre qui le note ou le range l'ajoute au catalogue (fonction deezer, action import-album) ;
+// un disque déjà au catalogue avec une vraie fiche y renvoie directement.
+import Layout from '../layouts/Layout.astro';
+import Player from '../components/Player.astro';
+---
+
+<Layout title="Disque" description="Un disque de la discographie : ses titres, ses extraits et les Barz des membres.">
+  <div class="bz-page">
+    <a class="back" id="al-back" href="/BARZ-/">← Sorties</a>
+    <p class="bz-notice" id="al-status">Chargement…</p>
+
+    <section class="hero" id="al-hero" hidden>
+      <div class="hero-art" id="al-art"></div>
+      <div class="info">
+        <span class="bz-eyebrow" id="al-eyebrow"></span>
+        <h1 class="bz-display" id="al-title"></h1>
+        <a class="artist" id="al-artist"></a>
+        <dl class="facts" id="al-facts"></dl>
+        <div class="actions" id="al-listen"></div>
+        <div class="shelves">
+          <button type="button" class="bz-chip" data-shelf="spin_list" aria-pressed="false">+ Spin list</button>
+          <button type="button" class="bz-chip" data-shelf="listened" aria-pressed="false">✓ Écouté</button>
+        </div>
+      </div>
+    </section>
+
+    <Player title="ce disque" dynamic />
+
+    <section class="barz" id="al-barz" hidden aria-labelledby="barz-title">
+      <div class="bz-section-head">
+        <h2 id="barz-title" class="bz-h2">Les <em>Barz</em></h2>
+        <span class="barz-avg" id="barz-avg"></span>
+      </div>
+      <form class="barz-form" id="barz-form" hidden>
+        <label class="bz-field score-field">
+          Ta note
+          <span class="score-row">
+            <input type="range" name="score" min="0" max="10" step="0.5" value="7" />
+            <output name="score-out">7.0</output>
+          </span>
+        </label>
+        <label class="bz-field">
+          Ton Barz
+          <textarea class="bz-input" name="body" maxlength="280" rows="3" placeholder="Ce que tu en as pensé, en une phrase…" required></textarea>
+        </label>
+        <p class="bz-notice" id="barz-message" hidden></p>
+        <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Publier mon Barz</button>
+      </form>
+      <a class="bz-notice login-hint" id="barz-login" href="/BARZ-/connexion" hidden>Connecte-toi pour noter ce disque et écrire ton Barz →</a>
+      <div class="barz-list" id="barz-list"></div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { listenMenuHtml } from '../lib/listen';
+  import { initListen } from '../scripts/listen';
+  import {
+    BASE,
+    barzCardHtml,
+    barzFeed,
+    coverHtml,
+    errorText,
+    escapeHtml,
+    formatScore,
+    getSession,
+    isOnShelf,
+    loginUrl,
+    saveBarz,
+    setOnShelf,
+    supabase,
+    wireBarzActions,
+    type Shelf,
+  } from '../scripts/social';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const TYPES: Record<string, string> = { album: 'Album', ep: 'EP', single: 'Single', compile: 'Compilation' };
+  const albumId = Number(new URLSearchParams(location.search).get('d'));
+  const status = $('al-status');
+  const fail = (text: string) => {
+    status.textContent = text;
+    status.className = 'bz-notice bz-notice--error';
+    status.hidden = false;
+  };
+
+  // JSONP : l'API de Deezer n'accepte pas fetch depuis un autre site (même méthode que le lecteur d'extraits)
+  function jsonp<T>(url: string): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const name = `barzAlbum${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+      const script = document.createElement('script');
+      const done = () => {
+        clearTimeout(timer);
+        delete (window as any)[name];
+        script.remove();
+      };
+      const timer = setTimeout(() => (done(), reject(new Error('Deezer ne répond pas'))), 8000);
+      (window as any)[name] = (data: T) => (done(), resolve(data));
+      script.onerror = () => (done(), reject(new Error('Deezer injoignable')));
+      script.src = `${url}${url.includes('?') ? '&' : '?'}output=jsonp&callback=${name}`;
+      document.head.append(script);
+    });
+  }
+
+  // La sortie au catalogue (null tant que personne ne l'a notée ni rangée)
+  let releaseId: string | null = null;
+  let myId: string | null = null;
+
+  // Ajout au catalogue à la première note ou au premier rangement
+  async function ensureRelease(): Promise<string> {
+    if (releaseId) return releaseId;
+    const { data, error } = await supabase!.functions.invoke('deezer', { body: { action: 'import-album', deezerAlbumId: albumId } });
+    if (error || !data?.id) {
+      const detail = await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+      throw new Error(detail?.error ?? 'Impossible d’ajouter ce disque pour l’instant.');
+    }
+    releaseId = data.id as string;
+    return releaseId;
+  }
+
+  async function renderBarz() {
+    const list = $('barz-list');
+    const avg = $('barz-avg');
+    const form = $('barz-form') as HTMLFormElement;
+    if (!releaseId) {
+      list.innerHTML = '<p class="bz-empty">Aucun Barz pour l’instant. Donne le premier avis.</p>';
+      avg.textContent = '';
+      return;
+    }
+    const barz = await barzFeed({ releaseId, limit: 50 });
+    list.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, myId, { showRelease: false })).join('') : '<p class="bz-empty">Aucun Barz pour l’instant. Donne le premier avis.</p>';
+    avg.textContent = barz.length ? `${formatScore(barz.reduce((sum, b) => sum + Number(b.score), 0) / barz.length)} / 10 · ${barz.length} avis` : '';
+    const mine = barz.find((b) => b.user_id === myId);
+    if (mine) {
+      (form.elements.namedItem('score') as HTMLInputElement).value = String(mine.score);
+      (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);
+      (form.elements.namedItem('body') as HTMLTextAreaElement).value = mine.body;
+    }
+  }
+
+  async function load() {
+    if (!Number.isInteger(albumId) || albumId <= 0 || !supabase) return fail('Disque introuvable.');
+    const album = await jsonp<any>(`https://api.deezer.com/album/${albumId}`);
+    if (!album || album.error) return fail('Disque introuvable sur Deezer.');
+
+    // Déjà au catalogue : une vraie fiche → on y va ; un ancien disque déjà ajouté → ses Barz ici
+    const link = album.link ?? `https://www.deezer.com/album/${albumId}`;
+    const { data: known } = await supabase.from('releases').select('id, slug, metadata').eq('deezer_url', link).maybeSingle();
+    if (known && !(known as any).metadata?.archive) return void location.replace(`${BASE}releases/${encodeURIComponent((known as any).slug)}`);
+    releaseId = (known as any)?.id ?? null;
+
+    const artistName = album.artist?.name ?? '';
+    const { data: artist } = await supabase.from('artists').select('slug').eq('deezer_id', album.artist?.id ?? 0).maybeSingle();
+    const artistHref = artist ? `${BASE}artiste?a=${encodeURIComponent((artist as any).slug)}` : `${BASE}artiste?nom=${encodeURIComponent(artistName)}`;
+
+    document.title = `${album.title} — ${artistName} | BARZ¡`;
+    const back = $('al-back') as HTMLAnchorElement;
+    back.href = artistHref;
+    back.textContent = `← ${artistName}`;
+    $('al-art').innerHTML = coverHtml(album.title, album.cover_xl ?? album.cover_big ?? null);
+    const date = new Date(`${album.release_date}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    $('al-eyebrow').textContent = `${TYPES[album.record_type] ?? 'Album'} · ${date}`;
+    $('al-title').textContent = album.title;
+    const artistLink = $('al-artist') as HTMLAnchorElement;
+    artistLink.textContent = artistName;
+    artistLink.href = artistHref;
+    const facts = [
+      album.nb_tracks ? ['Titres', String(album.nb_tracks)] : null,
+      album.duration ? ['Durée', `${Math.round(album.duration / 60)} min`] : null,
+      album.label ? ['Label', album.label] : null,
+    ].filter(Boolean) as [string, string][];
+    $('al-facts').innerHTML = facts.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('');
+    $('al-listen').innerHTML = listenMenuHtml({ artist: artistName, title: album.title, deezerUrl: link });
+    initListen();
+    status.hidden = true;
+    $('al-hero').hidden = false;
+
+    // Titres et extraits : le lecteur commun
+    const previews = document.querySelector<HTMLElement>('[data-previews]');
+    if (previews) {
+      previews.dataset.album = String(albumId);
+      previews.dispatchEvent(new Event('barz:previews', { bubbles: true }));
+    }
+
+    const session = await getSession();
+    myId = session?.user.id ?? null;
+    ($('barz-form') as HTMLFormElement).hidden = !session;
+    const hint = $('barz-login') as HTMLAnchorElement;
+    hint.hidden = !!session;
+    hint.href = loginUrl();
+    $('al-barz').hidden = false;
+    await renderBarz();
+
+    // Spin list / Écouté
+    document.querySelectorAll<HTMLButtonElement>('[data-shelf]').forEach(async (button) => {
+      const paint = (on: boolean) => {
+        button.classList.toggle('is-active', on);
+        button.setAttribute('aria-pressed', String(on));
+      };
+      if (releaseId) paint(await isOnShelf(button.dataset.shelf as Shelf, releaseId));
+      button.addEventListener('click', async () => {
+        if (!(await getSession())) return void (location.href = loginUrl());
+        const on = button.getAttribute('aria-pressed') !== 'true';
+        paint(on);
+        try {
+          await setOnShelf(button.dataset.shelf as Shelf, await ensureRelease(), on);
+        } catch (err) {
+          paint(!on);
+          alert(errorText(err));
+        }
+      });
+    });
+  }
+
+  const form = $('barz-form') as HTMLFormElement;
+  const message = $('barz-message');
+  form.addEventListener('input', () => {
+    (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(Number((form.elements.namedItem('score') as HTMLInputElement).value));
+  });
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const body = String(data.get('body') ?? '').trim();
+    if (!body) return;
+    try {
+      await saveBarz(await ensureRelease(), Number(data.get('score')), body);
+      message.hidden = true;
+      await renderBarz();
+    } catch (err) {
+      message.textContent = errorText(err);
+      message.className = 'bz-notice bz-notice--error';
+      message.hidden = false;
+    }
+  });
+  wireBarzActions($('barz-list'), () => renderBarz());
+
+  load().catch((err) => fail(errorText(err)));
+</script>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 48px;
+    align-items: center;
+  }
+
+  .hero-art {
+    padding: 24px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .info {
+    min-width: 0;
+  }
+
+  .info .bz-display {
+    overflow-wrap: break-word;
+  }
+
+  .artist {
+    display: inline-block;
+    margin: 14px 0 6px;
+    font: 700 18px/1.2 var(--font-sans);
+    color: var(--color-text);
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    margin: 20px 0;
+    padding: 16px 0;
+    border-top: var(--line);
+  }
+
+  .facts :global(dt) {
+    font: 700 11px/1 var(--font-sans);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .facts :global(dd) {
+    margin-top: 6px;
+    font: 800 16px/1.2 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .shelves {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .barz {
+    margin-top: 56px;
+  }
+
+  .barz-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 640px;
+    margin-bottom: 24px;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .score-row input {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+
+  .score-row output {
+    font: 800 18px/1 var(--font-display);
+    color: var(--color-accent);
+  }
+
+  .login-hint {
+    display: block;
+    margin-bottom: 20px;
+    color: var(--color-accent) !important;
+    font-weight: 600;
+  }
+
+  .barz-avg {
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+
+  .hero[hidden],
+  .barz[hidden],
+  .barz-form[hidden],
+  .login-hint[hidden],
+  .bz-notice[hidden] {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+    }
+    .hero-art {
+      max-width: 300px;
+      padding: 16px;
+    }
+    .barz {
+      margin-top: 40px;
+    }
+  }
+</style>

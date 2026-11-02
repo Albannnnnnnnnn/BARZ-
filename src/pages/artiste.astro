@@ -44,7 +44,7 @@ import Layout from '../layouts/Layout.astro';
   import { formatAudience } from '../lib/audience';
   import { listenMenuHtml } from '../lib/listen';
   import { initListen } from '../scripts/listen';
-  import { ARTIST_LITE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -88,15 +88,21 @@ import Layout from '../layouts/Layout.astro';
     { type: 'live', label: 'Live' },
   ];
   const DISCO_SHOWN = 24;
+  const TYPE_NAMES: Record<string, string> = { album: 'Album', ep: 'EP', single: 'Single', compilation: 'Compilation' };
 
   // Discographie : les sorties du catalogue (avec fiche) et, via la fonction deezer, tout le reste de Deezer
   async function renderDiscography(a: ArtistLite & { deezer_id: number | null }, rel: any[]) {
-    const items: DiscoItem[] = rel.map((r) => ({
-      title: r.title,
-      type: r.release_type,
-      date: r.release_date,
-      html: releaseTileHtml({ ...r, artist: { name: a.name } }, { badge: r.release_date?.slice(0, 4) }),
-    }));
+    // Ancien disque déjà noté par un membre (metadata.archive) : pas de fiche construite, sa page album
+    const albumHref = (url: string | null | undefined) => {
+      const id = String(url ?? '').match(/album\/(\d+)/)?.[1];
+      return id ? `${BASE}album?d=${id}` : null;
+    };
+    const items: DiscoItem[] = rel.map((r) => {
+      let html = releaseTileHtml({ ...r, artist: { name: a.name } }, { badge: r.release_date?.slice(0, 4) });
+      const page = r.metadata?.archive && albumHref(r.deezer_url);
+      if (page) html = html.replace(/href="[^"]*"/, `href="${page}"`);
+      return { title: r.title, type: r.release_type, date: r.release_date, html };
+    });
     const known = new Set(rel.map((r) => normTitle(r.title)));
     if (a.deezer_id) {
       const { data } = await supabase!.functions
@@ -106,13 +112,14 @@ import Layout from '../layouts/Layout.astro';
         const key = normTitle(d.title);
         if (known.has(key)) continue; // déjà au catalogue (ou version explicite / censurée déjà vue)
         known.add(key);
-        // Pas de fiche BARZ¡ : la vignette ouvre le disque sur Deezer
+        // Pas encore au catalogue : sa page album (titres, extraits, Barz), sinon le disque sur Deezer
+        const page = albumHref(d.url);
         items.push({
           ...d,
-          html: `<a class="bz-ctile" href="${escapeHtml(d.url ?? '#')}" target="_blank" rel="noopener">
+          html: `<a class="bz-ctile" href="${escapeHtml(page ?? d.url ?? '#')}"${page ? '' : ' target="_blank" rel="noopener"'}>
             ${coverHtml(d.title, d.cover)}
             <span class="bz-ctile-row"><b>${escapeHtml(d.title)}</b><span class="bz-score">${escapeHtml(d.date.slice(0, 4))}</span></span>
-            <span class="bz-ctile-sub">Écouter sur Deezer ↗</span>
+            <span class="bz-ctile-sub">${escapeHtml(TYPE_NAMES[d.type] ?? 'Album')}</span>
           </a>`,
         });
       }
@@ -162,7 +169,7 @@ import Layout from '../layouts/Layout.astro';
     const a = artist as ArtistLite & { deezer_id: number | null };
 
     const [releases, feats, related, followers, follows] = await Promise.all([
-      supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(300),
+      supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, deezer_url, metadata').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(300),
       // Sorties où il est invité (le nom figure dans metadata.featuring)
       supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, artist:artists!artist_id(name)').filter('metadata->featuring', 'cs', JSON.stringify([a.name])).order('release_date', { ascending: false }).limit(24),
       supabase.from('artist_relations').select(`rank, related:artists!artist_relations_related_id_fkey(${ARTIST_LITE})`).eq('artist_id', a.id).order('rank').limit(12),

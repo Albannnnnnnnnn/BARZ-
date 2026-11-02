@@ -2,17 +2,20 @@
 // Lecteur BARZ¡ : les extraits de 30 secondes de chaque titre, fournis par l'API publique de Deezer.
 // Les liens des extraits expirent vite : la liste est demandée dans le navigateur (JSONP, l'API n'autorise
 // pas fetch depuis un autre site), et redemandée si un extrait a expiré. Le morceau entier : bouton « Écouter ».
+// dynamic : disque connu seulement dans le navigateur (src/pages/album.astro) ; la page pose data-album puis
+// envoie l'évènement « barz:previews » sur la section.
 interface Props {
   title: string;
   deezerUrl?: string | null;
+  dynamic?: boolean;
 }
 
-const { title, deezerUrl } = Astro.props;
+const { title, deezerUrl, dynamic = false } = Astro.props;
 const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
 ---
 
-{deezerId && (
-  <section class="previews" data-previews data-album={deezerId} aria-labelledby="previews-title" hidden>
+{(deezerId || dynamic) && (
+  <section class="previews" data-previews data-album={deezerId ?? ''} aria-labelledby="previews-title" hidden>
     <div class="bz-section-head">
       <h2 id="previews-title" class="bz-h2">Les <em>extraits</em></h2>
       <span class="hint">30 secondes par titre</span>
@@ -46,7 +49,7 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
 
   const duration = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  document.querySelectorAll<HTMLElement>('[data-previews]').forEach(async (section) => {
+  async function initPreviews(section: HTMLElement) {
     const list = section.querySelector('ol')!;
     const audio = new Audio();
     let tracks: Track[] = [];
@@ -133,7 +136,13 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
     } catch {
       // Deezer indisponible : pas d'extraits, le bouton « Écouter » reste
     }
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-previews]').forEach((section) => {
+    if (section.dataset.album) initPreviews(section);
   });
+  // Disque connu plus tard (page album) : la section est initialisée à la demande
+  document.addEventListener('barz:previews', (event) => initPreviews(event.target as HTMLElement));
 </script>
 
 <style>

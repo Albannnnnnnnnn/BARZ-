@@ -9,6 +9,8 @@
 //                      sous ce nom exact, ajouté au catalogue, et son slug renvoyé. Ouvert aux visiteurs sans compte.
 // - discography { deezerId } : toute la discographie Deezer d'un artiste (albums, EP, singles, compilations),
 //                      pour sa fiche (src/pages/artiste.astro). Ouvert aux visiteurs sans compte.
+// - import-album { deezerAlbumId } : ajoute un ancien disque au catalogue (metadata.archive, hors Sorties et
+//                      semaines) pour qu'un membre puisse le noter ou le ranger (src/pages/album.astro).
 //
 // Déploiement : supabase functions deploy deezer --use-api (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis)
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -18,6 +20,78 @@ const ORIGINS = ['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322', 'h
 const MAX_FAVORITES = 500;
 const MAX_DISCOGRAPHY = 500;
 const RECORD_TYPES: Record<string, string> = { album: 'album', ep: 'ep', single: 'single', compile: 'compilation' };
+
+// Mêmes règles que la synchro (scripts/lib/common.ts : mapGenre, stableSlug) : le disque garde le même slug
+const GENRE_RULES: [string, RegExp][] = [
+  ['rap', /rap|hip.?hop/],
+  ['rnb', /r&b/],
+  ['soul', /soul|funk|blues/],
+  ['electronic', /electro|dance/],
+  ['jazz', /jazz/],
+  ['metal', /metal/],
+  ['rock', /rock|alternative/],
+  ['pop', /pop|chanson fran/],
+  ['folk', /folk|country/],
+  ['classical', /classique/],
+  ['reggae', /reggae/],
+  ['latin', /latino|br[ée]silienne/],
+  ['world', /africaine|arabe|asiatique|indienne/],
+];
+const mapGenre = (name: string) => GENRE_RULES.find(([, re]) => re.test(name.toLowerCase()))?.[0] ?? null;
+
+// Ancien disque ajouté à la demande : l'artiste (ajouté s'il manque), puis la sortie, marquée archive
+async function importAlbum(albumId: number): Promise<{ id: string; slug: string; archive: boolean } | { error: string }> {
+  const album = await deezerJson(`/album/${albumId}`);
+  if (!album || album.error || !album.title || !album.release_date) return { error: 'Disque introuvable sur Deezer.' };
+  const link = album.link ?? `https://www.deezer.com/album/${albumId}`;
+  const byLink = await admin.from('releases').select('id, slug, metadata').eq('deezer_url', link).maybeSingle();
+  if (byLink.data) return { id: byLink.data.id, slug: byLink.data.slug, archive: !!byLink.data.metadata?.archive };
+
+  const main = album.artist;
+  let artist = (await admin.from('artists').select('id, name').eq('deezer_id', main.id).maybeSingle()).data;
+  if (!artist) {
+    const base = slugify(main.name) || `artiste-${main.id}`;
+    for (const slug of [base, `${base}-${main.id}`]) {
+      await admin
+        .from('artists')
+        .upsert({ slug, name: main.name, deezer_id: main.id, image_url: main.picture_xl ?? main.picture_big ?? null, genres: [], updated_at: new Date().toISOString() }, { onConflict: 'slug', ignoreDuplicates: true });
+      artist = (await admin.from('artists').select('id, name').eq('deezer_id', main.id).maybeSingle()).data;
+      if (artist) break;
+    }
+    if (!artist) return { error: 'Impossible d’ajouter cet artiste.' };
+  }
+
+  const slug = `${slugify(`${main.name} ${album.title}`) || `disque-${albumId}`}-${String(album.release_date).slice(0, 4)}`;
+  const bySlug = await admin.from('releases').select('id, slug, metadata').eq('slug', slug).maybeSingle();
+  if (bySlug.data) return { id: bySlug.data.id, slug: bySlug.data.slug, archive: !!bySlug.data.metadata?.archive };
+
+  const { data, error } = await admin
+    .from('releases')
+    .insert({
+      title: album.title,
+      slug,
+      artist_id: artist.id,
+      release_date: album.release_date,
+      release_type: RECORD_TYPES[album.record_type] ?? 'album',
+      cover_url: album.cover_xl ?? album.cover_big ?? null,
+      genres: [...new Set(((album.genres?.data ?? []) as any[]).map((g) => mapGenre(g.name)).filter(Boolean))],
+      track_count: album.nb_tracks ?? 0,
+      deezer_url: link,
+      metadata: {
+        archive: true,
+        featuring: ((album.contributors ?? []) as any[]).map((c) => c.name).filter((n: string) => n !== main.name),
+        fans: album.fans ?? null,
+        label: album.label ?? null,
+        upc: album.upc ?? null,
+        sources: ['deezer'],
+        watched: false,
+      },
+    })
+    .select('id, slug')
+    .single();
+  if (error) return { error: error.message };
+  return { id: data.id, slug: data.slug, archive: true };
+}
 
 // Discographie d'un artiste : ses disques à lui (pas ceux où il n'est qu'invité), du plus récent au plus ancien
 async function discography(deezerId: number) {
@@ -133,7 +207,14 @@ Deno.serve(async (req) => {
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
   const { data: auth } = await admin.auth.getUser(jwt);
   const me = auth?.user?.id;
-  if (!me) return reply({ error: 'Connecte-toi pour relier Deezer.' }, 401);
+  if (!me) return reply({ error: body.action === 'import-album' ? 'Connecte-toi pour noter ce disque.' : 'Connecte-toi pour relier Deezer.' }, 401);
+
+  if (body.action === 'import-album') {
+    const id = Number(body.deezerAlbumId);
+    if (!Number.isInteger(id) || id <= 0) return reply({ error: 'Disque Deezer inconnu.' }, 400);
+    const result = await importAlbum(id);
+    return 'error' in result ? reply(result, 400) : reply(result);
+  }
 
   if (body.action === 'link' || body.action === 'refresh') {
     let id: number | null = null;

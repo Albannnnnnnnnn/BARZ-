@@ -38,11 +38,14 @@ import Layout from '../layouts/Layout.astro';
     if (!slug || !supabase) return;
     const { data } = await supabase
       .from('releases')
-      .select('title, release_type, release_date, cover_url, deezer_url, spotify_url, apple_music_url, artist:artists!artist_id(name, slug)')
+      .select('title, release_type, release_date, cover_url, deezer_url, spotify_url, apple_music_url, metadata, artist:artists!artist_id(name, slug)')
       .eq('slug', decodeURIComponent(slug))
       .maybeSingle();
     const r = data as any;
     if (!r) return;
+    // Ancien disque ajouté depuis une discographie : sa page est album?d=<id Deezer>
+    const deezerAlbum = r.metadata?.archive && String(r.deezer_url ?? '').match(/album\/(\d+)/)?.[1];
+    if (deezerAlbum) return void location.replace(`${BASE}album?d=${deezerAlbum}`);
     const $ = (id: string) => document.getElementById(id)!;
     document.title = `${r.title} — ${r.artist?.name ?? ''} | BARZ¡`;
     $('fr-art').innerHTML = coverHtml(r.title, r.cover_url);

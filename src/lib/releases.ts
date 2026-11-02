@@ -48,7 +48,7 @@ let firstFridayPromise: Promise<Date | null> | null = null;
 export function firstFriday(supabase: SupabaseClient<any> | null): Promise<Date | null> {
   if (!supabase) return Promise.resolve(null);
   firstFridayPromise ??= (async () => {
-    const { data } = await supabase.from('releases').select('release_date').order('release_date').limit(1);
+    const { data } = await supabase.from('releases').select('release_date').is('metadata->archive', null).order('release_date').limit(1);
     return data?.[0] ? fridayOf(parseISO(data[0].release_date)) : null;
   })();
   return firstFridayPromise;
@@ -63,7 +63,9 @@ export async function fetchReleasesBetween(
   to: Date
 ): Promise<ReleaseRow[]> {
   if (!supabase) return [];
-  // Par pages de 1 000 lignes, le plafond de PostgREST (sinon un gros vendredi serait tronqué)
+  // Par pages de 1 000 lignes, le plafond de PostgREST (sinon un gros vendredi serait tronqué).
+  // Sans les anciens disques ajoutés depuis une discographie (metadata.archive) : ni Sorties, ni semaines, ni fiche
+  // construite ; ils ont leur page dans le navigateur (src/pages/album.astro)
   const rows: ReleaseRow[] = [];
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await supabase
@@ -71,6 +73,7 @@ export async function fetchReleasesBetween(
       .select(RELEASE_FIELDS)
       .gte('release_date', format(from, 'yyyy-MM-dd'))
       .lte('release_date', format(to, 'yyyy-MM-dd'))
+      .is('metadata->archive', null)
       .order('release_date', { ascending: false })
       .order('id')
       .range(offset, offset + 999);
