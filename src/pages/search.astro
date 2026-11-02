@@ -32,6 +32,7 @@ const pick = (genres: string[]) =>
     .filter((r) => r.genres?.some((g) => genres.includes(g)))
     .filter((r) => recommendable({ releaseType: r.release_type, artistName: r.artist?.name, featuring: r.metadata?.featuring, fans: audience(r.artist) }))
     .sort((a, b) => releaseScore(b) - releaseScore(a))
+    .filter((r, i, list) => list.findIndex((x) => x.artist?.id === r.artist?.id) === i) // une sortie par artiste
     .slice(0, 4);
 const zoneTiles = ZONES.map((z) => pick(z.genres));
 
