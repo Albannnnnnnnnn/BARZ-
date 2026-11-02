@@ -1,14 +1,20 @@
 ---
-// Pochette : l'image Spotify si on l'a, sinon un dégradé façon maquette avec le titre en italique
+// Pochette : l'image à la bonne taille si on l'a (fond neutre pendant le chargement),
+// sinon, ou si elle ne charge pas, un dégradé façon maquette avec le titre
+import { COVER_ONERROR, TILE_SIZES, coverSources } from '../lib/cover';
+
 interface Props {
   title: string;
   src?: string | null;
   palette?: number;
   showTitle?: boolean;
   class?: string;
+  sizes?: string; // largeur affichée, pour choisir la taille de l'image
+  eager?: boolean; // pochette en haut de page : chargée tout de suite
 }
 
-const { title, src, palette, showTitle = true, class: className = '' } = Astro.props;
+const { title, src, palette, showTitle = true, class: className = '', sizes = TILE_SIZES, eager = false } = Astro.props;
+const image = src ? coverSources(src) : null;
 
 const PALETTES = [
   ['#d9b56a', '#4f6b3f', '#12382d'],
@@ -27,12 +33,11 @@ for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
 const [c1, c2, c3] = PALETTES[(palette ?? hash) % PALETTES.length];
 ---
 
-<div class:list={['cover', className]} style={`--c1:${c1};--c2:${c2};--c3:${c3}`}>
-  {src ? (
-    <img src={src} alt={`Pochette de ${title}`} loading="lazy" decoding="async" />
-  ) : (
-    showTitle && <span class="cover-title">{title}</span>
+<div class:list={['cover', className, { 'has-img': image }]} style={`--c1:${c1};--c2:${c2};--c3:${c3}`}>
+  {image && (
+    <img src={image.src} srcset={image.srcset} sizes={image.srcset ? sizes : undefined} alt={`Pochette de ${title}`} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined} decoding="async" onerror={COVER_ONERROR} />
   )}
+  {showTitle && <span class="cover-title">{title}</span>}
 </div>
 
 <style>
@@ -46,6 +51,15 @@ const [c1, c2, c3] = PALETTES[(palette ?? hash) % PALETTES.length];
       radial-gradient(circle at 32% 28%, var(--c1) 0%, transparent 55%),
       radial-gradient(circle at 70% 80%, var(--c3) 0%, transparent 70%),
       linear-gradient(140deg, var(--c2), var(--c3));
+  }
+
+  /* Image en cours de chargement : fond neutre plutôt qu'un faux dégradé */
+  .cover.has-img:not(.is-broken) {
+    background: var(--color-bg-hover);
+  }
+
+  .cover.has-img:not(.is-broken) .cover-title {
+    display: none;
   }
 
   img {

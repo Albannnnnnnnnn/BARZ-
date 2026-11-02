@@ -248,6 +248,15 @@
     linear-gradient(140deg, var(--c2, #59677a), var(--c3, #1c232c));
 }
 
+/* Image en cours de chargement : fond neutre ; dégradé et titre seulement sans image (ou image cassée) */
+.bz-cover.has-img:not(.is-broken) {
+  background: var(--color-bg-hover);
+}
+
+.bz-cover.has-img:not(.is-broken) span {
+  display: none;
+}
+
 .bz-cover img {
   width: 100%;
   height: 100%;

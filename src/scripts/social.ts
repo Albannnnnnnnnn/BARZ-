@@ -4,6 +4,7 @@
 import { createClient, type Session } from '@supabase/supabase-js';
 import { featLabel } from '../lib/feat';
 import { formatAudience } from '../lib/audience';
+import { COVER_ONERROR, TILE_SIZES, coverSources } from '../lib/cover';
 
 export const BASE = '/BARZ-/';
 
@@ -82,12 +83,15 @@ const PALETTES = [
 ];
 
 // Même rendu que le composant Cover.astro, pour les contenus affichés par le navigateur
-export function coverHtml(title: string, src: string | null): string {
-  if (src) return `<div class="bz-cover"><img src="${escapeHtml(src)}" alt="" loading="lazy" /></div>`;
+export function coverHtml(title: string, src: string | null, sizes = TILE_SIZES): string {
   let hash = 0;
   for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   const [c1, c2, c3] = PALETTES[hash % PALETTES.length];
-  return `<div class="bz-cover" style="--c1:${c1};--c2:${c2};--c3:${c3}"><span>${escapeHtml(title)}</span></div>`;
+  const image = src ? coverSources(src) : null;
+  const img = image
+    ? `<img src="${escapeHtml(image.src)}"${image.srcset ? ` srcset="${escapeHtml(image.srcset)}" sizes="${escapeHtml(sizes)}"` : ''} alt="" loading="lazy" decoding="async" onerror="${COVER_ONERROR}" />`
+    : '';
+  return `<div class="bz-cover${image ? ' has-img' : ''}" style="--c1:${c1};--c2:${c2};--c3:${c3}">${img}<span>${escapeHtml(title)}</span></div>`;
 }
 
 export function timeAgo(iso: string): string {

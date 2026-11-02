@@ -76,7 +76,7 @@ const jsonLd = {
     <a class="back" href="/BARZ-/">← Sorties</a>
 
     <section class="hero">
-      <div class="hero-art"><Cover title={release.title} src={release.cover_url} class="hero-cover" /></div>
+      <div class="hero-art"><Cover title={release.title} src={release.cover_url} class="hero-cover" sizes="(max-width: 900px) 90vw, 440px" eager /></div>
       <div class="info">
         <span class="bz-eyebrow">{typeLabel} · {dateLabel}</span>
         <p class="countdown" id="countdown" data-date={release.release_date} hidden></p>
