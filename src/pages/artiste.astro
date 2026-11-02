@@ -20,9 +20,12 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </section>
 
+    <!-- Toute la discographie (Deezer), rangée par format ; les sorties du catalogue BARZ¡ ouvrent leur fiche -->
     <section class="block" id="a-releases-block" hidden>
-      <div class="bz-section-head"><h2 class="bz-h2">Ses <em>sorties</em></h2></div>
+      <div class="bz-section-head"><h2 class="bz-h2">Sa <em>discographie</em></h2></div>
+      <div class="bz-chips disco-tabs" id="a-disco-tabs" role="tablist" aria-label="Formats" hidden></div>
       <div class="bz-tiles bz-rail" id="a-releases"></div>
+      <button type="button" class="bz-btn bz-btn--outline disco-more" id="a-disco-more" hidden></button>
     </section>
 
     <section class="block" id="a-feats-block" hidden>
@@ -41,7 +44,7 @@ import Layout from '../layouts/Layout.astro';
   import { formatAudience } from '../lib/audience';
   import { listenMenuHtml } from '../lib/listen';
   import { initListen } from '../scripts/listen';
-  import { ARTIST_LITE, artistCardHtml, authErrorMessage, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -65,6 +68,88 @@ import Layout from '../layouts/Layout.astro';
     return data.slug as string;
   }
 
+  // Titre réduit pour reconnaître la même sortie chez Deezer et dans le catalogue (même règle que normTitle
+  // dans supabase/functions/sync-fresh/apple.ts)
+  const normTitle = (title: string) =>
+    title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+-\s+(single|ep)$/, '')
+      .replace(/[([](feat|ft|with|avec)\b[^)\]]*[)\]]/g, '')
+      .replace(/[^a-z0-9]+/g, '');
+
+  type DiscoItem = { title: string; type: string; date: string; html: string };
+  const FORMATS = [
+    { type: 'album', label: 'Albums' },
+    { type: 'ep', label: 'EP' },
+    { type: 'single', label: 'Singles' },
+    { type: 'compilation', label: 'Compilations' },
+    { type: 'live', label: 'Live' },
+  ];
+  const DISCO_SHOWN = 24;
+
+  // Discographie : les sorties du catalogue (avec fiche) et, via la fonction deezer, tout le reste de Deezer
+  async function renderDiscography(a: ArtistLite & { deezer_id: number | null }, rel: any[]) {
+    const items: DiscoItem[] = rel.map((r) => ({
+      title: r.title,
+      type: r.release_type,
+      date: r.release_date,
+      html: releaseTileHtml({ ...r, artist: { name: a.name } }, { badge: r.release_date?.slice(0, 4) }),
+    }));
+    const known = new Set(rel.map((r) => normTitle(r.title)));
+    if (a.deezer_id) {
+      const { data } = await supabase!.functions
+        .invoke('deezer', { body: { action: 'discography', deezerId: a.deezer_id }, headers: { 'x-region': 'eu-west-3' } })
+        .catch(() => ({ data: null }));
+      for (const d of (data?.albums ?? []) as { title: string; type: string; date: string; cover: string | null; url: string | null }[]) {
+        const key = normTitle(d.title);
+        if (known.has(key)) continue; // déjà au catalogue (ou version explicite / censurée déjà vue)
+        known.add(key);
+        // Pas de fiche BARZ¡ : la vignette ouvre le disque sur Deezer
+        items.push({
+          ...d,
+          html: `<a class="bz-ctile" href="${escapeHtml(d.url ?? '#')}" target="_blank" rel="noopener">
+            ${coverHtml(d.title, d.cover)}
+            <span class="bz-ctile-row"><b>${escapeHtml(d.title)}</b><span class="bz-score">${escapeHtml(d.date.slice(0, 4))}</span></span>
+            <span class="bz-ctile-sub">Écouter sur Deezer ↗</span>
+          </a>`,
+        });
+      }
+    }
+    if (!items.length) return;
+    items.sort((x, y) => y.date.localeCompare(x.date));
+    const formats = FORMATS.map((f) => ({ ...f, items: items.filter((i) => (i.type === 'remix' || i.type === 'soundtrack' ? 'album' : i.type) === f.type) })).filter((f) => f.items.length);
+    const tabs = $('a-disco-tabs');
+    const grid = $('a-releases');
+    const more = $('a-disco-more');
+    const show = (type: string) => {
+      const f = formats.find((x) => x.type === type)!;
+      tabs.querySelectorAll<HTMLButtonElement>('[data-format]').forEach((b) => {
+        b.classList.toggle('is-active', b.dataset.format === type);
+        b.setAttribute('aria-selected', String(b.dataset.format === type));
+      });
+      grid.innerHTML = f.items.map((i) => i.html).join('');
+      grid.classList.toggle('is-capped', f.items.length > DISCO_SHOWN);
+      more.hidden = f.items.length <= DISCO_SHOWN;
+      more.textContent = `Voir les ${f.items.length} ${f.label.toLowerCase()}`;
+    };
+    tabs.innerHTML = formats
+      .map((f) => `<button type="button" class="bz-chip" role="tab" data-format="${f.type}" aria-selected="false">${f.label} · ${f.items.length}</button>`)
+      .join('');
+    tabs.hidden = formats.length < 2;
+    tabs.onclick = (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-format]');
+      if (button) show(button.dataset.format!);
+    };
+    more.onclick = () => {
+      grid.classList.remove('is-capped');
+      more.hidden = true;
+    };
+    show(formats[0].type);
+    $('a-releases-block').hidden = false;
+  }
+
   async function load() {
     const params = new URLSearchParams(location.search);
     if (!supabase) return fail('Artiste introuvable.');
@@ -77,7 +162,7 @@ import Layout from '../layouts/Layout.astro';
     const a = artist as ArtistLite & { deezer_id: number | null };
 
     const [releases, feats, related, followers, follows] = await Promise.all([
-      supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(24),
+      supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(300),
       // Sorties où il est invité (le nom figure dans metadata.featuring)
       supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, artist:artists!artist_id(name)').filter('metadata->featuring', 'cs', JSON.stringify([a.name])).order('release_date', { ascending: false }).limit(24),
       supabase.from('artist_relations').select(`rank, related:artists!artist_relations_related_id_fkey(${ARTIST_LITE})`).eq('artist_id', a.id).order('rank').limit(12),
@@ -100,11 +185,7 @@ import Layout from '../layouts/Layout.astro';
     initListen();
     $('artist-hero').hidden = false;
 
-    const rel = (releases.data ?? []) as any[];
-    if (rel.length) {
-      $('a-releases').innerHTML = rel.map((r) => releaseTileHtml({ ...r, artist: { name: a.name } }, { badge: r.release_date?.slice(0, 4) })).join('');
-      $('a-releases-block').hidden = false;
-    }
+    renderDiscography(a, (releases.data ?? []) as any[]).catch((err) => console.warn('Discographie indisponible :', err));
     const featRows = (feats.data ?? []) as any[];
     if (featRows.length) {
       $('a-feats').innerHTML = featRows.map((r) => releaseTileHtml(r, { badge: r.release_date?.slice(0, 4) })).join('');
@@ -213,6 +294,40 @@ import Layout from '../layouts/Layout.astro';
     }
     .actions {
       justify-content: center;
+    }
+  }
+
+  .disco-tabs {
+    margin-bottom: 18px;
+  }
+
+  /* Sur ordinateur, 24 disques puis « Voir les N » ; sur mobile, la rangée qui défile montre tout */
+  #a-releases.is-capped > :global(:nth-child(n + 25)) {
+    display: none;
+  }
+
+  .disco-more {
+    display: block;
+    margin: 24px auto 0;
+  }
+
+  @media (max-width: 900px) {
+    .disco-tabs {
+      flex-wrap: nowrap;
+      margin-inline: -16px;
+      padding-inline: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .disco-tabs .bz-chip {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    #a-releases.is-capped > :global(:nth-child(n + 25)) {
+      display: flex;
+    }
+    .disco-more {
+      display: none !important;
     }
   }
 </style>

@@ -7,6 +7,8 @@
 // - unlink  : oublie le profil et ses artistes importés
 // - artist  { name } : fiche d'un artiste absent du catalogue (un invité en feat., une recherche) : trouvé sur Deezer
 //                      sous ce nom exact, ajouté au catalogue, et son slug renvoyé. Ouvert aux visiteurs sans compte.
+// - discography { deezerId } : toute la discographie Deezer d'un artiste (albums, EP, singles, compilations),
+//                      pour sa fiche (src/pages/artiste.astro). Ouvert aux visiteurs sans compte.
 //
 // Déploiement : supabase functions deploy deezer --use-api (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis)
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -14,12 +16,29 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const ORIGINS = ['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322', 'http://localhost:4322'];
 const MAX_FAVORITES = 500;
+const MAX_DISCOGRAPHY = 500;
+const RECORD_TYPES: Record<string, string> = { album: 'album', ep: 'ep', single: 'single', compile: 'compilation' };
+
+// Discographie d'un artiste : ses disques à lui (pas ceux où il n'est qu'invité), du plus récent au plus ancien
+async function discography(deezerId: number) {
+  const albums: any[] = [];
+  for (let index = 0; index < MAX_DISCOGRAPHY; index += 100) {
+    const page = await deezerJson(`/artist/${deezerId}/albums?limit=100&index=${index}`);
+    if (!page || page.error) break;
+    albums.push(...(page.data ?? []));
+    if (!page.next) break;
+  }
+  return albums
+    .filter((a) => a.title && a.release_date && RECORD_TYPES[a.record_type])
+    .map((a) => ({ title: a.title, type: RECORD_TYPES[a.record_type], date: a.release_date, cover: a.cover_xl ?? a.cover_big ?? null, url: a.link ?? null }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
 
 function cors(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') ?? '';
   return {
     'Access-Control-Allow-Origin': ORIGINS.includes(origin) ? origin : ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-region',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     Vary: 'Origin',
   };
@@ -100,6 +119,12 @@ Deno.serve(async (req) => {
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
 
   const body = await req.json().catch(() => ({}));
+  if (body.action === 'discography') {
+    const id = Number(body.deezerId);
+    if (!Number.isInteger(id) || id <= 0) return reply({ error: 'Artiste Deezer inconnu.' }, 400);
+    return reply({ albums: await discography(id) });
+  }
+
   if (body.action === 'artist') {
     const result = await addArtist(String(body.name ?? '').slice(0, 120));
     return 'error' in result ? reply(result, 404) : reply(result);
