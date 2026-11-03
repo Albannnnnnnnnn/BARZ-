@@ -242,8 +242,8 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
   const query = new URLSearchParams(location.search).get('q')?.trim();
   if (query) {
     const results = document.getElementById('results')!;
-    // Tolérant aux espaces, accents et fautes de frappe. Les résultats avec fautes (score ≥ 2)
-    // n'apparaissent que si rien ne correspond tel quel, et du plus proche au plus lointain
+    // Tolérant aux espaces, accents et fautes de frappe. Les résultats trouvés au milieu d'un mot ou avec des fautes
+    // (score ≥ 2) n'apparaissent que si rien ne correspond tel quel, et du plus proche au plus lointain
     const items = [...results.querySelectorAll<HTMLElement>('.result')].map((el) => ({ el, score: searchScore(query, el.dataset.search!) }));
     const limit = items.some((i) => i.score !== null && i.score < 2) ? 1 : Infinity;
     let found = 0;

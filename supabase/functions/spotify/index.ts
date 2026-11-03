@@ -43,6 +43,16 @@ async function spotifyToken(params: Record<string, string>) {
   return { ok: res.ok, data };
 }
 
+// Appli Spotify en mode développement : un compte qui n'a pas été ajouté à la main dans le tableau de bord Spotify
+// (User Management) se connecte sans erreur, puis chaque appel répond 403 « User not registered in the Developer
+// Dashboard ». Se reconnecter n'y change rien, d'où un message à part.
+const NOT_ALLOWED = 'Ton compte Spotify n’est pas encore autorisé sur BARZ¡ : tant que l’appli Spotify est en test, chaque membre doit être ajouté à la main. Demande à l’admin de BARZ¡ de t’ajouter. En attendant, relie Deezer ou Last.fm pour tes recommandations.';
+async function notAllowed(res: Response): Promise<boolean> {
+  if (res.status !== 403) return false;
+  const text = await res.clone().text().catch(() => '');
+  return /not registered|developer dashboard/i.test(text);
+}
+
 // Jeton d'accès valide pour ce membre (renouvelé si besoin) ; null si l'accès a été retiré
 async function accessTokenOf(row: TokenRow): Promise<string | null> {
   if (row.access_token && row.expires_at && Date.parse(row.expires_at) > Date.now() + 60_000) return row.access_token;
@@ -106,6 +116,7 @@ async function importArtists(row: TokenRow): Promise<{ found: number; matched: n
     if (key) weights.set(key, Math.max(weights.get(key) ?? 0, weight));
   };
   const top = await get('https://api.spotify.com/v1/me/top/artists?limit=50&time_range=medium_term');
+  if (await notAllowed(top)) return { error: NOT_ALLOWED };
   // Compte relié avant l'ajout de ces autorisations : il faut se reconnecter une fois
   if (top.status === 401 || top.status === 403) return { error: 'Reconnecte Spotify pour autoriser l’import de tes artistes.', reconnect: true };
   const topItems = ((await top.json().catch(() => ({})))?.items ?? []) as { name: string }[];
@@ -156,7 +167,9 @@ Deno.serve(async (req) => {
     if (!REDIRECTS.includes(body.redirectUri) || !body.code || !body.verifier) return reply({ error: 'Demande de connexion invalide.' }, 400);
     const { ok, data } = await spotifyToken({ grant_type: 'authorization_code', code: body.code, redirect_uri: body.redirectUri, code_verifier: body.verifier });
     if (!ok) return reply({ error: `Spotify a refusé la connexion (${data?.error_description ?? data?.error ?? 'erreur inconnue'}).` }, 400);
-    const profile = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${data.access_token}` } }).then((r) => (r.ok ? r.json() : null));
+    const account = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${data.access_token}` } });
+    if (await notAllowed(account)) return reply({ error: NOT_ALLOWED, notAllowed: true }, 403);
+    const profile = account.ok ? await account.json().catch(() => null) : null;
     const { error } = await admin.from('spotify_tokens').upsert({
       user_id: me,
       refresh_token: data.refresh_token,
