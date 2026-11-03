@@ -1,7 +1,8 @@
 // Fonction Supabase « sync-fresh » (Deno), exécutée à Paris (x-region: eu-west-3) et appelée par pg_cron
 // (supabase/fresh.sql) :
 // - veille  : toutes les 5 min, les sorties du jour des artistes qui comptent le plus (watchlist, artistes suivis
-//             par les membres, les plus écoutés, nouveautés Deezer). Les nouvelles sont enregistrées tout de suite
+//             par les membres, les plus écoutés, nouveautés Deezer), plus une tranche des autres artistes du
+//             catalogue suivis par la synchro complète, à tour de rôle (chacun revu environ toutes les 4 h). Les nouvelles sont enregistrées tout de suite
 //             avec une notification immédiate aux membres qui suivent l'artiste, et le site est reconstruit
 //             (au plus une fois toutes les 30 min). La synchro complète
 //             (scripts/sync-releases.ts) repasse ensuite derrière et complète les lignes.
@@ -19,8 +20,12 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const REPO = 'Albannnnnnnnnn/BARZ-';
 // Les plus écoutés passés en revue à chaque veille (en plus de la watchlist et des artistes suivis)
 const TOP_ARTISTS = 300;
-// Même seuil que la synchro complète (SYNC_CATALOG_MIN_AUDIENCE) pour les nouveautés Deezer
+// Même seuil que la synchro complète (SYNC_CATALOG_MIN_AUDIENCE) pour les nouveautés Deezer et le roulement
 const MIN_AUDIENCE = 30_000;
+// Roulement : les artistes du catalogue que suit la synchro complète (environ 7 000), ROTATION_SIZE par passage,
+// une tranche différente toutes les 5 min ; sans lui, ceux hors du top et que personne ne suit attendaient minuit
+const ROTATION_MIN_AUDIENCE = MIN_AUDIENCE;
+const ROTATION_SIZE = 150;
 // Sorties datées d'aujourd'hui ou des jours précédents (ajouts tardifs de Deezer)
 const DAYS_BACK = 3;
 const DEPLOY_EVERY_MS = 30 * 60_000; // la page Sorties montre déjà les nouvelles en direct ; quota GitHub Actions (dépôt privé)
@@ -117,6 +122,18 @@ async function dispatch(workflow: string, inputs?: Record<string, string>): Prom
 
 type Artist = { id: string; name: string; deezer_id: number; watched: boolean };
 
+// Tranche du roulement pour ce passage : les artistes rangés par identifiant, découpés en tranches de ROTATION_SIZE,
+// la tranche choisie d'après l'heure (une nouvelle toutes les 5 min, puis on recommence)
+async function rotationSlice(): Promise<{ rows: any[]; slice: number; slices: number }> {
+  const eligible = () => admin.from('artists').select('id, name, deezer_id', { count: 'exact' }).not('deezer_id', 'is', null).gte('audience', ROTATION_MIN_AUDIENCE);
+  const { count } = await eligible().limit(1);
+  if (!count) return { rows: [], slice: 0, slices: 0 };
+  const slices = Math.ceil(count / ROTATION_SIZE);
+  const slice = Math.floor(Date.now() / (5 * 60_000)) % slices;
+  const { data } = await eligible().order('id').range(slice * ROTATION_SIZE, slice * ROTATION_SIZE + ROTATION_SIZE - 1);
+  return { rows: data ?? [], slice, slices };
+}
+
 // Table release_seen : une ligne par sortie (artiste + titre réduit), avec la première vue chez Deezer et chez Apple.
 // Sans la table (SQL pas encore lancé), rien n'est noté.
 async function recordSeen(deezerSeen: Map<string, { artist_id: string; title: string; release_date: string }>, apple: AppleAlbum[]) {
@@ -162,6 +179,8 @@ async function veille() {
   add((await admin.from('artists').select('id, name, deezer_id').in('name', watchNames)).data, true);
   add(((await admin.from('follows').select('artist:artists(id, name, deezer_id)')).data ?? []).map((f: any) => f.artist), true);
   add((await admin.from('artists').select('id, name, deezer_id').not('deezer_id', 'is', null).order('audience', { ascending: false }).limit(TOP_ARTISTS)).data, false);
+  const rotation = await rotationSlice().catch(() => ({ rows: [], slice: 0, slices: 0 }));
+  add(rotation.rows, false);
 
   // Apple Music en parallèle (sa propre limite de débit) : artistes de la watchlist et suivis par les membres
   const applePromise = appleReleases(admin, [...artists.values()].filter((a) => a.watched).map((a) => a.id), from, today).catch((err) => {
@@ -291,6 +310,7 @@ async function veille() {
 
   return {
     artistes: artists.size,
+    roulement: `${rotation.slice + 1}/${rotation.slices}`,
     candidats: candidates.size,
     apple: apple.length,
     nouvelles: fresh.map((r) => (r.metadata.sources[0] === 'apple' ? `${r.title} (Apple)` : r.title)),

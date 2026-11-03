@@ -6,6 +6,8 @@
 // - friend   : demande d'ami reçue ou acceptée (appelée par un déclencheur de la base, supabase/notifications.sql).
 // - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql) ; le Barz est aussi publié
 //              dans le salon #barz du Discord (secret DISCORD_BARZ_WEBHOOK_URL, facultatif).
+// - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
+//              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
@@ -20,6 +22,12 @@ webpush.setVapidDetails(SITE, Deno.env.get('VAPID_PUBLIC_KEY') ?? '', Deno.env.g
 
 // Webhook du salon #barz du Discord de BARZ¡ : sans lui, les Barz ne sont pas publiés sur Discord
 const DISCORD_BARZ_WEBHOOK_URL = Deno.env.get('DISCORD_BARZ_WEBHOOK_URL') ?? '';
+
+// Webhook du salon privé #alertes : erreurs JavaScript des membres
+const DISCORD_ALERTS_WEBHOOK_URL = Deno.env.get('DISCORD_ALERTS_WEBHOOK_URL') ?? '';
+// Garde-fou : la même erreur une fois par heure au plus, et 30 alertes par heure en tout (par instance de la fonction)
+const alertSeen = new Map<string, number>();
+let alertWindow = { start: 0, count: 0 };
 
 // Alban : reçoit les notifications des retours (même identifiant que is_barz_admin dans supabase/feedback.sql)
 const ADMIN_ID = '1b7ffb47-27e0-47ec-8bf2-1d516f3035dd';
@@ -368,6 +376,43 @@ Deno.serve(async (req) => {
       tag: 'test',
     }));
     return reply({ sent });
+  }
+
+  if (body.action === 'client-error') {
+    // Appelée par le navigateur des membres, sans compte : seulement depuis le site, et jamais en rafale
+    if (!ORIGINS.includes(req.headers.get('Origin') ?? '') || !DISCORD_ALERTS_WEBHOOK_URL) return reply({ ok: false });
+    const clip = (v: unknown, n: number) => String(v ?? '').slice(0, n);
+    const message = clip(body.message, 300);
+    if (!message) return reply({ ok: false }, 400);
+    const now = Date.now();
+    if (now - alertWindow.start > 3600_000) alertWindow = { start: now, count: 0 };
+    const key = `${message}|${clip(body.source, 200)}`;
+    if ((alertSeen.get(key) ?? 0) > now - 3600_000 || alertWindow.count >= 30) return reply({ ok: false, skipped: true });
+    alertSeen.set(key, now);
+    alertWindow.count++;
+    const field = (name: string, value: string) => (value ? [{ name, value: value.slice(0, 1000) }] : []);
+    const res = await fetch(DISCORD_ALERTS_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'BARZ¡ alertes',
+        allowed_mentions: { parse: [] },
+        embeds: [
+          {
+            title: `Erreur : ${message}`.slice(0, 256),
+            color: 0xe0533b,
+            fields: [
+              ...field('Page', clip(body.page, 300)),
+              ...field('Fichier', clip(body.source, 300)),
+              ...field('Pile', body.stack ? `\`\`\`\n${clip(body.stack, 900)}\n\`\`\`` : ''),
+              ...field('Appareil', clip(body.device, 300)),
+              ...field('Version', clip(body.version, 40)),
+            ],
+          },
+        ],
+      }),
+    }).catch(() => null);
+    return reply({ ok: !!res?.ok });
   }
 
   if (body.action === 'feedback') {

@@ -1,0 +1,48 @@
+name: Backup database
+
+# Sauvegarde de la base Supabase chaque lundi : rôles, structure et données (Barz, profils, tops, comptes…),
+# chiffrées avec BACKUP_PASSPHRASE puis gardées 90 jours dans les artefacts de ce workflow (dépôt privé).
+# Secrets GitHub à ajouter : SUPABASE_DB_URL (Supabase › Connect › Session pooler, avec le mot de passe de la base)
+# et BACKUP_PASSPHRASE (une longue phrase, à garder aussi ailleurs : sans elle, la sauvegarde est illisible).
+# Lire une sauvegarde : gpg --decrypt barz-AAAA-MM-JJ.tar.gz.gpg | tar xz
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "Secret SUPABASE_DB_URL manquant."; exit 1; fi
+          mkdir backup
+          npx -y supabase@latest db dump --db-url "$SUPABASE_DB_URL" --role-only -f backup/roles.sql
+          npx -y supabase@latest db dump --db-url "$SUPABASE_DB_URL" -f backup/schema.sql
+          npx -y supabase@latest db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -f backup/data.sql
+          ls -la backup
+
+      - name: Encrypt
+        id: pack
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$BACKUP_PASSPHRASE" ]; then echo "Secret BACKUP_PASSPHRASE manquant."; exit 1; fi
+          name="barz-$(date -u +%F).tar.gz.gpg"
+          tar czf - backup | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.name }}
+          path: ${{ steps.pack.outputs.name }}
+          retention-days: 90
+          compression-level: 0

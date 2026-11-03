@@ -11,7 +11,7 @@ export function activeNav(pathname: string): string | null {
   const path = pathname.replace(/^\/BARZ-/, '').replace(/\/$/, '') || '/';
   if (path === '/' || path.startsWith('/releases') || path.startsWith('/calendar') || path.startsWith('/a-venir')) return 'vendredi';
   if (path.startsWith('/search') || path.startsWith('/artiste') || path.startsWith('/jeux')) return 'decouvrir';
-  if (path.startsWith('/commu') || path.startsWith('/actus') || path.startsWith('/mag')) return 'fil';
+  if (path.startsWith('/commu') || path.startsWith('/actus')) return 'fil';
   if (path.startsWith('/profil') || path.startsWith('/bilan') || path.startsWith('/modifier-profil')) return 'profil';
   return null;
 }
