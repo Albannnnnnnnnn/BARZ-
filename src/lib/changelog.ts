@@ -61,7 +61,7 @@ export const CHANGELOG: ChangeEntry[] = [
 export const LATEST_CHANGE = CHANGELOG[0];
 
 // Serveur Discord de BARZ¡ : les Nouveautés y sont publiées automatiquement à chaque mise à jour (scripts/news-discord.mjs)
-export const DISCORD_URL = 'https://discord.gg/dUf3SyCAHQ';
+export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
 
 // « 2026-11-03 » → « 3 novembre 2026 »
 export const changeDate = (id: string) => new Date(`${id}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
