@@ -185,7 +185,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
   // CLOCHE : notifications de l'appli, écrites par la fonction notify
   // ============================================================
   type Item = { id: string; kind: string; title: string; body: string; url: string; read_at: string | null; created_at: string };
-  const ICONS: Record<string, string> = { friend: '👋', barz: '💬', release: '🎵', friday: '📅', feedback: '📮', reply: '↩️', like: '♥' };
+  const ICONS: Record<string, string> = { friend: '👋', barz: '💬', release: '🎵', friday: '📅', feedback: '📮', reply: '↩️', like: '♥', announcement: '📣' };
   const inbox = document.getElementById('inbox')!;
   const bell = document.getElementById('bell') as HTMLButtonElement;
   const panel = document.getElementById('inbox-panel')!;

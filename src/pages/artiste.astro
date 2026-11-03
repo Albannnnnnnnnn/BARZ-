@@ -20,6 +20,36 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </section>
 
+    <!-- Annonces sans fiche (src/scripts/announcements.ts) ; un membre connecté peut en signaler une, validée par Alban -->
+    <section class="block" id="a-announce-block" hidden>
+      <div class="bz-section-head">
+        <h2 class="bz-h2">Ce qui <em>arrive</em></h2>
+        <button type="button" class="bz-link" id="a-announce-open">Signaler une annonce</button>
+      </div>
+      <div class="bz-tiles bz-rail" id="a-announce"></div>
+      <p class="announce-empty" id="a-announce-empty" hidden>Rien d’annoncé pour l’instant. Tu as vu passer une annonce ? Signale-la.</p>
+    </section>
+
+    <dialog class="announce-dialog" id="announce-dialog" aria-labelledby="announce-title">
+      <form method="dialog" class="announce-box" id="announce-form">
+        <h2 class="bz-h2" id="announce-title">Signaler une <em>annonce</em></h2>
+        <p class="announce-hint">Un album ou un EP annoncé par l’artiste, pas encore en pré-sortie. On vérifie la source avant de le publier.</p>
+        <label class="bz-field"><span>Titre (si connu)</span><input class="bz-input" name="title" maxlength="200" autocomplete="off" /></label>
+        <div class="announce-row">
+          <label class="bz-field"><span>Type</span><select class="bz-input" name="kind"><option value="album">Album</option><option value="ep">EP</option></select></label>
+          <label class="bz-field"><span>Date</span><select class="bz-input" name="precision" id="announce-precision"></select></label>
+          <label class="bz-field" id="announce-date-field"><span>Le</span><input class="bz-input" type="date" name="date" /></label>
+        </div>
+        <label class="bz-field"><span>Lien de l’annonce</span><input class="bz-input" name="source" type="url" required placeholder="https://www.instagram.com/p/…" /></label>
+        <label class="bz-field"><span>Un mot (facultatif)</span><input class="bz-input" name="note" maxlength="300" autocomplete="off" /></label>
+        <p class="bz-notice" id="announce-message" hidden></p>
+        <div class="announce-actions">
+          <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="announce-send">Envoyer</button>
+          <button type="submit" class="bz-btn bz-btn--outline bz-btn--small" value="cancel">Annuler</button>
+        </div>
+      </form>
+    </dialog>
+
     <!-- Toute la discographie (Deezer), rangée par format ; les sorties du catalogue BARZ¡ ouvrent leur fiche -->
     <section class="block" id="a-releases-block" hidden>
       <div class="bz-section-head"><h2 class="bz-h2">Sa <em>discographie</em></h2></div>
@@ -44,8 +74,9 @@ import Layout from '../layouts/Layout.astro';
   import { formatAudience } from '../lib/audience';
   import { listenMenuHtml } from '../lib/listen';
   import { initListen } from '../scripts/listen';
-  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, getSession, loginUrl, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
+  import { PRECISIONS, announcementCardHtml, publishedAnnouncements, suggestAnnouncement, type Precision } from '../scripts/announcements';
 
   const $ = (id: string) => document.getElementById(id)!;
   const fail = (text: string) => {
@@ -193,6 +224,7 @@ import Layout from '../layouts/Layout.astro';
     initListen();
     $('artist-hero').hidden = false;
 
+    renderAnnouncements(a).catch((err) => console.warn('Annonces indisponibles :', err));
     renderDiscography(a, (releases.data ?? []) as any[]).catch((err) => console.warn('Discographie indisponible :', err));
     const featRows = (feats.data ?? []) as any[];
     if (featRows.length) {
@@ -206,11 +238,113 @@ import Layout from '../layouts/Layout.astro';
     }
   }
 
+  // Annonces de l'artiste, et formulaire de signalement (connecté)
+  async function renderAnnouncements(a: ArtistLite) {
+    const list = await publishedAnnouncements(a.id);
+    const session = await getSession();
+    $('a-announce').innerHTML = list.map((x) => announcementCardHtml(x, { toSource: true })).join('');
+    $('a-announce-empty').hidden = list.length > 0 || !session;
+    // Sans annonce, le bloc n'apparaît que pour un membre connecté (qui peut en signaler une)
+    $('a-announce-block').hidden = !list.length && !session;
+    const dialog = $('announce-dialog') as HTMLDialogElement;
+    const form = $('announce-form') as HTMLFormElement;
+    const precision = $('announce-precision') as HTMLSelectElement;
+    const message = $('announce-message');
+    precision.innerHTML = PRECISIONS.map(([v, label]) => `<option value="${v}"${v === 'soon' ? ' selected' : ''}>${label}</option>`).join('');
+    const syncDate = () => ($('announce-date-field').hidden = precision.value === 'soon');
+    precision.onchange = syncDate;
+    $('announce-open').onclick = async () => {
+      if (!(await getSession())) return void (location.href = loginUrl());
+      form.reset();
+      precision.value = 'soon';
+      syncDate();
+      message.hidden = true;
+      dialog.showModal();
+    };
+    ($('announce-send') as HTMLButtonElement).onclick = async () => {
+      const data = new FormData(form);
+      try {
+        await suggestAnnouncement({
+          artistId: a.id,
+          title: String(data.get('title') ?? ''),
+          kind: data.get('kind') === 'ep' ? 'ep' : 'album',
+          date: String(data.get('date') ?? ''),
+          precision: precision.value as Precision,
+          sourceUrl: String(data.get('source') ?? ''),
+          note: String(data.get('note') ?? ''),
+        });
+        message.textContent = 'Merci ! On vérifie la source, puis l’annonce apparaîtra ici et dans À venir.';
+        message.className = 'bz-notice bz-notice--ok';
+        message.hidden = false;
+        setTimeout(() => dialog.close(), 2200);
+      } catch (err) {
+        message.textContent = /announcements/.test(errorText(err)) ? 'Les annonces ne sont pas encore activées.' : errorText(err);
+        message.className = 'bz-notice bz-notice--error';
+        message.hidden = false;
+      }
+    };
+  }
+
   wireFollowButtons(document.querySelector('.bz-page') as HTMLElement);
   load().catch((err) => fail(errorText(err)));
 </script>
 
 <style>
+  .announce-empty,
+  .announce-hint {
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+
+  .announce-dialog {
+    width: min(560px, calc(100vw - 32px));
+    max-height: calc(100dvh - 64px);
+    margin: auto;
+    padding: 0;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+    color: var(--color-text);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .announce-dialog::backdrop {
+    background: rgba(10, 10, 10, 0.5);
+  }
+
+  .announce-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px;
+  }
+
+  .announce-box .bz-h2,
+  .announce-hint {
+    margin: 0;
+  }
+
+  .announce-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .announce-row [hidden] {
+    display: none;
+  }
+
+  .announce-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  @media (max-width: 520px) {
+    .announce-row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
   .back {
     display: inline-block;
     margin-bottom: 36px;

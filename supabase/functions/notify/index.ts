@@ -7,6 +7,8 @@
 // - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql).
 // - reply    : quelqu'un a répondu à ton Barz ; like : quelqu'un a aimé ton Barz, regroupés par Barz (« Léa et 2 autres
 //              ont aimé ton Barz »), téléphone au plus une fois par heure (déclencheurs, supabase/barz-reactions-notify.sql).
+// - announcement : une annonce d'album attend la validation d'Alban (pending), ou vient d'être publiée : les membres
+//              qui suivent l'artiste sont prévenus, une seule fois (déclencheur, supabase/announcements.sql).
 // - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
 //              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
@@ -86,7 +88,7 @@ function parisNow() {
 
 // Boîte de notifications de l'appli (la cloche, supabase/inbox.sql) : écrite pour chaque destinataire,
 // qu'il ait activé ou non les notifications du téléphone. On en profite pour oublier celles de plus de 60 jours.
-type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like';
+type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like' | 'announcement';
 async function toInbox(kind: Kind, entries: [string, Message][]) {
   if (!entries.length) return;
   const rows = entries.map(([user_id, m]) => ({ user_id, kind, title: m.title, body: m.body, url: m.url }));
@@ -96,6 +98,16 @@ async function toInbox(kind: Kind, entries: [string, Message][]) {
 
 const subsOf = async (userIds: string[]) =>
   ((await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').in('user_id', userIds)).data ?? []) as Sub[];
+
+// Date d'une annonce selon sa précision (mêmes règles que src/scripts/announcements.ts)
+function announceWhen(date: string | null, precision: string): string {
+  if (!date || precision === 'soon') return 'date à venir';
+  const d = new Date(`${date}T12:00:00Z`);
+  if (precision === 'day') return `sortie le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' })}`;
+  if (precision === 'month') return `prévu en ${d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}`;
+  if (precision === 'season') return `prévu ${['en hiver', 'en hiver', 'au printemps', 'au printemps', 'au printemps', 'en été', 'en été', 'en été', 'en automne', 'en automne', 'en automne', 'en hiver'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return `prévu en ${d.getUTCFullYear()}`;
+}
 
 // Nom comparable (mêmes règles que src/lib/feat.ts)
 const normName = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
@@ -355,6 +367,55 @@ Deno.serve(async (req) => {
     const sent = recent ? 0 : await send(await subsOf([barz.user_id]), () => message);
     await toInbox('like', [[barz.user_id, message]]);
     return reply({ sent, grouped: recent });
+  }
+
+  if (body.action === 'announcement') {
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { data } = await admin
+      .from('announcements')
+      .select('id, title, kind, release_date, date_precision, note, status, notified_at, artist:artists(id, name, slug)')
+      .eq('id', String(body.id))
+      .maybeSingle();
+    const a = data as unknown as {
+      id: string;
+      title: string | null;
+      kind: string;
+      release_date: string | null;
+      date_precision: string;
+      note: string | null;
+      status: string;
+      notified_at: string | null;
+      artist: { id: string; name: string; slug: string } | null;
+    } | null;
+    if (!a?.artist) return reply({ sent: 0 });
+    const record = a.kind === 'ep' ? 'un nouvel EP' : 'un nouvel album';
+    if (body.event === 'pending' && a.status === 'pending') {
+      const message: Message = {
+        title: 'Annonce à valider',
+        body: `${a.artist.name} — ${a.note ?? a.title ?? record}`.slice(0, 180),
+        url: `${SITE}annonces`,
+        tag: `announcement-${a.id}`,
+      };
+      const sent = await send(await subsOf([ADMIN_ID]), () => message);
+      await toInbox('announcement', [[ADMIN_ID, message]]);
+      return reply({ sent });
+    }
+    if (body.event !== 'published' || a.status !== 'published' || a.notified_at) return reply({ sent: 0 });
+    // Réservée avant l'envoi : un deuxième appel ne prévient personne une deuxième fois
+    const { data: claimed } = await admin.from('announcements').update({ notified_at: new Date().toISOString() }).eq('id', a.id).is('notified_at', null).select('id');
+    if (!claimed?.length) return reply({ sent: 0 });
+    const { data: follows } = await admin.from('follows').select('user_id').eq('artist_id', a.artist.id);
+    const followers = [...new Set((follows ?? []).map((f) => f.user_id as string))];
+    if (!followers.length) return reply({ sent: 0 });
+    const message: Message = {
+      title: `${a.artist.name} annonce ${record}`,
+      body: [a.title ? `« ${a.title} »` : null, announceWhen(a.release_date, a.date_precision)].filter(Boolean).join(' · '),
+      url: `${SITE}artiste?a=${encodeURIComponent(a.artist.slug)}`,
+      tag: `announcement-${a.id}`,
+    };
+    const sent = await send(await subsOf(followers), () => message);
+    await toInbox('announcement', followers.map((f) => [f, message] as [string, Message]));
+    return reply({ sent, followers: followers.length });
   }
 
   if (body.action === 'releases') {

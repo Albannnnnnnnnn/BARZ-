@@ -69,6 +69,11 @@ jobs:
         env:
           DEEZER_VIA_PARIS: ${{ (github.event_name == 'schedule' && steps.day.outputs.day == 'Mon') && '0' || '1' }}
 
+      # Annonces sans fiche : dates approximatives MusicBrainz, et actus à valider (scripts/announcements.ts)
+      - name: Sync announcements
+        continue-on-error: true
+        run: npx tsx scripts/announcements.ts
+
       # Auditeurs Last.fm (popularité toutes plateformes) : un lot d'artistes à chaque passage
       - name: Sync Last.fm listeners
         continue-on-error: true

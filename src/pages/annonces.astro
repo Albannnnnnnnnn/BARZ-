@@ -1,0 +1,323 @@
+---
+// ANNONCES (src/scripts/announcements.ts, supabase/announcements.sql) : les albums et EP annoncés sans fiche.
+// Pour tout le monde : la liste publiée. Pour Alban (is_barz_admin) : la file à valider (signalements des membres,
+// actus repérées), l'ajout d'une annonce, et le retrait d'une annonce publiée.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Annonces" description="Les albums et EP annoncés par les artistes, avant leur pré-sortie.">
+  <div class="bz-page announces">
+    <span class="bz-eyebrow">À venir</span>
+    <h1 class="bz-display">Les <em>annonces.</em></h1>
+    <p class="intro">Albums et EP annoncés par les artistes, pas encore en pré-sortie. Tu en as vu passer une ? Signale-la depuis la fiche de l’artiste.</p>
+
+    <section class="block" id="an-admin" hidden>
+      <div class="bz-section-head"><h2 class="bz-h2">À <em>valider</em></h2></div>
+      <ul class="queue" id="an-queue"></ul>
+
+      <div class="bz-section-head add-head"><h2 class="bz-h2">Ajouter une <em>annonce</em></h2></div>
+      <form class="add" id="an-add" novalidate>
+        <label class="bz-field artist-field">
+          <span>Artiste</span>
+          <input class="bz-input" id="an-artist" autocomplete="off" placeholder="Nom de l’artiste…" />
+          <ul class="artist-suggest" id="an-artist-suggest" hidden></ul>
+        </label>
+        <label class="bz-field"><span>Titre (si connu)</span><input class="bz-input" name="title" maxlength="200" autocomplete="off" /></label>
+        <div class="row">
+          <label class="bz-field"><span>Type</span><select class="bz-input" name="kind"><option value="album">Album</option><option value="ep">EP</option></select></label>
+          <label class="bz-field"><span>Date</span><select class="bz-input" name="precision" data-precision></select></label>
+          <label class="bz-field"><span>Le</span><input class="bz-input" type="date" name="date" /></label>
+        </div>
+        <label class="bz-field"><span>Lien de la source</span><input class="bz-input" name="source" type="url" placeholder="https://…" /></label>
+        <p class="bz-notice" id="an-add-message" hidden></p>
+        <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Publier</button>
+      </form>
+    </section>
+
+    <section class="block">
+      <div class="bz-section-head"><h2 class="bz-h2">Publiées</h2></div>
+      <div class="bz-tiles" id="an-published"></div>
+      <p class="bz-empty" id="an-empty" hidden>Aucune annonce en cours.</p>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { errorText, escapeHtml, getSession, searchArtists, supabase, type ArtistLite } from '../scripts/social';
+  import { ANNOUNCEMENT_FIELDS, PRECISIONS, announceWhen, announcementCardHtml, normalizeDate, publishedAnnouncements, type Announcement, type Precision } from '../scripts/announcements';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const SOURCES: Record<string, string> = { member: 'Signalée par un membre', press: 'Repérée dans les actus', apple: 'Précommande Apple', musicbrainz: 'MusicBrainz', admin: 'Ajoutée par toi' };
+  const precisionOptions = (selected: Precision) => PRECISIONS.map(([v, label]) => `<option value="${v}"${v === selected ? ' selected' : ''}>${label}</option>`).join('');
+  let admin = false;
+
+  async function renderPublished() {
+    const list = await publishedAnnouncements();
+    $('an-published').innerHTML = list
+      .map((a) => `<div class="pub">${announcementCardHtml(a)}${admin ? `<button type="button" class="bz-link pub-remove" data-remove="${a.id}">Retirer</button>` : ''}</div>`)
+      .join('');
+    $('an-empty').hidden = list.length > 0;
+  }
+
+  // File à valider : chaque annonce se complète (titre, type, date) avant d'être publiée
+  async function renderQueue() {
+    const { data } = await supabase!.from('announcements').select(ANNOUNCEMENT_FIELDS).eq('status', 'pending').order('created_at', { ascending: false }).limit(100);
+    const items = (data ?? []) as unknown as Announcement[];
+    $('an-queue').innerHTML = items.length
+      ? items
+          .map(
+            (a) => `<li class="item" data-id="${a.id}">
+              <div class="item-head"><b>${escapeHtml(a.artist?.name ?? '?')}</b><span>${escapeHtml(SOURCES[a.source] ?? a.source)}</span></div>
+              ${a.note ? `<p class="note">${escapeHtml(a.note)}</p>` : ''}
+              <a class="bz-link" href="${escapeHtml(a.source_url)}" target="_blank" rel="noopener">Voir la source ↗</a>
+              <div class="row">
+                <input class="bz-input" data-field="title" value="${escapeHtml(a.title ?? '')}" placeholder="Titre (si connu)" maxlength="200" />
+                <select class="bz-input" data-field="kind"><option value="album"${a.kind === 'album' ? ' selected' : ''}>Album</option><option value="ep"${a.kind === 'ep' ? ' selected' : ''}>EP</option></select>
+                <select class="bz-input" data-field="precision">${precisionOptions(a.date_precision)}</select>
+                <input class="bz-input" type="date" data-field="date" value="${a.release_date ?? ''}" />
+              </div>
+              <div class="item-actions">
+                <button type="button" class="bz-btn bz-btn--lime bz-btn--small" data-publish>Publier</button>
+                <button type="button" class="bz-btn bz-btn--outline bz-btn--small" data-reject>Écarter</button>
+              </div>
+            </li>`
+          )
+          .join('')
+      : '<li class="bz-empty">Rien à valider.</li>';
+  }
+
+  $('an-queue').addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-publish], [data-reject]');
+    const item = button?.closest<HTMLElement>('.item');
+    if (!button || !item) return;
+    const field = (name: string) => item.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)!.value;
+    const precision = field('precision') as Precision;
+    if (button.matches('[data-publish]') && precision !== 'soon' && !field('date')) return alert('Choisis une date, ou « Date inconnue ».');
+    const update = button.matches('[data-publish]')
+      ? { status: 'published', title: field('title').trim() || null, kind: field('kind'), date_precision: precision, release_date: normalizeDate(field('date'), precision) }
+      : { status: 'rejected' };
+    button.disabled = true;
+    const { error } = await supabase!.from('announcements').update(update).eq('id', item.dataset.id!);
+    if (error) {
+      button.disabled = false;
+      return alert(errorText(error));
+    }
+    item.remove();
+    renderPublished();
+  });
+
+  $('an-published').addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-remove]');
+    if (!button || !confirm('Retirer cette annonce ?')) return;
+    const { error } = await supabase!.from('announcements').update({ status: 'rejected' }).eq('id', button.dataset.remove!);
+    if (error) return alert(errorText(error));
+    renderPublished();
+  });
+
+  // Ajout : l'artiste est choisi dans le catalogue
+  let artist: ArtistLite | null = null;
+  const artistInput = $('an-artist') as HTMLInputElement;
+  const suggest = $('an-artist-suggest');
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  artistInput.addEventListener('input', () => {
+    artist = null;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = artistInput.value.trim();
+      const found = q.length >= 2 ? await searchArtists(q, { limit: 6 }).catch(() => []) : [];
+      suggest.innerHTML = found.map((a, i) => `<li><button type="button" data-i="${i}">${escapeHtml(a.name)}</button></li>`).join('');
+      suggest.hidden = !found.length;
+      suggest.onclick = (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-i]');
+        if (!b) return;
+        artist = found[Number(b.dataset.i)];
+        artistInput.value = artist.name;
+        suggest.hidden = true;
+      };
+    }, 250);
+  });
+
+  const addForm = $('an-add') as HTMLFormElement;
+  const addPrecision = addForm.querySelector<HTMLSelectElement>('[data-precision]')!;
+  addPrecision.innerHTML = precisionOptions('soon');
+  addForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(addForm);
+    const message = $('an-add-message');
+    const show = (text: string, kind: 'ok' | 'error') => {
+      message.textContent = text;
+      message.className = `bz-notice bz-notice--${kind}`;
+      message.hidden = false;
+    };
+    const precision = addPrecision.value as Precision;
+    const source = String(data.get('source') ?? '').trim();
+    const date = String(data.get('date') ?? '');
+    if (!artist) return show('Choisis l’artiste dans la liste.', 'error');
+    if (!/^https?:\/\/\S+\.\S+/.test(source)) return show('Ajoute le lien de la source.', 'error');
+    if (precision !== 'soon' && !date) return show('Choisis une date, ou « Date inconnue ».', 'error');
+    const { error } = await supabase!.from('announcements').insert({
+      artist_id: artist.id,
+      title: String(data.get('title') ?? '').trim() || null,
+      kind: data.get('kind') === 'ep' ? 'ep' : 'album',
+      release_date: normalizeDate(date, precision),
+      date_precision: precision,
+      source: 'admin',
+      source_url: source,
+      status: 'published',
+    });
+    if (error) return show(errorText(error), 'error');
+    show(`Publiée : ${artist.name}, ${announceWhen({ release_date: normalizeDate(date, precision), date_precision: precision }).toLowerCase()}. Ses abonnés sont prévenus.`, 'ok');
+    addForm.reset();
+    addPrecision.value = 'soon';
+    artist = null;
+    renderPublished();
+  });
+
+  renderPublished();
+  getSession().then(async (session) => {
+    if (!session || !supabase) return;
+    const { data } = await supabase.rpc('is_barz_admin');
+    if (!data) return;
+    admin = true;
+    $('an-admin').hidden = false;
+    renderQueue();
+    renderPublished();
+  });
+</script>
+
+<style>
+  .announces {
+    max-width: 980px;
+  }
+
+  .intro {
+    margin: 20px 0 36px;
+    color: var(--color-text-muted);
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .block + .block {
+    margin-top: 48px;
+  }
+
+  .queue {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+  }
+
+  .item-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: baseline;
+  }
+
+  .item-head span,
+  .note {
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  .note {
+    margin: 0;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .add .row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .item-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .add-head {
+    margin-top: 40px;
+  }
+
+  .add {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .add .bz-btn {
+    align-self: flex-start;
+  }
+
+  .artist-field {
+    position: relative;
+  }
+
+  .artist-suggest {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    margin: 4px 0 0;
+    padding: 6px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper);
+    list-style: none;
+  }
+
+  .artist-suggest button {
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--color-text);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .artist-suggest button:hover {
+    background: var(--color-bg-elevated);
+  }
+
+  .pub {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pub-remove {
+    align-self: flex-start;
+    font-size: 13px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 700px) {
+    .row,
+    .add .row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

@@ -2,7 +2,9 @@
 // (supabase/fresh.sql) :
 // - veille  : toutes les 5 min, les sorties du jour des artistes qui comptent le plus (watchlist, artistes suivis
 //             par les membres, les plus écoutés, nouveautés Deezer), plus une tranche des autres artistes du
-//             catalogue suivis par la synchro complète, à tour de rôle (chacun revu environ toutes les 4 h). Les nouvelles sont enregistrées tout de suite
+//             catalogue suivis par la synchro complète, à tour de rôle (chacun revu environ toutes les 4 h).
+//             Annonces (supabase/announcements.sql) : les précommandes Apple d'albums et d'EP deviennent des annonces,
+//             et chaque annonce publiée est reliée à sa sortie dès qu'elle a une fiche (puis retirée d'« À venir »). Les nouvelles sont enregistrées tout de suite
 //             avec une notification immédiate aux membres qui suivent l'artiste, et le site est reconstruit
 //             (au plus une fois toutes les 30 min). La synchro complète
 //             (scripts/sync-releases.ts) repasse ensuite derrière et complète les lignes.
@@ -183,7 +185,8 @@ async function veille() {
   add(rotation.rows, false);
 
   // Apple Music en parallèle (sa propre limite de débit) : artistes de la watchlist et suivis par les membres
-  const applePromise = appleReleases(admin, [...artists.values()].filter((a) => a.watched).map((a) => a.id), from, today).catch((err) => {
+  const appleUpcoming: AppleAlbum[] = [];
+  const applePromise = appleReleases(admin, [...artists.values()].filter((a) => a.watched).map((a) => a.id), from, today, appleUpcoming).catch((err) => {
     console.error('Apple :', err);
     return null;
   });
@@ -284,6 +287,10 @@ async function veille() {
 
   // Mesure Deezer / Apple (supabase/apple-source.sql) : première heure où chaque sortie est vue sur chaque plateforme
   await recordSeen(seenOnDeezer, apple).catch((err) => console.error('Mesure :', err));
+  const annonces = await syncAnnouncements(appleUpcoming, today).catch((err) => {
+    console.error('Annonces :', err);
+    return null;
+  });
   let notified: unknown = null;
   if (fresh.length) {
     const { error } = await admin.from('releases').upsert(fresh, { onConflict: 'slug', ignoreDuplicates: true });
@@ -313,10 +320,82 @@ async function veille() {
     roulement: `${rotation.slice + 1}/${rotation.slices}`,
     candidats: candidates.size,
     apple: apple.length,
+    annonces,
     nouvelles: fresh.map((r) => (r.metadata.sources[0] === 'apple' ? `${r.title} (Apple)` : r.title)),
     notifications: notified,
     site_reconstruit: deployed,
   };
+}
+
+// Annonces : précommandes Apple ajoutées (sauf si le disque a déjà sa fiche), annonces publiées reliées à leur sortie,
+// et annonces dépassées retirées. Sans la table (SQL pas encore lancé), rien n'est fait.
+const ANNOUNCE_AHEAD_DAYS = 240;
+async function syncAnnouncements(appleUpcoming: AppleAlbum[], today: string) {
+  const { data: open, error } = await admin
+    .from('announcements')
+    .select('id, artist_id, title, release_date, date_precision, created_at, external_key')
+    .in('status', ['published', 'pending'])
+    .limit(1000);
+  if (error) return null;
+  const until = parisDate(ANNOUNCE_AHEAD_DAYS);
+  const albums = appleUpcoming.filter((a) => a.type !== 'single' && a.releaseDate <= until);
+  const artistIds = [...new Set([...(open ?? []).map((a) => a.artist_id as string), ...albums.map((a) => a.artistId)])];
+  // Sorties connues de ces artistes (albums et EP, y compris les pré-sorties Deezer datées dans le futur)
+  const releases: { id: string; artist_id: string; title: string; release_date: string; release_type: string }[] = [];
+  for (let i = 0; i < artistIds.length; i += 100) {
+    const { data } = await admin
+      .from('releases')
+      .select('id, artist_id, title, release_date, release_type')
+      .in('artist_id', artistIds.slice(i, i + 100))
+      .gte('release_date', parisDate(-400));
+    releases.push(...((data ?? []) as typeof releases));
+  }
+  const known = new Set(releases.map((r) => `${r.artist_id}|${normTitle(r.title)}`));
+
+  const fresh = albums
+    .filter((a) => !known.has(`${a.artistId}|${normTitle(a.title)}`))
+    .map((a) => ({
+      artist_id: a.artistId,
+      title: a.title,
+      kind: a.type === 'ep' ? 'ep' : 'album',
+      release_date: a.releaseDate,
+      date_precision: 'day',
+      source: 'apple',
+      source_url: a.url ?? `https://music.apple.com/fr/search?term=${encodeURIComponent(`${a.artistName} ${a.title}`)}`,
+      cover_url: a.cover,
+      status: 'published',
+      external_key: `apple:${a.artistId}|${normTitle(a.title)}`,
+    }));
+  if (fresh.length) await admin.from('announcements').upsert(fresh, { onConflict: 'external_key', ignoreDuplicates: true });
+
+  // Reliée : même artiste et même titre ; sans titre, le premier album ou EP de l'artiste sorti depuis l'annonce
+  let linked = 0;
+  let expired = 0;
+  for (const a of open ?? []) {
+    const mine = releases.filter((r) => r.artist_id === a.artist_id);
+    const match = a.title
+      ? mine.find((r) => normTitle(r.title) === normTitle(a.title))
+      : mine
+          .filter((r) => ['album', 'ep'].includes(r.release_type) && r.release_date >= String(a.created_at).slice(0, 10))
+          .sort((x, y) => x.release_date.localeCompare(y.release_date))[0];
+    if (match) {
+      await admin.from('announcements').update({ status: 'done', release_id: match.id }).eq('id', a.id);
+      linked++;
+      continue;
+    }
+    // Dépassée sans fiche : date exacte passée de 7 jours, mois ou saison passés de 30 jours, année passée, « bientôt » vieux de 6 mois
+    const d = a.release_date as string | null;
+    const stale =
+      (a.date_precision === 'day' && d && d < parisDate(-7)) ||
+      ((a.date_precision === 'month' || a.date_precision === 'season') && d && d < parisDate(-(a.date_precision === 'season' ? 120 : 60))) ||
+      (a.date_precision === 'year' && d && d.slice(0, 4) < today.slice(0, 4)) ||
+      (a.date_precision === 'soon' && String(a.created_at).slice(0, 10) < parisDate(-180));
+    if (stale) {
+      await admin.from('announcements').update({ status: 'done' }).eq('id', a.id);
+      expired++;
+    }
+  }
+  return { apple: fresh.length, reliees: linked, retirees: expired };
 }
 
 // Rôle du jeton : sa signature est déjà vérifiée par la passerelle Supabase (verify_jwt, actif par défaut)

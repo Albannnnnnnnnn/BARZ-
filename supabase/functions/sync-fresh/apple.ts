@@ -79,8 +79,9 @@ function toAlbum(c: any, artist: Row): AppleAlbum | null {
   };
 }
 
-// Sorties Apple des artistes donnés, datées entre from et today (inclus)
-export async function appleReleases(admin: any, artistIds: string[], from: string, today: string): Promise<AppleAlbum[] | null> {
+// Sorties Apple des artistes donnés, datées entre from et today (inclus). Les précommandes (date après today) sont
+// ajoutées à upcoming s'il est fourni : elles deviennent des annonces (table announcements).
+export async function appleReleases(admin: any, artistIds: string[], from: string, today: string, upcoming?: AppleAlbum[]): Promise<AppleAlbum[] | null> {
   const rows: Row[] = [];
   for (let i = 0; i < artistIds.length; i += 200) {
     const { data, error } = await admin.from('artists').select('id, name, apple_id').in('id', artistIds.slice(i, i + 200));
@@ -97,6 +98,7 @@ export async function appleReleases(admin: any, artistIds: string[], from: strin
       const artist = c.wrapperType === 'collection' ? byApple.get(Number(c.artistId)) : undefined;
       const album = artist && toAlbum(c, artist);
       if (album && album.releaseDate >= from && album.releaseDate <= today) albums.push(album);
+      else if (album && album.releaseDate > today && upcoming && !upcoming.some((u) => u.artistId === album.artistId && normTitle(u.title) === normTitle(album.title))) upcoming.push(album);
     }
   }
   // Versions explicite et censurée : une seule

@@ -1,6 +1,8 @@
 ---
 // CALENDRIER DES SORTIES À VENIR (4 mois) : vue par mois + liste par date.
 // Sources : pré-sorties Deezer / Spotify et annonces MusicBrainz (voir scripts/sync-releases.ts).
+// En haut, lues en direct : les annonces sans fiche (précommandes Apple, dates approximatives, annonces validées par
+// Alban), table announcements (src/scripts/announcements.ts).
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
@@ -43,6 +45,12 @@ const DATES_SHOWN = 4;
             : 'Aucune sortie annoncée pour l’instant.'}
           <span class="lead-note">Les annonces arrivent au fil des pré-sorties : le calendrier se remplit deux fois par jour.</span>
         </p>
+
+    <section class="announced" id="announced" hidden aria-labelledby="announced-title">
+      <div class="bz-section-head"><h2 id="announced-title" class="bz-h2">Annoncés <em>par les artistes</em></h2><a class="bz-link" href="/BARZ-/annonces">Tout voir</a></div>
+      <p class="announced-note">Albums et EP annoncés, pas encore en pré-sortie. Le compte à rebours démarre dès que la date exacte est connue.</p>
+      <div class="bz-tiles bz-rail" id="announced-list"></div>
+    </section>
 
     <!-- Sur mobile, un mois à la fois : on fait défiler les mois sur le côté -->
     <div class="months bz-rail">
@@ -113,6 +121,14 @@ const DATES_SHOWN = 4;
 
 <script>
   import { escapeHtml, myFollows } from '../scripts/social';
+  import { announcementCardHtml, publishedAnnouncements } from '../scripts/announcements';
+
+  // Annonces sans fiche, lues en direct (elles arrivent entre deux reconstructions du site)
+  publishedAnnouncements().then((list) => {
+    if (!list.length) return;
+    document.getElementById('announced-list')!.innerHTML = list.map((a) => announcementCardHtml(a)).join('');
+    document.getElementById('announced')!.hidden = false;
+  });
 
   // Toutes les dates : bouton, ou clic sur un jour du calendrier qui vise une date encore masquée
   const dateList = document.getElementById('date-list');
@@ -145,6 +161,20 @@ const DATES_SHOWN = 4;
 </script>
 
 <style>
+  .announced {
+    margin: 8px 0 40px;
+  }
+
+  .announced[hidden] {
+    display: none;
+  }
+
+  .announced-note {
+    margin: -6px 0 18px;
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+
   .lead {
     margin-top: 28px;
     font-size: 17px;

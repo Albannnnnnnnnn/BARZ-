@@ -3,6 +3,9 @@
 // avec un lien vers l'article original : jamais le contenu de l'article.
 import { XMLParser } from 'fast-xml-parser';
 import { getToday } from './releases';
+import { NEWS_FEEDS } from './news-feeds';
+
+export { NEWS_FEEDS };
 
 export type NewsItem = {
   title: string;
@@ -13,19 +16,6 @@ export type NewsItem = {
   image: string | null;
 };
 
-// Ajoute ou retire des médias ici : seuls les flux RSS publics sont utilisés. Vérifiés le 31/10/2026 (Rolling Stone FR
-// refuse les robots, Booska-P et Mouv' ne publient plus dans leur flux, celui de Raplume est envahi de pubs de casino).
-// lang 'fr' : mis en avant (le public de BARZ¡ est francophone).
-export const NEWS_FEEDS = [
-  { source: 'Tsugi', url: 'https://www.tsugi.fr/feed/', lang: 'fr' },
-  { source: 'L’Abcdr du Son', url: 'https://www.abcdrduson.com/feed/', lang: 'fr' },
-  { source: 'Les Inrocks', url: 'https://www.lesinrocks.com/musique/feed/', lang: 'fr' },
-  { source: 'Radio Nova', url: 'https://www.nova.fr/feed/', lang: 'fr' },
-  { source: 'FIP', url: 'https://www.radiofrance.fr/fip/rss', lang: 'fr' },
-  { source: 'Les Oreilles Curieuses', url: 'https://www.lesoreillescurieuses.com/feed', lang: 'fr' },
-  { source: 'Pitchfork', url: 'https://pitchfork.com/feed/feed-news/rss', lang: 'en' },
-  { source: 'NME', url: 'https://www.nme.com/news/music/feed', lang: 'en' },
-] as const;
 
 const MAX_AGE_DAYS = 14;
 // Certains médias publient beaucoup plus que d'autres : on plafonne pour garder de la variété
