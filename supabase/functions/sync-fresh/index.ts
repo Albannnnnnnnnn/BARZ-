@@ -330,6 +330,10 @@ async function veille() {
 // Annonces : précommandes Apple ajoutées (sauf si le disque a déjà sa fiche), annonces publiées reliées à leur sortie,
 // et annonces dépassées retirées. Sans la table (SQL pas encore lancé), rien n'est fait.
 const ANNOUNCE_AHEAD_DAYS = 240;
+// Pas un nouveau disque : édition augmentée, réédition, live (même règle que les actus dans scripts/announcements.ts)
+const NOT_NEW_RECORD = /deluxe|bonus|expanded|edition|édition|remaster|anniversa|reissue|réédition|\blive\b/i;
+// Titre sans mention de version entre parenthèses : « Carnaval De Luz (Bonus Track Version) » = « Carnaval De Luz »
+const baseTitle = (title: string) => normTitle(title.replace(/\s*[([][^)\]]*(version|edition|édition|deluxe|bonus|remaster)[^)\]]*[)\]]/gi, ''));
 async function syncAnnouncements(appleUpcoming: AppleAlbum[], today: string) {
   const { data: open, error } = await admin
     .from('announcements')
@@ -338,7 +342,7 @@ async function syncAnnouncements(appleUpcoming: AppleAlbum[], today: string) {
     .limit(1000);
   if (error) return null;
   const until = parisDate(ANNOUNCE_AHEAD_DAYS);
-  const albums = appleUpcoming.filter((a) => a.type !== 'single' && a.releaseDate <= until);
+  const albums = appleUpcoming.filter((a) => a.type !== 'single' && a.releaseDate <= until && !NOT_NEW_RECORD.test(a.title));
   const artistIds = [...new Set([...(open ?? []).map((a) => a.artist_id as string), ...albums.map((a) => a.artistId)])];
   // Sorties connues de ces artistes (albums et EP, y compris les pré-sorties Deezer datées dans le futur)
   const releases: { id: string; artist_id: string; title: string; release_date: string; release_type: string }[] = [];
@@ -350,10 +354,10 @@ async function syncAnnouncements(appleUpcoming: AppleAlbum[], today: string) {
       .gte('release_date', parisDate(-400));
     releases.push(...((data ?? []) as typeof releases));
   }
-  const known = new Set(releases.map((r) => `${r.artist_id}|${normTitle(r.title)}`));
+  const known = new Set(releases.map((r) => `${r.artist_id}|${baseTitle(r.title)}`));
 
   const fresh = albums
-    .filter((a) => !known.has(`${a.artistId}|${normTitle(a.title)}`))
+    .filter((a) => !known.has(`${a.artistId}|${baseTitle(a.title)}`))
     .map((a) => ({
       artist_id: a.artistId,
       title: a.title,
@@ -364,7 +368,7 @@ async function syncAnnouncements(appleUpcoming: AppleAlbum[], today: string) {
       source_url: a.url ?? `https://music.apple.com/fr/search?term=${encodeURIComponent(`${a.artistName} ${a.title}`)}`,
       cover_url: a.cover,
       status: 'published',
-      external_key: `apple:${a.artistId}|${normTitle(a.title)}`,
+      external_key: `apple:${a.artistId}|${baseTitle(a.title)}`,
     }));
   if (fresh.length) await admin.from('announcements').upsert(fresh, { onConflict: 'external_key', ignoreDuplicates: true });
 
@@ -374,7 +378,7 @@ async function syncAnnouncements(appleUpcoming: AppleAlbum[], today: string) {
   for (const a of open ?? []) {
     const mine = releases.filter((r) => r.artist_id === a.artist_id);
     const match = a.title
-      ? mine.find((r) => normTitle(r.title) === normTitle(a.title))
+      ? mine.find((r) => baseTitle(r.title) === baseTitle(a.title))
       : mine
           .filter((r) => ['album', 'ep'].includes(r.release_type) && r.release_date >= String(a.created_at).slice(0, 10))
           .sort((x, y) => x.release_date.localeCompare(y.release_date))[0];
