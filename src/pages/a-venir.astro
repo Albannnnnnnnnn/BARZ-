@@ -43,7 +43,7 @@ const DATES_SHOWN = 4;
           {releases.length > 0
             ? `${releases.length} sortie${releases.length > 1 ? 's' : ''} annoncée${releases.length > 1 ? 's' : ''} pour les 4 prochains mois.`
             : 'Aucune sortie annoncée pour l’instant.'}
-          <span class="lead-note">Les annonces arrivent au fil des pré-sorties : le calendrier se remplit deux fois par jour.</span>
+          <span class="lead-note">Les annonces arrivent au fil des pré-sorties : le calendrier se remplit deux fois par jour. Les albums annoncés sans date : <a href="/BARZ-/annonces">les annonces</a>.</span>
         </p>
 
     <section class="announced" id="announced" hidden aria-labelledby="announced-title">
@@ -186,6 +186,11 @@ const DATES_SHOWN = 4;
     margin-top: 6px;
     font-size: 14px;
     color: var(--color-text-dim);
+  }
+
+  .lead-note a {
+    color: var(--color-accent);
+    text-decoration: underline;
   }
 
   .list.is-capped > :global(.date-block:nth-of-type(n + 5)) {

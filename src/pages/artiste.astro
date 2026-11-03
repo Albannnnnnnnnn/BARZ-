@@ -253,7 +253,7 @@ import Layout from '../layouts/Layout.astro';
     precision.innerHTML = PRECISIONS.map(([v, label]) => `<option value="${v}"${v === 'soon' ? ' selected' : ''}>${label}</option>`).join('');
     const syncDate = () => ($('announce-date-field').hidden = precision.value === 'soon');
     precision.onchange = syncDate;
-    $('announce-open').onclick = async () => {
+    $('a-announce-open').onclick = async () => {
       if (!(await getSession())) return void (location.href = loginUrl());
       form.reset();
       precision.value = 'soon';
