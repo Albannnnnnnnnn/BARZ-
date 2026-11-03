@@ -27,7 +27,26 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
 <script>
   import { escapeHtml } from '../scripts/social';
 
-  type Track = { title: string; duration: number; preview: string; readable: boolean };
+  type Track = { id: number; title: string; duration: number; preview: string; readable: boolean; artist?: { id: number }; feats?: string[] };
+
+  // Invités d'un titre : la liste des titres d'un album ne donne que l'artiste principal, et les invités ne sont pas
+  // toujours dans le titre (« TYPE SHIT » de La Fève avec Yung L.A.). Ils sont dans la fiche de chaque titre,
+  // demandée 4 par 4 (l'API publique limite le nombre de requêtes). Ceux déjà écrits dans le titre sont ignorés.
+  const FEATS_MAX = 60;
+  const squash = (text: string) => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  async function loadFeats(tracks: Track[], onDone: () => void) {
+    const queue = tracks.slice(0, FEATS_MAX);
+    const worker = async () => {
+      for (let t = queue.shift(); t; t = queue.shift()) {
+        const track = t;
+        const detail = await jsonp<{ contributors?: { id: number; name: string }[] }>(`https://api.deezer.com/track/${track.id}`).catch(() => null);
+        const title = squash(track.title);
+        track.feats = (detail?.contributors ?? []).filter((c) => c.id !== track.artist?.id && !title.includes(squash(c.name))).map((c) => c.name);
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    if (tracks.some((t) => t.feats?.length)) onDone();
+  }
 
   // JSONP : <script> + fonction de rappel globale
   function jsonp<T>(url: string): Promise<T> {
@@ -58,7 +77,9 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
 
     async function load() {
       const res = await jsonp<{ data?: Track[] }>(`https://api.deezer.com/album/${section.dataset.album}/tracks?limit=100`);
-      tracks = res.data ?? [];
+      // Liste redemandée (extrait expiré) : les invités déjà trouvés sont gardés
+      const feats = new Map(tracks.map((t) => [t.id, t.feats]));
+      tracks = (res.data ?? []).map((t) => ({ ...t, feats: feats.get(t.id) }));
     }
 
     function render() {
@@ -69,7 +90,7 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
             <button type="button" class="track-button" ${playable ? '' : 'disabled'} aria-label="${escapeHtml(`Écouter l’extrait : ${t.title}`)}">
               <span class="track-num">${i + 1}</span>
               <span class="track-icon" aria-hidden="true">▶</span>
-              <span class="track-title">${escapeHtml(t.title)}</span>
+              <span class="track-title">${escapeHtml(t.title)}${t.feats?.length ? ` <small class="track-feat">feat. ${escapeHtml(t.feats.join(', '))}</small>` : ''}</span>
               <span class="track-time">${playable ? duration(t.duration) : 'Pas d’extrait'}</span>
             </button>
             <span class="track-bar" aria-hidden="true"><i></i></span>
@@ -133,6 +154,11 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
       if (!tracks.some((t) => t.readable && t.preview)) return;
       render();
       section.hidden = false;
+      // Les invités arrivent ensuite ; on redessine en gardant le titre en cours de lecture
+      loadFeats(tracks, () => {
+        render();
+        paint();
+      });
     } catch {
       // Deezer indisponible : pas d'extraits, le bouton « Écouter » reste
     }
@@ -221,6 +247,12 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .previews :global(.track-feat) {
+    font-size: 0.85em;
+    font-weight: 400;
+    color: var(--color-text-muted);
   }
 
   .previews :global(.is-current .track-title) {
