@@ -7,6 +7,7 @@ import TopBar from '../components/TopBar.astro';
 import BottomNav from '../components/BottomNav.astro';
 import UpdateBanner from '../components/UpdateBanner.astro';
 import PushToast from '../components/PushToast.astro';
+import WhatsNew from '../components/WhatsNew.astro';
 
 interface Props {
   title: string;
@@ -99,6 +100,7 @@ const currentPath = Astro.url.pathname;
     <!-- Hors de .shell-bottom, masquée sur ordinateur -->
     <UpdateBanner />
     <PushToast />
+    <WhatsNew />
     <script>
       import '../scripts/listen';
       import { promptGuide } from '../scripts/guide-prompt';

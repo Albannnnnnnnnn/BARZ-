@@ -1,0 +1,116 @@
+---
+// Fenêtre « Quoi de neuf ? » : la dernière mise à jour du journal (src/lib/changelog.ts), montrée une fois à
+// l'ouverture de l'appli (src/scripts/whats-new.ts), avec un lien vers la page Nouveautés
+import { LATEST_CHANGE, changeDate } from '../lib/changelog';
+
+const SHOWN = 4;
+const items = LATEST_CHANGE.items.slice(0, SHOWN);
+const more = LATEST_CHANGE.items.length - items.length;
+---
+
+<dialog class="whats-new" id="whats-new" data-id={LATEST_CHANGE.id} aria-labelledby="whats-new-title">
+  <form method="dialog" class="wn-box">
+    <span class="wn-date">Mise à jour du {changeDate(LATEST_CHANGE.id)}</span>
+    <h2 class="bz-h2" id="whats-new-title">Quoi de <em>neuf ?</em></h2>
+    <ul class="wn-items">
+      {
+        items.map((item) => (
+          <li>
+            <b>{item.title}</b>
+            <span>{item.text}</span>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="wn-actions">
+      <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" value="ok">Compris</button>
+      <a class="bz-btn bz-btn--outline bz-btn--small" href="/BARZ-/nouveautes">{more > 0 ? `Tout voir (+${more})` : 'Tout voir'}</a>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  import { markNewsSeen, shouldShowNews } from '../scripts/whats-new';
+
+  const dialog = document.getElementById('whats-new') as HTMLDialogElement;
+  const id = dialog.dataset.id!;
+  dialog.addEventListener('close', () => markNewsSeen(id));
+  // Clic sur le fond : fermer
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  // Un peu après l'ouverture, pour laisser la page s'afficher (et le guide rediriger s'il doit le faire)
+  setTimeout(async () => {
+    if (!(await shouldShowNews(id).catch(() => false)) || document.querySelector('dialog[open]')) return;
+    dialog.showModal();
+  }, 1500);
+</script>
+
+<style>
+  .whats-new {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100dvh - 64px);
+    margin: auto; /* la remise à zéro des marges du site décentrait la fenêtre */
+    padding: 0;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+    color: var(--color-text);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .whats-new::backdrop {
+    background: rgba(10, 10, 10, 0.5);
+  }
+
+  .wn-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 24px;
+  }
+
+  .wn-date {
+    font: 600 12px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .wn-box .bz-h2 {
+    margin: 0;
+  }
+
+  .wn-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 4px 0 6px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .wn-items li {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-left: 16px;
+    border-left: 3px solid var(--color-accent);
+  }
+
+  .wn-items b {
+    font: 800 16px/1.25 var(--font-display);
+  }
+
+  .wn-items span {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .wn-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+</style>

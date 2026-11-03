@@ -1,0 +1,102 @@
+---
+// NOUVEAUTÉS : le journal des mises à jour (src/lib/changelog.ts), la plus récente en premier
+import Layout from '../layouts/Layout.astro';
+import { CHANGELOG, changeDate } from '../lib/changelog';
+---
+
+<Layout title="Nouveautés" description="Ce qui a changé dans BARZ¡, mise à jour après mise à jour.">
+  <div class="bz-page news">
+    <span class="bz-eyebrow">Journal de bord</span>
+    <h1 class="bz-display">Quoi de <em>neuf ?</em></h1>
+    <p class="intro">Ce qui a changé dans BARZ¡, mise à jour après mise à jour. Une idée pour la suite ? <a href="/BARZ-/retours?depuis=/BARZ-/nouveautes">Dis-le ici</a>.</p>
+
+    {
+      CHANGELOG.map((entry) => (
+        <article class="entry" id={entry.id}>
+          <time class="date" datetime={entry.id}>{changeDate(entry.id)}</time>
+          <h2 class="bz-h2 entry-title">{entry.title}</h2>
+          <ul class="items">
+            {entry.items.map((item) => (
+              <li class="item">
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+                {item.href && <a class="bz-link" href={item.href}>{item.link ?? 'Voir'} →</a>}
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))
+    }
+  </div>
+</Layout>
+
+<script>
+  import { LATEST_CHANGE } from '../lib/changelog';
+  import { markNewsSeen } from '../scripts/whats-new';
+  // Le journal ouvert : la dernière mise à jour est vue, la fenêtre ne s'ouvrira pas
+  markNewsSeen(LATEST_CHANGE.id);
+</script>
+
+<style>
+  .news {
+    max-width: 760px;
+  }
+
+  .intro {
+    margin: 20px 0 40px;
+    color: var(--color-text-muted);
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .intro a {
+    color: var(--color-accent);
+  }
+
+  .entry + .entry {
+    margin-top: 56px;
+  }
+
+  .date {
+    font: 600 13px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .entry-title {
+    margin: 10px 0 24px;
+  }
+
+  .items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .item {
+    padding: 16px 18px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+  }
+
+  .item h3 {
+    margin: 0;
+    font: 800 17px/1.25 var(--font-display);
+  }
+
+  .item p {
+    margin: 6px 0 0;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .item .bz-link {
+    display: inline-block;
+    margin-top: 10px;
+  }
+</style>
