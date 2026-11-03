@@ -4,7 +4,8 @@
 // - test   : une notification de test vers ses propres appareils (appelée depuis le profil).
 // - feedback : prévient Alban d'un nouveau retour (appelée depuis la page Retours, même sans compte).
 // - friend   : demande d'ami reçue ou acceptée (appelée par un déclencheur de la base, supabase/notifications.sql).
-// - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql).
+// - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql) ; le Barz est aussi publié
+//              dans le salon #barz du Discord (secret DISCORD_BARZ_WEBHOOK_URL, facultatif).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
@@ -16,6 +17,9 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, SERVICE_KEY, { auth: { persistSession: false } });
 const SITE = 'https://albannnnnnnnnn.github.io/BARZ-/';
 webpush.setVapidDetails(SITE, Deno.env.get('VAPID_PUBLIC_KEY') ?? '', Deno.env.get('VAPID_PRIVATE_KEY') ?? '');
+
+// Webhook du salon #barz du Discord de BARZ¡ : sans lui, les Barz ne sont pas publiés sur Discord
+const DISCORD_BARZ_WEBHOOK_URL = Deno.env.get('DISCORD_BARZ_WEBHOOK_URL') ?? '';
 
 // Alban : reçoit les notifications des retours (même identifiant que is_barz_admin dans supabase/feedback.sql)
 const ADMIN_ID = '1b7ffb47-27e0-47ec-8bf2-1d516f3035dd';
@@ -212,6 +216,39 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
   return { messages, announced };
 }
 
+// Un nouveau Barz dans le salon #barz du Discord : auteur, sortie, note, avis et pochette. true si Discord l'a reçu.
+async function postBarzToDiscord(barz: {
+  score: number;
+  body: string;
+  author: { username: string; display_name: string };
+  release: { slug: string; title: string; cover_url: string | null; artist: { name: string } | null };
+}): Promise<boolean> {
+  if (!DISCORD_BARZ_WEBHOOK_URL) return false;
+  const score = Number(barz.score);
+  const url = `${SITE}releases/${barz.release.slug}`;
+  const res = await fetch(DISCORD_BARZ_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: 'BARZ¡',
+      avatar_url: `${SITE}icon-192.png`,
+      // Pas de mention possible depuis le texte d'un membre (@everyone, @rôle…)
+      allowed_mentions: { parse: [] },
+      embeds: [
+        {
+          author: { name: `${barz.author.display_name} (@${barz.author.username})`, url: `${SITE}profil?u=${encodeURIComponent(barz.author.username)}` },
+          title: `${barz.release.title}${barz.release.artist?.name ? ` — ${barz.release.artist.name}` : ''}`.slice(0, 256),
+          url,
+          description: `**${score.toFixed(1)}/10**\n« ${barz.body.slice(0, 3900)} »`,
+          color: 0x3d5afe,
+          ...(barz.release.cover_url ? { thumbnail: { url: barz.release.cover_url } } : {}),
+        },
+      ],
+    }),
+  }).catch(() => null);
+  return !!res?.ok;
+}
+
 Deno.serve(async (req) => {
   const headers = { ...cors(req), 'Content-Type': 'application/json' };
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
@@ -265,18 +302,25 @@ Deno.serve(async (req) => {
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { data: b } = await admin
       .from('barz')
-      .select('user_id, score, body, author:profiles!barz_user_id_fkey(username, display_name), release:releases(slug, title)')
+      .select('user_id, score, body, author:profiles!barz_user_id_fkey(username, display_name), release:releases(slug, title, cover_url, artist:artists!artist_id(name))')
       .eq('id', String(body.barz))
       .maybeSingle();
-    const barz = b as unknown as { user_id: string; score: number; body: string; author: { username: string; display_name: string } | null; release: { slug: string; title: string } | null } | null;
+    const barz = b as unknown as {
+      user_id: string;
+      score: number;
+      body: string;
+      author: { username: string; display_name: string } | null;
+      release: { slug: string; title: string; cover_url: string | null; artist: { name: string } | null } | null;
+    } | null;
     if (!barz?.author || !barz.release) return reply({ sent: 0 });
+    const discord = await postBarzToDiscord(barz as Parameters<typeof postBarzToDiscord>[0]);
     const { data: links } = await admin
       .from('friendships')
       .select('requester_id, addressee_id')
       .eq('status', 'accepted')
       .or(`requester_id.eq.${barz.user_id},addressee_id.eq.${barz.user_id}`);
     const friends = (links ?? []).map((f) => (f.requester_id === barz.user_id ? f.addressee_id : f.requester_id));
-    if (!friends.length) return reply({ sent: 0 });
+    if (!friends.length) return reply({ sent: 0, discord });
     const text = barz.body.length > 110 ? `${barz.body.slice(0, 109)}…` : barz.body;
     const message: Message = {
       title: `${barz.author!.display_name} a publié un Barz`,
@@ -286,7 +330,7 @@ Deno.serve(async (req) => {
     };
     const sent = await send(await subsOf(friends), () => message);
     await toInbox('barz', friends.map((f) => [f, message] as [string, Message]));
-    return reply({ sent, friends: friends.length });
+    return reply({ sent, friends: friends.length, discord });
   }
 
   if (body.action === 'releases') {
