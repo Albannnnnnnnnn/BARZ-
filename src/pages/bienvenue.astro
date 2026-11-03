@@ -1,13 +1,47 @@
 ---
-// BIENVENUE (après l'inscription) : choisir ses genres, puis ses artistes. Nourrit les recommandations.
+// BIENVENUE (après l'inscription) : relier sa musique (Deezer, Last.fm : Spotify est limité à quelques comptes),
+// choisir ses genres, puis ses artistes, en commençant par ceux retrouvés sur Deezer. Nourrit les recommandations.
 import Layout from '../layouts/Layout.astro';
 import { GENRE_CHIPS } from '../lib/genres';
 ---
 
 <Layout title="Bienvenue" description="Choisis tes genres et tes artistes pour que BARZ¡ te ressemble.">
   <div class="bz-page">
-    <section id="step-genres">
-      <span class="bz-eyebrow">Étape 1 sur 2</span>
+    <section id="step-music">
+      <span class="bz-eyebrow">Étape 1 sur 3</span>
+      <h1 class="bz-display">D’où vient <em>ta musique ?</em></h1>
+      <p class="lead">Relie ton compte : on retrouve tes artistes tout seuls, et tes recos partent de ce que tu écoutes vraiment. Tu pourras le faire plus tard dans les Paramètres.</p>
+      <div class="sources">
+        <article class="source">
+          <h2>Deezer</h2>
+          <p>Colle le lien de ton profil : dans Deezer, ton profil → Partager → Copier le lien. Tes favoris doivent être publics.</p>
+          <form id="deezer-form" class="source-form">
+            <label class="sr-only" for="deezer-input">Lien du profil Deezer</label>
+            <input id="deezer-input" class="bz-input" maxlength="300" placeholder="https://www.deezer.com/fr/profile/…" autocomplete="off" />
+            <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" id="deezer-submit">Relier</button>
+          </form>
+          <p class="bz-notice" id="deezer-status" hidden></p>
+        </article>
+        <article class="source">
+          <h2>Last.fm</h2>
+          <p>Ton pseudo Last.fm : tes artistes les plus écoutés sont importés. <b>Tu écoutes sur Spotify ?</b> Relie Spotify à Last.fm (Last.fm → Paramètres → Applications), puis donne ton pseudo ici.</p>
+          <form id="lastfm-form" class="source-form">
+            <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
+            <input id="lastfm-input" class="bz-input" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
+            <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Relier</button>
+          </form>
+          <p class="bz-notice" id="lastfm-status" hidden></p>
+        </article>
+      </div>
+      <p class="source-note">Spotify ne permet de relier que quelques comptes pour l’instant : passe par Last.fm, ça marche aussi bien pour tes recos. Apple Music, YouTube ou autre ? Touche « Plus tard », tu choisiras tes artistes juste après.</p>
+      <div class="finish">
+        <button type="button" class="bz-btn bz-btn--outline" id="skip-music">Plus tard</button>
+        <button type="button" class="bz-btn bz-btn--lime" id="to-genres">Continuer →</button>
+      </div>
+    </section>
+
+    <section id="step-genres" hidden>
+      <span class="bz-eyebrow">Étape 2 sur 3</span>
       <h1 class="bz-display">Qu’est-ce que <em>tu écoutes ?</em></h1>
       <p class="lead">Choisis au moins un genre. Tu pourras changer d’avis plus tard.</p>
       <div class="genres" id="genre-picks">
@@ -15,13 +49,24 @@ import { GENRE_CHIPS } from '../lib/genres';
           <button type="button" class="genre" data-genre={c.id} aria-pressed="false">{c.label}</button>
         ))}
       </div>
-      <button type="button" class="bz-btn bz-btn--lime" id="to-artists" disabled>Continuer →</button>
+      <div class="finish">
+        <button type="button" class="bz-btn bz-btn--outline" id="back-music">← Ta musique</button>
+        <button type="button" class="bz-btn bz-btn--lime" id="to-artists" disabled>Continuer →</button>
+      </div>
     </section>
 
     <section id="step-artists" hidden>
-      <span class="bz-eyebrow">Étape 2 sur 2</span>
+      <span class="bz-eyebrow">Étape 3 sur 3</span>
       <h1 class="bz-display">Tes <em>artistes.</em></h1>
       <p class="lead">Suis ceux que tu aimes : leurs sorties remonteront en premier, et on te proposera des artistes proches. <b id="follow-count"></b></p>
+      <div class="imported" id="imported-block" hidden>
+        <div class="imported-head">
+          <h2 class="imported-title" id="imported-title">Retrouvés sur Deezer</h2>
+          <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="follow-all">Tout suivre</button>
+        </div>
+        <div class="bz-artists" id="imported-grid"></div>
+        <h2 class="imported-title">D’autres idées</h2>
+      </div>
       <label class="sr-only" for="onboard-q">Chercher un artiste</label>
       <input id="onboard-q" class="bz-input search" type="search" placeholder="Chercher un artiste précis…" autocomplete="off" />
       <div class="bz-artists" id="onboard-grid"></div>
@@ -34,8 +79,9 @@ import { GENRE_CHIPS } from '../lib/genres';
 </Layout>
 
 <script>
-  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, errorText, getMyProfile, myFollows, requireSession, searchArtists, supabase, updateMyProfile, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, errorText, getMyProfile, myFollows, requireSession, searchArtists, setFollow, supabase, updateMyProfile, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
+  import { deezerLink } from '../scripts/deezer';
 
   const $ = (id: string) => document.getElementById(id)!;
   const next = new URLSearchParams(location.search).get('next') || BASE;
@@ -44,9 +90,84 @@ import { GENRE_CHIPS } from '../lib/genres';
 
   const paintCount = () => ($('follow-count').textContent = followed.size ? `${followed.size} suivi${followed.size > 1 ? 's' : ''}.` : '');
 
+  // Étapes : ta musique → genres → artistes
+  const show = (step: 'music' | 'genres' | 'artists') => {
+    for (const s of ['music', 'genres', 'artists']) $(`step-${s}`).hidden = s !== step;
+    window.scrollTo(0, 0);
+  };
+  const notice = (id: string, text: string, kind: 'ok' | 'error') => {
+    $(id).textContent = text;
+    $(id).className = `bz-notice bz-notice--${kind}`;
+    $(id).hidden = false;
+  };
+
+  $('deezer-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const value = ($('deezer-input') as HTMLInputElement).value.trim();
+    if (!value) return;
+    const button = $('deezer-submit') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const result = await deezerLink(value);
+      notice('deezer-status', result.matched ? `Relié : ${result.matched} de tes artistes retrouvés. Tu pourras les suivre en un clic à l’étape 3.` : 'Relié, mais aucun de tes favoris n’est encore dans le catalogue.', 'ok');
+    } catch (err) {
+      notice('deezer-status', errorText(err), 'error');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('lastfm-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const value = ($('lastfm-input') as HTMLInputElement).value.trim();
+    if (!value) return;
+    try {
+      await updateMyProfile({ lastfm_username: value });
+      notice('lastfm-status', `C’est noté : tes écoutes Last.fm (@${value}) seront importées dans les prochaines heures.`, 'ok');
+    } catch (err) {
+      notice('lastfm-status', errorText(err), 'error');
+    }
+  });
+
+  $('to-genres').addEventListener('click', () => show('genres'));
+  $('skip-music').addEventListener('click', () => show('genres'));
+  $('back-music').addEventListener('click', () => show('music'));
+
+  // Artistes retrouvés sur Deezer (ou Spotify) : proposés en premier, à suivre en un clic
+  let imported: ArtistLite[] = [];
+  async function showImported() {
+    const session = await requireSession();
+    if (!session || !supabase) return;
+    const { data } = await supabase.from('imported_artists').select(`source, weight, artist:artists(${ARTIST_LITE})`).eq('user_id', session.user.id).order('weight', { ascending: false }).limit(24);
+    const rows = (data ?? []) as any[];
+    imported = rows.map((r) => r.artist).filter(Boolean);
+    $('imported-block').hidden = !imported.length;
+    if (!imported.length) return;
+    $('imported-title').textContent = rows.some((r) => r.source === 'deezer') ? 'Retrouvés sur Deezer' : 'Retrouvés sur Spotify';
+    $('imported-grid').innerHTML = imported.map((a) => artistCardHtml(a, followed.has(a.id))).join('');
+  }
+
+  $('follow-all').addEventListener('click', async () => {
+    const button = $('follow-all') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      for (const a of imported.filter((x) => !followed.has(x.id))) {
+        await setFollow(a.id, true);
+        followed.add(a.id);
+      }
+      $('imported-grid').innerHTML = imported.map((a) => artistCardHtml(a, true)).join('');
+      paintCount();
+      button.textContent = 'Tous suivis';
+    } catch (err) {
+      alert(errorText(err));
+      button.disabled = false;
+    }
+  });
+
   async function init() {
     if (!(await requireSession())) return;
     const profile = await getMyProfile();
+    if (profile?.lastfm_username) ($('lastfm-input') as HTMLInputElement).value = profile.lastfm_username;
     for (const g of profile?.favorite_genres ?? []) {
       const chip = GENRE_CHIPS.find((c) => c.genres.includes(g));
       if (chip) chosen.add(chip.id);
@@ -97,15 +218,11 @@ import { GENRE_CHIPS } from '../lib/genres';
   }
 
   $('to-artists').addEventListener('click', () => {
-    $('step-genres').hidden = true;
-    $('step-artists').hidden = false;
-    window.scrollTo(0, 0);
+    show('artists');
+    showImported().catch(() => {});
     showArtists();
   });
-  $('back-genres').addEventListener('click', () => {
-    $('step-artists').hidden = true;
-    $('step-genres').hidden = false;
-  });
+  $('back-genres').addEventListener('click', () => show('genres'));
 
   let timer: number | undefined;
   $('onboard-q').addEventListener('input', (event) => {
@@ -113,10 +230,12 @@ import { GENRE_CHIPS } from '../lib/genres';
     timer = window.setTimeout(() => showArtists((event.target as HTMLInputElement).value.trim()), 250);
   });
 
-  wireFollowButtons($('onboard-grid'), (id, on) => {
-    on ? followed.add(id) : followed.delete(id);
-    paintCount();
-  });
+  for (const grid of ['onboard-grid', 'imported-grid']) {
+    wireFollowButtons($(grid), (id, on) => {
+      on ? followed.add(id) : followed.delete(id);
+      paintCount();
+    });
+  }
 
   $('finish').addEventListener('click', async () => {
     const genres = [...chosen].flatMap((id) => GENRE_CHIPS.find((c) => c.id === id)?.genres ?? []);
@@ -170,6 +289,90 @@ import { GENRE_CHIPS } from '../lib/genres';
     color: var(--color-on-accent);
   }
 
+  .sources {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    max-width: 900px;
+  }
+
+  .source {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+  }
+
+  .source h2 {
+    margin: 0;
+    font: 800 22px/1 var(--font-display);
+  }
+
+  .source p {
+    margin: 0;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+
+  .source p b {
+    color: var(--color-text);
+  }
+
+  .source-form {
+    display: flex;
+    gap: 8px;
+  }
+
+  .source-form .bz-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .source-note {
+    max-width: 900px;
+    margin: 20px 0 0;
+    color: var(--color-text-muted);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .imported {
+    margin-bottom: 8px;
+  }
+
+  .imported-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .imported-title {
+    margin: 0 0 16px;
+    font: 600 13px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .imported-head .imported-title {
+    margin: 0;
+  }
+
+  .imported .bz-artists {
+    margin-bottom: 36px;
+  }
+
+  @media (max-width: 700px) {
+    .sources {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .search {
     max-width: 480px;
     margin-bottom: 36px;
@@ -180,6 +383,10 @@ import { GENRE_CHIPS } from '../lib/genres';
     justify-content: space-between;
     gap: 12px;
     margin-top: 48px;
+  }
+
+  .finish .bz-btn {
+    white-space: nowrap;
   }
 
   .finish .bz-btn--outline {
