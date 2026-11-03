@@ -43,10 +43,10 @@ async function spotifyToken(params: Record<string, string>) {
   return { ok: res.ok, data };
 }
 
-// Appli Spotify en mode développement : un compte qui n'a pas été ajouté à la main dans le tableau de bord Spotify
-// (User Management) se connecte sans erreur, puis chaque appel répond 403 « User not registered in the Developer
-// Dashboard ». Se reconnecter n'y change rien, d'où un message à part.
-const NOT_ALLOWED = 'Ton compte Spotify n’est pas encore autorisé sur BARZ¡ : tant que l’appli Spotify est en test, chaque membre doit être ajouté à la main. Demande à l’admin de BARZ¡ de t’ajouter. En attendant, relie Deezer ou Last.fm pour tes recommandations.';
+// Appli Spotify en mode développement : seuls les comptes ajoutés à la main dans le tableau de bord Spotify (User
+// Management, 5 au plus) peuvent s'en servir. Les autres se connectent sans erreur, puis chaque appel répond 403
+// « User not registered in the Developer Dashboard ». Se reconnecter n'y change rien, d'où un message à part.
+const NOT_ALLOWED = 'Spotify limite pour l’instant BARZ¡ à quelques comptes, et ton compte n’en fait pas partie. Relie plutôt Deezer, ou Last.fm (qui peut enregistrer tes écoutes Spotify) : tes recommandations s’appuieront dessus.';
 async function notAllowed(res: Response): Promise<boolean> {
   if (res.status !== 403) return false;
   const text = await res.clone().text().catch(() => '');
