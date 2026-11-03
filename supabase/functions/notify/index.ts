@@ -5,6 +5,8 @@
 // - feedback : prévient Alban d'un nouveau retour (appelée depuis la page Retours, même sans compte).
 // - friend   : demande d'ami reçue ou acceptée (appelée par un déclencheur de la base, supabase/notifications.sql).
 // - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql).
+// - reply    : quelqu'un a répondu à ton Barz ; like : quelqu'un a aimé ton Barz, regroupés par Barz (« Léa et 2 autres
+//              ont aimé ton Barz »), téléphone au plus une fois par heure (déclencheurs, supabase/barz-reactions-notify.sql).
 // - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
 //              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
@@ -84,7 +86,7 @@ function parisNow() {
 
 // Boîte de notifications de l'appli (la cloche, supabase/inbox.sql) : écrite pour chaque destinataire,
 // qu'il ait activé ou non les notifications du téléphone. On en profite pour oublier celles de plus de 60 jours.
-type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback';
+type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like';
 async function toInbox(kind: Kind, entries: [string, Message][]) {
   if (!entries.length) return;
   const rows = entries.map(([user_id, m]) => ({ user_id, kind, title: m.title, body: m.body, url: m.url }));
@@ -295,6 +297,64 @@ Deno.serve(async (req) => {
     const sent = await send(await subsOf(friends), () => message);
     await toInbox('barz', friends.map((f) => [f, message] as [string, Message]));
     return reply({ sent, friends: friends.length });
+  }
+
+  if (body.action === 'reply') {
+    // Déclencheur de la table barz_replies : prévient l'auteur du Barz (pas quand il se répond à lui-même)
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { data } = await admin
+      .from('barz_replies')
+      .select('user_id, body, author:profiles!barz_replies_user_id_fkey(display_name), barz:barz(user_id, release:releases(slug, title))')
+      .eq('id', String(body.reply))
+      .maybeSingle();
+    const r = data as unknown as { user_id: string; body: string; author: { display_name: string } | null; barz: { user_id: string; release: { slug: string; title: string } | null } | null } | null;
+    if (!r?.author || !r.barz?.release || r.barz.user_id === r.user_id) return reply({ sent: 0 });
+    const text = r.body.length > 110 ? `${r.body.slice(0, 109)}…` : r.body;
+    const message: Message = {
+      title: `${r.author.display_name} a répondu à ton Barz`,
+      body: `${r.barz.release.title} — « ${text} »`,
+      url: `${SITE}releases/${r.barz.release.slug}`,
+      tag: `reply-${String(body.reply)}`,
+    };
+    const sent = await send(await subsOf([r.barz.user_id]), () => message);
+    await toInbox('reply', [[r.barz.user_id, message]]);
+    return reply({ sent });
+  }
+
+  if (body.action === 'like') {
+    // Déclencheur de la table barz_likes : une seule notification par Barz dans la cloche, remplacée à chaque ♥
+    // (« Léa et 2 autres… ») ; sur le téléphone, au plus une par heure et par Barz
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const barzId = String(body.barz);
+    const [{ data: b }, { data: liker }, { data: likes }] = await Promise.all([
+      admin.from('barz').select('user_id, body, release:releases(slug, title)').eq('id', barzId).maybeSingle(),
+      admin.from('profiles').select('display_name').eq('id', String(body.user)).maybeSingle(),
+      admin.from('barz_likes').select('user_id').eq('barz_id', barzId),
+    ]);
+    const barz = b as unknown as { user_id: string; body: string; release: { slug: string; title: string } | null } | null;
+    if (!barz?.release || !liker || barz.user_id === String(body.user)) return reply({ sent: 0 });
+    const others = (likes ?? []).filter((l) => l.user_id !== barz.user_id && l.user_id !== String(body.user)).length;
+    const name = (liker as { display_name: string }).display_name;
+    const text = barz.body.length > 80 ? `${barz.body.slice(0, 79)}…` : barz.body;
+    const message: Message = {
+      title: others ? `${name} et ${others} autre${others > 1 ? 's' : ''} ont aimé ton Barz` : `${name} a aimé ton Barz`,
+      body: `${barz.release.title} — « ${text} »`,
+      url: `${SITE}releases/${barz.release.slug}`,
+      tag: `like-${barzId}`,
+    };
+    // La notification non lue de ce Barz est remplacée ; si elle a moins d'une heure, pas de nouvelle alerte sur le téléphone
+    const { data: previous } = await admin
+      .from('notifications')
+      .delete()
+      .eq('user_id', barz.user_id)
+      .eq('kind', 'like')
+      .eq('url', message.url)
+      .is('read_at', null)
+      .select('created_at');
+    const recent = (previous ?? []).some((n) => Date.now() - Date.parse(n.created_at) < 3600_000);
+    const sent = recent ? 0 : await send(await subsOf([barz.user_id]), () => message);
+    await toInbox('like', [[barz.user_id, message]]);
+    return reply({ sent, grouped: recent });
   }
 
   if (body.action === 'releases') {
