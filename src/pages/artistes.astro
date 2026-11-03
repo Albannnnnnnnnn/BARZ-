@@ -28,6 +28,7 @@ import { GENRE_CHIPS } from '../lib/genres';
       <div class="bz-chips" id="artist-sort" role="group" aria-label="Trier par audience">
         <button type="button" class="bz-chip is-active" data-sort="" aria-pressed="true">Les plus écoutés</button>
         <button type="button" class="bz-chip" data-sort="decouverte" aria-pressed="false">Les moins connus</button>
+        <button type="button" class="bz-chip" data-sort="hasard" aria-pressed="false" id="artist-shuffle">Au hasard</button>
       </div>
     </div>
 
@@ -56,14 +57,45 @@ import { GENRE_CHIPS } from '../lib/genres';
   const input = document.getElementById('artist-q') as HTMLInputElement;
   const params = new URLSearchParams(location.search);
   let genre = params.get('genre') ?? '';
-  let sort = params.get('tri') === 'decouverte' ? 'decouverte' : '';
+  let sort = ['decouverte', 'hasard'].includes(params.get('tri') ?? '') ? params.get('tri')! : '';
   let query = '';
   let offset = 0;
   let followed = new Set<string>();
   let followedList: ArtistLite[] = [];
+  // « Au hasard » : artistes déjà montrés (« Voir plus » n'en remontre pas) et ordre mélangé de « Mes artistes »
+  let shown = new Set<string>();
+  let shuffledFollows: ArtistLite[] = [];
+  const shuffle = <T,>(list: T[]) => {
+    const copy = [...list];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+  const QUALITY = `lastfm_listeners.gte.${MIN_LISTENERS},popularity.gte.${MIN_DEEZER_FANS}`;
+
+  // Tirage au sort dans le catalogue : les identifiants sont aléatoires, on part d'un identifiant tiré au hasard et on
+  // prend les suivants (en repartant du début si on arrive au bout), sans les faux artistes ni ceux déjà montrés
+  async function randomPage(): Promise<ArtistLite[]> {
+    const chip = GENRE_CHIPS.find((c) => c.id === genre);
+    const from = async (start: string, below = false) => {
+      let q = supabase!.from('artists').select(ARTIST_LITE).or(QUALITY).order('id').limit(PAGE * 2);
+      q = below ? q.lt('id', start) : q.gte('id', start);
+      if (chip) q = q.overlaps('genres', chip.genres);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as ArtistLite[];
+    };
+    const start = crypto.randomUUID();
+    let found = (await from(start)).filter((a) => !shown.has(a.id));
+    if (found.length < PAGE) found = found.concat((await from(start, true)).filter((a) => !shown.has(a.id)));
+    return shuffle(found).slice(0, PAGE);
+  }
 
   async function fetchPage(): Promise<ArtistLite[]> {
     const ascending = sort === 'decouverte';
+    if (genre === 'followed' && sort === 'hasard') return shuffledFollows.slice(offset, offset + PAGE);
     if (genre === 'followed') {
       const sorted = [...followedList].sort((a, b) => (ascending ? audience(a) - audience(b) : audience(b) - audience(a)));
       return sorted.slice(offset, offset + PAGE);
@@ -75,6 +107,7 @@ import { GENRE_CHIPS } from '../lib/genres';
       const chip = GENRE_CHIPS.find((c) => c.id === genre);
       return searchArtists(query, { genres: chip?.genres, limit: PAGE });
     }
+    if (sort === 'hasard') return randomPage();
     // Audience = moyenne Last.fm / Deezer (colonne calculée, supabase/audience.sql)
     let q = supabase.from('artists').select(ARTIST_LITE).order('audience', { ascending }).range(offset, offset + PAGE - 1);
     if (ascending) q = q.or(`lastfm_listeners.gte.${MIN_LISTENERS},popularity.gte.${MIN_DEEZER_FANS}`);
@@ -89,11 +122,14 @@ import { GENRE_CHIPS } from '../lib/genres';
     if (reset) {
       offset = 0;
       grid.innerHTML = '';
+      shown = new Set();
+      shuffledFollows = shuffle(followedList);
     }
     try {
       const page = await fetchPage();
       grid.insertAdjacentHTML('beforeend', page.map((a) => artistCardHtml(a, followed.has(a.id))).join(''));
       offset += page.length;
+      page.forEach((a) => shown.add(a.id));
       more.hidden = page.length < PAGE;
       const hint = document.getElementById('artist-deezer')!;
       hint.hidden = !query;
@@ -133,6 +169,7 @@ import { GENRE_CHIPS } from '../lib/genres';
   document.getElementById('artist-sort')!.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sort]');
     if (!button) return;
+    // Un nouveau clic sur « Au hasard » refait le tirage
     sort = button.dataset.sort ?? '';
     markActive('[data-sort]', button);
     updateUrl();
@@ -144,6 +181,8 @@ import { GENRE_CHIPS } from '../lib/genres';
       b.classList.toggle('is-active', b === active);
       b.setAttribute('aria-pressed', String(b === active));
     });
+    const dice = document.getElementById('artist-shuffle')!;
+    dice.textContent = sort === 'hasard' ? '↻ Remélanger' : 'Au hasard';
   }
 
   function updateUrl() {

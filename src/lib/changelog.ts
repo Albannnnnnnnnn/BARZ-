@@ -45,6 +45,12 @@ export const CHANGELOG: ChangeEntry[] = [
         link: 'Ouvrir les paramètres',
       },
       {
+        title: 'Des artistes au hasard',
+        text: 'Dans Tous les artistes, « Au hasard » tire des artistes du catalogue, et « Remélanger » refait le tirage. Ça marche aussi par genre.',
+        href: '/BARZ-/artistes?tri=hasard',
+        link: 'Tirer des artistes',
+      },
+      {
         title: 'Plus confortable sur téléphone',
         text: 'Rangées qui défilent, noms qui ne se coupent plus, boutons du guide toujours visibles en bas de l’écran.',
       },
