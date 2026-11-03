@@ -30,6 +30,8 @@ jobs:
   build:
     name: Build Astro site
     runs-on: ubuntu-latest
+    outputs:
+      news_payload: ${{ steps.news.outputs.payload }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,6 +56,12 @@ jobs:
           # Identifiant client Spotify (public) pour la connexion Spotify ; le secret n'est pas utilisé ici
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
 
+      # Nouvelle entrée dans les Nouveautés (src/lib/changelog.ts) ? Le message Discord est préparé ici, envoyé après le déploiement
+      - name: Check news for Discord
+        id: news
+        continue-on-error: true
+        run: node scripts/news-discord.mjs
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -70,4 +78,15 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # Salon #annonces du Discord de BARZ¡ (webhook dans le secret DISCORD_WEBHOOK_URL)
+      - name: Announce on Discord
+        if: needs.build.outputs.news_payload != ''
+        continue-on-error: true
+        env:
+          PAYLOAD: ${{ needs.build.outputs.news_payload }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then echo "Pas de webhook Discord configuré."; exit 0; fi
+          curl -fsS -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"
   # La notification du vendredi part de Supabase à 9h (supabase/friday-cron.sql), sans attendre ce workflow

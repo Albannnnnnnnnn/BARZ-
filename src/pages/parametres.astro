@@ -3,6 +3,7 @@
 // Tout est lu et enregistré par le navigateur ; sans compte, une invitation à se connecter.
 import Layout from '../layouts/Layout.astro';
 import InstallApp from '../components/InstallApp.astro';
+import { DISCORD_URL } from '../lib/changelog';
 ---
 
 <Layout title="Paramètres" description="Notifications, comptes reliés et aide.">
@@ -77,6 +78,7 @@ import InstallApp from '../components/InstallApp.astro';
           <a href="/BARZ-/nouveautes">Quoi de neuf ?</a>
           <a href="/BARZ-/guide">Comment ça marche ?</a>
           <a href="/BARZ-/retours?depuis=/BARZ-/parametres">Un bug, une idée ?</a>
+          <a href={DISCORD_URL} target="_blank" rel="noopener">Rejoindre le Discord</a>
           <a href="/BARZ-/modifier-profil">Modifier le profil</a>
         </nav>
         <InstallApp compact />

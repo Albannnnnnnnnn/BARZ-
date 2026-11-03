@@ -1,7 +1,7 @@
 ---
 // NOUVEAUTÉS : le journal des mises à jour (src/lib/changelog.ts), la plus récente en premier
 import Layout from '../layouts/Layout.astro';
-import { CHANGELOG, changeDate } from '../lib/changelog';
+import { CHANGELOG, DISCORD_URL, changeDate } from '../lib/changelog';
 ---
 
 <Layout title="Nouveautés" description="Ce qui a changé dans BARZ¡, mise à jour après mise à jour.">
@@ -9,6 +9,10 @@ import { CHANGELOG, changeDate } from '../lib/changelog';
     <span class="bz-eyebrow">Journal de bord</span>
     <h1 class="bz-display">Quoi de <em>neuf ?</em></h1>
     <p class="intro">Ce qui a changé dans BARZ¡, mise à jour après mise à jour. Une idée pour la suite ? <a href="/BARZ-/retours?depuis=/BARZ-/nouveautes">Dis-le ici</a>.</p>
+    <a class="discord" href={DISCORD_URL} target="_blank" rel="noopener">
+      <b>Rejoins le Discord de BARZ¡</b>
+      <span>Les mises à jour en avant-première, les coulisses, et un salon pour tes idées.</span>
+    </a>
 
     {
       CHANGELOG.map((entry) => (
@@ -51,6 +55,28 @@ import { CHANGELOG, changeDate } from '../lib/changelog';
 
   .intro a {
     color: var(--color-accent);
+  }
+
+  .discord {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: -16px 0 44px;
+    padding: 16px 18px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .discord b {
+    font: 800 17px/1.25 var(--font-display);
+  }
+
+  .discord span {
+    font-size: 15px;
+    line-height: 1.45;
   }
 
   .entry + .entry {
