@@ -336,6 +336,14 @@
   font: 700 clamp(18px, 1.6vw, 22px) / 1.4 var(--font-sans);
   color: var(--color-text);
   overflow-wrap: anywhere;
+  white-space: pre-line; /* les retours à la ligne du Barz sont gardés */
+}
+
+/* Barz long (plus de 280 caractères) : texte plus petit, pour qu'il reste lisible */
+.barz-text--long {
+  font-weight: 500;
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 .barz-card footer {

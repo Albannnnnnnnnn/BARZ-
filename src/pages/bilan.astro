@@ -407,9 +407,14 @@ import Layout from '../layouts/Layout.astro';
   }
 
   #record :global(.quote) {
+    display: -webkit-box;
     margin-top: 14px;
+    overflow: hidden;
     font: 700 20px/1.3 var(--font-sans);
     color: var(--color-ink);
+    /* Un Barz peut faire 1 000 caractères : 5 lignes au plus sur l'affiche du bilan */
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
   }
 
   .list {

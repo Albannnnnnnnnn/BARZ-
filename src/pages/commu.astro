@@ -31,7 +31,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
               {choices.map((c) => <option value={c.label} data-id={c.id} />)}
             </datalist>
             <label class="sr-only" for="composer-body">Ton Barz</label>
-            <input id="composer-body" class="composer-body" maxlength="280" placeholder="Qu’as-tu écouté aujourd’hui ? Écris ton Barz…" autocomplete="off" />
+            <textarea id="composer-body" class="composer-body" maxlength="1000" rows="1" placeholder="Qu’as-tu écouté aujourd’hui ? Écris ton Barz…"></textarea>
           </div>
           <label class="composer-score">
             <span class="sr-only">Note sur 10</span>
@@ -120,7 +120,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     if (!(await getSession())) return void (location.href = loginUrl());
     const releaseInput = document.getElementById('composer-release') as HTMLInputElement;
     const option = [...document.querySelectorAll<HTMLOptionElement>('#release-choices option')].find((o) => o.value === releaseInput.value);
-    const body = (document.getElementById('composer-body') as HTMLInputElement).value.trim();
+    const body = (document.getElementById('composer-body') as HTMLTextAreaElement).value.trim();
     const score = Number((document.getElementById('composer-score') as HTMLInputElement).value);
     if (!option) return show('Choisis une sortie dans la liste (tape un titre ou un artiste).', 'error');
     if (!body) return show('Écris ton Barz avant de publier.', 'error');
@@ -134,6 +134,15 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
       show(errorText(err), 'error');
     }
   });
+
+  // Le champ du Barz grandit avec le texte
+  const composerBody = document.getElementById('composer-body') as HTMLTextAreaElement;
+  const grow = () => {
+    composerBody.style.height = 'auto';
+    composerBody.style.height = `${composerBody.scrollHeight}px`;
+  };
+  composerBody.addEventListener('input', grow);
+  form.addEventListener('reset', () => setTimeout(grow, 0));
 
   wireBarzActions(live, render);
 </script>
@@ -199,7 +208,8 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     gap: 6px;
   }
 
-  .composer input {
+  .composer input,
+  .composer textarea {
     border: 0;
     outline: none;
     background: transparent;
@@ -214,7 +224,14 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     color: var(--color-accent);
   }
 
-  .composer input::placeholder {
+  .composer textarea {
+    resize: none;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .composer input::placeholder,
+  .composer textarea::placeholder {
     color: var(--color-text-dim);
   }
 
@@ -292,7 +309,8 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
       flex-basis: 100%;
       gap: 0;
     }
-    .composer-fields input {
+    .composer-fields input,
+    .composer-fields textarea {
       padding: 10px 0;
     }
     .composer .composer-release {

@@ -291,7 +291,7 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
         <a href="${profileHref}"><b>${escapeHtml(name)}</b></a>
         <span class="barz-handle">${escapeHtml(handle)} · ${escapeHtml(timeAgo(b.created_at))}${scoreInline}</span>
       </header>
-      <p class="barz-text">« ${escapeHtml(b.body)} »</p>
+      <p class="barz-text${b.body.length > 280 ? ' barz-text--long' : ''}">« ${escapeHtml(b.body)} »</p>
       <footer>
         <button type="button" class="barz-like${liked ? ' is-liked' : ''}" data-like="${escapeHtml(b.id)}" aria-pressed="${liked}">♥ <span>${b.likes.length}</span></button>
         <button type="button" class="barz-like" data-replies="${escapeHtml(b.id)}" aria-expanded="${open}">💬 <span>${replies.length ? replies.length : 'Répondre'}</span></button>

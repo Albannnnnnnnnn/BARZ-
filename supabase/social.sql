@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS barz (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   release_id UUID NOT NULL REFERENCES releases(id) ON DELETE CASCADE,
   score NUMERIC(3,1) NOT NULL CHECK (score >= 0 AND score <= 10),
-  body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 280),
+  body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 1000), -- 280 avant supabase/barz-length.sql
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, release_id) -- un Barz par personne et par sortie (modifiable)
 );
