@@ -194,6 +194,7 @@ export async function shelfOf(shelf: Shelf, userId: string): Promise<{ created_a
 // ============================================================
 // BARZ
 // ============================================================
+// Publier un Barz range aussi le disque dans « Écouté » (sans toucher à la date s'il y était déjà)
 export async function saveBarz(releaseId: string, score: number, body: string) {
   const session = await requireSession();
   if (!session || !supabase) return;
@@ -202,6 +203,7 @@ export async function saveBarz(releaseId: string, score: number, body: string) {
       .from('barz')
       .upsert({ user_id: session.user.id, release_id: releaseId, score, body: body.trim(), created_at: new Date().toISOString() }, { onConflict: 'user_id,release_id' })
   );
+  await supabase.from('listened').upsert({ user_id: session.user.id, release_id: releaseId }, { ignoreDuplicates: true });
 }
 
 export async function deleteBarz(id: string) {

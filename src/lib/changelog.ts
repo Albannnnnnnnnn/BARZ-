@@ -1,11 +1,45 @@
 // Journal des nouveautés (page /nouveautes et fenêtre « Quoi de neuf ? » à l'ouverture, src/components/WhatsNew.astro).
-// La plus récente en premier. Ajouter une entrée avec un nouvel id (sa date) la montre une fois à chaque membre.
+// La plus récente en premier. Ajouter une entrée avec un nouvel id la montre une fois à chaque membre et la publie
+// dans #annonces. L'id est sa date (« 2026-11-03 ») ; une deuxième le même jour prend « 2026-11-03-2 ».
 // Textes adressés aux membres : ce qui change pour eux, pas comment c'est fait.
 
 export type ChangeItem = { title: string; text: string; href?: string; link?: string };
 export type ChangeEntry = { id: string; title: string; items: ChangeItem[] };
 
+// Serveur Discord de BARZ¡ : les Nouveautés y sont publiées automatiquement à chaque mise à jour (scripts/news-discord.mjs)
+export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
+
 export const CHANGELOG: ChangeEntry[] = [
+  {
+    id: '2026-11-03-2',
+    title: 'Le Discord, des Barz plus longs et les feats sur chaque titre',
+    items: [
+      {
+        title: 'Un Barz, et le disque est dans Écouté',
+        text: 'Quand tu publies un Barz, l’album ou le single passe tout seul dans tes disques écoutés. Plus besoin de cocher « Écouté » en plus.',
+      },
+      {
+        title: 'Des Barz jusqu’à 1 000 caractères',
+        text: 'Une phrase ou un vrai avis : tu as maintenant la place. Les retours à la ligne sont gardés.',
+      },
+      {
+        title: 'Le Discord de BARZ¡ est ouvert',
+        text: 'Les mises à jour en avant-première, les coulisses de l’appli et un salon pour tes idées.',
+        href: DISCORD_URL,
+        link: 'Rejoindre le Discord',
+      },
+      {
+        title: 'Les feats sur chaque titre',
+        text: 'Dans la liste des titres d’un disque, les artistes invités s’affichent à côté de chaque morceau, même quand ils ne sont pas dans le titre.',
+      },
+      {
+        title: 'Des artistes au hasard',
+        text: 'Dans Tous les artistes, « Au hasard » tire des artistes du catalogue, et « Remélanger » refait le tirage. Ça marche aussi par genre.',
+        href: '/BARZ-/artistes?tri=hasard',
+        link: 'Tirer des artistes',
+      },
+    ],
+  },
   {
     id: '2026-11-03',
     title: 'Tes tops, des sorties plus rapides et une recherche plus précise',
@@ -45,12 +79,6 @@ export const CHANGELOG: ChangeEntry[] = [
         link: 'Ouvrir les paramètres',
       },
       {
-        title: 'Des artistes au hasard',
-        text: 'Dans Tous les artistes, « Au hasard » tire des artistes du catalogue, et « Remélanger » refait le tirage. Ça marche aussi par genre.',
-        href: '/BARZ-/artistes?tri=hasard',
-        link: 'Tirer des artistes',
-      },
-      {
         title: 'Plus confortable sur téléphone',
         text: 'Rangées qui défilent, noms qui ne se coupent plus, boutons du guide toujours visibles en bas de l’écran.',
       },
@@ -60,8 +88,6 @@ export const CHANGELOG: ChangeEntry[] = [
 
 export const LATEST_CHANGE = CHANGELOG[0];
 
-// Serveur Discord de BARZ¡ : les Nouveautés y sont publiées automatiquement à chaque mise à jour (scripts/news-discord.mjs)
-export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
 
 // « 2026-11-03 » → « 3 novembre 2026 »
-export const changeDate = (id: string) => new Date(`${id}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+export const changeDate = (id: string) => new Date(`${id.slice(0, 10)}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });

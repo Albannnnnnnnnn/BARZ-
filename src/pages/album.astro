@@ -211,6 +211,10 @@ import Player from '../components/Player.astro';
     try {
       await saveBarz(await ensureRelease(), Number(data.get('score')), body);
       message.hidden = true;
+      // Le disque est passé dans « Écouté »
+      const listened = document.querySelector<HTMLButtonElement>('[data-shelf="listened"]');
+      listened?.classList.add('is-active');
+      listened?.setAttribute('aria-pressed', 'true');
       await renderBarz();
     } catch (err) {
       message.textContent = errorText(err);

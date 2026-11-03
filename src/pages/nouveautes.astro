@@ -17,7 +17,7 @@ import { CHANGELOG, DISCORD_URL, changeDate } from '../lib/changelog';
     {
       CHANGELOG.map((entry) => (
         <article class="entry" id={entry.id}>
-          <time class="date" datetime={entry.id}>{changeDate(entry.id)}</time>
+          <time class="date" datetime={entry.id.slice(0, 10)}>{changeDate(entry.id)}</time>
           <h2 class="bz-h2 entry-title">{entry.title}</h2>
           <ul class="items">
             {entry.items.map((item) => (

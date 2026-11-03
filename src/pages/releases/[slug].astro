@@ -343,6 +343,8 @@ const jsonLd = {
       await saveBarz(releaseId, Number(data.get('score')), body);
       message.hidden = true;
       render();
+      // Le disque est passé dans « Écouté »
+      shelfButtons.forEach((b) => b.dataset.shelf === 'listened' && paintShelf(b, true));
     } catch (err) {
       message.textContent = errorText(err);
       message.className = 'bz-notice bz-notice--error';
