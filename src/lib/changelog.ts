@@ -11,6 +11,30 @@ export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: '2026-11-03-3',
+    title: 'Les albums annoncés, et des notifs pour tes Barz',
+    items: [
+      {
+        title: 'Les albums annoncés arrivent dans À venir',
+        text: 'Un artiste annonce un album sans précommande ? Il apparaît quand même, avec « Prévu en mars » ou « Date à venir », et le compte à rebours démarre dès que la date exacte est connue.',
+        href: '/BARZ-/annonces',
+        link: 'Voir les annonces',
+      },
+      {
+        title: 'Prévenu quand tes artistes annoncent',
+        text: 'Si tu suis un artiste, tu reçois une notification dès qu’il annonce un nouvel album ou un EP.',
+      },
+      {
+        title: 'Signale une annonce',
+        text: 'Tu as vu passer une annonce sur les réseaux ? Sur la fiche de l’artiste, touche « Signaler une annonce » et ajoute le lien : on vérifie, puis elle apparaît pour tout le monde.',
+      },
+      {
+        title: 'Des notifs pour tes Barz',
+        text: 'Quand quelqu’un répond à ton Barz ou l’aime, tu es prévenu. Les ♥ sont regroupés, pour ne pas te faire vibrer à chaque fois.',
+      },
+    ],
+  },
+  {
     id: '2026-11-03-2',
     title: 'Le Discord, des Barz plus longs et les feats sur chaque titre',
     items: [

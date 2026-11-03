@@ -767,6 +767,23 @@
   letter-spacing: 0.04em;
 }
 
+/* Bouton qui a l'air d'un lien (Modifier, Signaler une annonce…) : sans le fond, la bordure ni la police des boutons
+   du navigateur */
+button.bz-link {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+button.bz-link:hover,
+button.bz-link:focus-visible {
+  text-decoration: underline;
+}
+
 .bz-chip {
   border: var(--line);
   border-radius: 8px;
