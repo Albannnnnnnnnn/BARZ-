@@ -27,9 +27,12 @@ export type Profile = {
   deezer_user_id?: number | null;
   guide_version?: number;
   top_albums?: TopAlbum[];
+  top_artists?: TopAlbum[];
+  top_singles?: TopAlbum[];
 };
-// Un album du top 5 (supabase/top-albums.sql) : id Deezer et de quoi l'afficher sans rappeler Deezer
-export type TopAlbum = { id: number; title: string; artist: string; artistId: number | null; cover: string | null };
+// Un élément des tops du profil (supabase/top-lists.sql) : id Deezer et de quoi l'afficher sans rappeler Deezer.
+// Pour un artiste, title est son nom ; pour un single, albumId est le disque qui le contient.
+export type TopAlbum = { id: number; title: string; artist: string; artistId: number | null; cover: string | null; albumId?: number | null };
 export type ReleaseLite = {
   id: string;
   title: string;
@@ -389,7 +392,7 @@ export async function setFollow(artistId: string, on: boolean) {
   else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
 }
 
-export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[] }) {
+export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[]; top_artists?: TopAlbum[]; top_singles?: TopAlbum[] }) {
   const session = await requireSession();
   if (!session || !supabase) return;
   must(await supabase.from('profiles').update(fields).eq('id', session.user.id));

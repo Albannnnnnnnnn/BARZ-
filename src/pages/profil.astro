@@ -42,20 +42,37 @@ import Layout from '../layouts/Layout.astro';
 
       <div id="p-np" hidden></div>
 
-      <!-- Top 5 albums (supabase/top-albums.sql) : choisis par le membre, dans l'ordre -->
-      <section class="block top5" id="p-top5" hidden aria-labelledby="top5-title">
-        <div class="bz-section-head">
-          <h2 id="top5-title" class="bz-h2">Top <em>5</em></h2>
-          <button type="button" class="bz-link" id="p-top5-edit" hidden>Modifier</button>
+      <!-- Tops (supabase/top-lists.sql) : 3 artistes, 10 albums et 10 singles choisis par le membre, dans l'ordre -->
+      <section class="block top5" id="p-tops" hidden aria-labelledby="tops-title">
+        <div class="bz-section-head"><h2 id="tops-title" class="bz-h2">Ses <em>tops</em></h2></div>
+        <div class="top-group" data-top="artists" hidden>
+          <div class="top-head">
+            <h3 class="sub">Top 3 artistes</h3>
+            <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+          </div>
+          <ol class="top5-list top5-list--artists bz-rail"></ol>
         </div>
-        <ol class="top5-list bz-rail" id="p-top5-list"></ol>
+        <div class="top-group" data-top="albums" hidden>
+          <div class="top-head">
+            <h3 class="sub">Top 10 albums</h3>
+            <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+          </div>
+          <ol class="top5-list bz-rail"></ol>
+        </div>
+        <div class="top-group" data-top="singles" hidden>
+          <div class="top-head">
+            <h3 class="sub">Top 10 singles</h3>
+            <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+          </div>
+          <ol class="top5-list bz-rail"></ol>
+        </div>
       </section>
 
       <dialog class="top5-dialog" id="top5-dialog" aria-labelledby="top5-dialog-title">
         <form method="dialog" class="top5-box" id="top5-form">
-          <h2 class="bz-h2" id="top5-dialog-title">Ton top <em>5</em> albums</h2>
+          <h2 class="bz-h2" id="top5-dialog-title">Ton top</h2>
           <ol class="top5-current" id="top5-current"></ol>
-          <label class="sr-only" for="top5-q">Chercher un album</label>
+          <label class="sr-only" for="top5-q" id="top5-q-label">Chercher</label>
           <input class="bz-input" id="top5-q" type="search" placeholder="Chercher un album ou un artiste…" autocomplete="off" />
           <ul class="top5-results" id="top5-results"></ul>
           <p class="bz-notice" id="top5-message" hidden></p>
@@ -320,7 +337,7 @@ import Layout from '../layouts/Layout.astro';
 
     const theirTaste = loadTasteOf(profile.id);
     renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
-    renderTop5(profile, isMe);
+    renderTops(profile, isMe);
     renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
     watchNowPlaying(profile, isMe, !!session);
 
@@ -528,43 +545,109 @@ import Layout from '../layouts/Layout.astro';
   }
 
   // ============================================================
-  // TOP 5 ALBUMS : affichage, puis éditeur (recherche Deezer, ordre, retrait)
+  // TOPS : 3 artistes, 10 albums, 10 singles (supabase/top-lists.sql) ; affichage, puis éditeur (recherche Deezer,
+  // ordre, retrait)
   // ============================================================
-  const TOP_MAX = 5;
+  type TopKind = 'artists' | 'albums' | 'singles';
+  const TOPS: Record<TopKind, { column: 'top_artists' | 'top_albums' | 'top_singles'; max: number; dialog: string; choose: string; empty: string; search: string; placeholder: string; full: string; hint: string }> = {
+    artists: {
+      column: 'top_artists',
+      max: 3,
+      dialog: 'Ton top <em>3</em> artistes',
+      choose: 'Choisir mes artistes',
+      empty: 'Pas encore de top 3. Choisis les trois artistes qui comptent le plus pour toi.',
+      search: 'artist',
+      placeholder: 'Chercher un artiste…',
+      full: 'Top 3 complet : retire un artiste pour en ajouter un autre',
+      hint: 'Cherche un artiste ci-dessous pour l’ajouter.',
+    },
+    albums: {
+      column: 'top_albums',
+      max: 10,
+      dialog: 'Ton top <em>10</em> albums',
+      choose: 'Choisir mes albums',
+      empty: 'Pas encore de top 10. Choisis les albums qui comptent le plus pour toi.',
+      search: 'album',
+      placeholder: 'Chercher un album ou un artiste…',
+      full: 'Top 10 complet : retire un album pour en ajouter un autre',
+      hint: 'Cherche un album ci-dessous pour l’ajouter.',
+    },
+    singles: {
+      column: 'top_singles',
+      max: 10,
+      dialog: 'Ton top <em>10</em> singles',
+      choose: 'Choisir mes singles',
+      empty: 'Pas encore de top 10. Choisis les morceaux qui comptent le plus pour toi.',
+      search: 'track',
+      placeholder: 'Chercher un morceau ou un artiste…',
+      full: 'Top 10 complet : retire un single pour en ajouter un autre',
+      hint: 'Cherche un morceau ci-dessous pour l’ajouter.',
+    },
+  };
   const topCover = (a: TopAlbum) => coverHtml(a.title, a.cover);
-  function renderTop5(profile: Profile, isMe: boolean) {
-    const albums = (profile.top_albums ?? []).slice(0, TOP_MAX);
-    $('p-top5-list').innerHTML = albums.length
-      ? albums
-          .map(
-            (a, i) => `<li><a class="top5-item" href="${BASE}album?d=${a.id}">
-              <span class="top5-rank">${i + 1}</span>${topCover(a)}
-              <b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span>
-            </a></li>`
-          )
-          .join('')
-      : `<li class="bz-empty top5-empty">Pas encore de top 5. Choisis les cinq albums qui comptent le plus pour toi.</li>`;
-    $('p-top5-edit').hidden = !isMe;
-    $('p-top5-edit').textContent = albums.length ? 'Modifier' : 'Choisir mes albums';
-    $('p-top5').hidden = !albums.length && !isMe;
-    if (isMe) {
-      ($('p-top5-edit') as HTMLButtonElement).onclick = () => openTop5Editor(profile);
+  // Un artiste ouvre sa fiche (importée depuis Deezer si besoin), un single la page de son disque
+  const topHref = (kind: TopKind, a: TopAlbum) => (kind === 'artists' ? `${BASE}artiste?nom=${encodeURIComponent(a.title)}` : `${BASE}album?d=${a.albumId ?? a.id}`);
+  const topSub = (kind: TopKind, a: TopAlbum) => (kind === 'artists' ? '' : `<span>${escapeHtml(a.artist)}</span>`);
+
+  function renderTops(profile: Profile, isMe: boolean) {
+    let shown = false;
+    for (const kind of Object.keys(TOPS) as TopKind[]) {
+      const top = TOPS[kind];
+      const group = document.querySelector<HTMLElement>(`[data-top="${kind}"]`)!;
+      const items = (profile[top.column] ?? []).slice(0, top.max);
+      group.querySelector('ol')!.innerHTML = items.length
+        ? items
+            .map(
+              (a, i) => `<li><a class="top5-item" href="${topHref(kind, a)}">
+                <span class="top5-rank">${i + 1}</span>${topCover(a)}
+                <b>${escapeHtml(a.title)}</b>${topSub(kind, a)}
+              </a></li>`
+            )
+            .join('')
+        : `<li class="bz-empty top5-empty">${top.empty}</li>`;
+      const edit = group.querySelector<HTMLButtonElement>('[data-top-edit]')!;
+      edit.hidden = !isMe;
+      edit.textContent = items.length ? 'Modifier' : top.choose;
+      if (isMe) edit.onclick = () => openTopEditor(profile, kind);
+      group.hidden = !items.length && !isMe;
+      shown ||= !group.hidden;
     }
+    $('tops-title').innerHTML = isMe ? 'Tes <em>tops</em>' : 'Ses <em>tops</em>';
+    $('p-tops').hidden = !shown;
   }
 
-  function openTop5Editor(profile: Profile) {
+  // Résultats Deezer → éléments du top ; une seule version par titre et artiste (explicite / censurée)
+  function topResults(kind: TopKind, data: any[]): TopAlbum[] {
+    const items: TopAlbum[] =
+      kind === 'artists'
+        ? data.map((a) => ({ id: a.id, title: a.name, artist: '', artistId: a.id, cover: a.picture_big ?? a.picture_medium ?? null }))
+        : kind === 'singles'
+          ? data.map((t) => ({ id: t.id, title: t.title_short ?? t.title, artist: t.artist?.name ?? '', artistId: t.artist?.id ?? null, cover: t.album?.cover_big ?? t.album?.cover_medium ?? null, albumId: t.album?.id ?? null }))
+          : // Albums et EP d'abord
+            data
+              .filter((a) => a.record_type !== 'single' || data.length < 4)
+              .map((a) => ({ id: a.id, title: a.title, artist: a.artist?.name ?? '', artistId: a.artist?.id ?? null, cover: a.cover_big ?? a.cover_medium ?? null }));
+    const seen = new Set<string>();
+    return items.filter((a) => !seen.has(`${a.artist}|${a.title}`.toLowerCase()) && !!seen.add(`${a.artist}|${a.title}`.toLowerCase()));
+  }
+
+  function openTopEditor(profile: Profile, kind: TopKind) {
+    const top = TOPS[kind];
     const dialog = $('top5-dialog') as HTMLDialogElement;
-    let picked: TopAlbum[] = [...(profile.top_albums ?? [])].slice(0, TOP_MAX);
+    let picked: TopAlbum[] = [...(profile[top.column] ?? [])].slice(0, top.max);
     let found: TopAlbum[] = [];
     const input = $('top5-q') as HTMLInputElement;
     const message = $('top5-message');
+    dialog.dataset.kind = kind;
+    $('top5-dialog-title').innerHTML = top.dialog;
+    $('top5-q-label').textContent = top.placeholder;
     const paint = () => {
       $('top5-current').innerHTML = picked.length
         ? picked
             .map(
               (a, i) => `<li class="top5-row">
                 <span class="top5-rank">${i + 1}</span>${topCover(a)}
-                <span class="top5-text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span>
+                <span class="top5-text"><b>${escapeHtml(a.title)}</b>${topSub(kind, a)}</span>
                 <span class="top5-moves">
                   <button type="button" data-move="${i}" data-dir="-1" aria-label="Monter" ${i === 0 ? 'disabled' : ''}>↑</button>
                   <button type="button" data-move="${i}" data-dir="1" aria-label="Descendre" ${i === picked.length - 1 ? 'disabled' : ''}>↓</button>
@@ -573,18 +656,18 @@ import Layout from '../layouts/Layout.astro';
               </li>`
             )
             .join('')
-        : '<li class="top5-hint">Cherche un album ci-dessous pour l’ajouter.</li>';
+        : `<li class="top5-hint">${top.hint}</li>`;
       $('top5-results').innerHTML = found
         .map((a, i) => {
           const already = picked.some((p) => p.id === a.id);
-          return `<li><button type="button" class="top5-result" data-add="${i}" ${already || picked.length >= TOP_MAX ? 'disabled' : ''}>
-            ${topCover(a)}<span class="top5-text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span>
+          return `<li><button type="button" class="top5-result" data-add="${i}" ${already || picked.length >= top.max ? 'disabled' : ''}>
+            ${topCover(a)}<span class="top5-text"><b>${escapeHtml(a.title)}</b>${topSub(kind, a)}</span>
             <span class="top5-plus">${already ? '✓' : '+'}</span>
           </button></li>`;
         })
         .join('');
-      input.disabled = picked.length >= TOP_MAX;
-      input.placeholder = picked.length >= TOP_MAX ? 'Top 5 complet : retire un album pour en ajouter un autre' : 'Chercher un album ou un artiste…';
+      input.disabled = picked.length >= top.max;
+      input.placeholder = picked.length >= top.max ? top.full : top.placeholder;
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
     input.oninput = () => {
@@ -592,14 +675,9 @@ import Layout from '../layouts/Layout.astro';
       timer = setTimeout(async () => {
         const q = input.value.trim();
         if (q.length < 2) return void ((found = []), paint());
-        const res = await deezerJsonp<{ data?: any[] }>(`/search/album?q=${encodeURIComponent(q)}&limit=12`).catch(() => ({ data: [] }));
+        const res = await deezerJsonp<{ data?: any[] }>(`/search/${top.search}?q=${encodeURIComponent(q)}&limit=12`).catch(() => ({ data: [] }));
         if (input.value.trim() !== q) return;
-        // Albums et EP d'abord ; une seule version par titre et artiste (explicite / censurée)
-        const seen = new Set<string>();
-        found = (res.data ?? [])
-          .filter((a) => a.record_type !== 'single' || (res.data ?? []).length < 4)
-          .map((a) => ({ id: a.id, title: a.title, artist: a.artist?.name ?? '', artistId: a.artist?.id ?? null, cover: a.cover_big ?? a.cover_medium ?? null }))
-          .filter((a) => !seen.has(`${a.artist}|${a.title}`.toLowerCase()) && !!seen.add(`${a.artist}|${a.title}`.toLowerCase()));
+        found = topResults(kind, res.data ?? []);
         paint();
       }, 250);
     };
@@ -616,19 +694,19 @@ import Layout from '../layouts/Layout.astro';
     };
     $('top5-results').onclick = (event) => {
       const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-add]');
-      if (!button || picked.length >= TOP_MAX) return;
+      if (!button || picked.length >= top.max) return;
       picked.push(found[Number(button.dataset.add)]);
       paint();
-      if (picked.length < TOP_MAX) input.focus();
+      if (picked.length < top.max) input.focus();
     };
     ($('top5-save') as HTMLButtonElement).onclick = async () => {
       try {
-        await updateMyProfile({ top_albums: picked });
-        profile.top_albums = picked;
-        renderTop5(profile, true);
+        await updateMyProfile({ [top.column]: picked });
+        profile[top.column] = picked;
+        renderTops(profile, true);
         dialog.close();
       } catch (err) {
-        message.textContent = /top_albums/.test(errorText(err)) ? 'Le top 5 n’est pas encore activé : il manque une mise à jour de la base.' : errorText(err);
+        message.textContent = /top_|max/.test(errorText(err)) ? 'Les tops ne sont pas encore activés : il manque une mise à jour de la base.' : errorText(err);
         message.className = 'bz-notice bz-notice--error';
         message.hidden = false;
       }
@@ -638,7 +716,7 @@ import Layout from '../layouts/Layout.astro';
     message.hidden = true;
     paint();
     dialog.showModal();
-    if (picked.length < TOP_MAX) input.focus();
+    if (picked.length < top.max) input.focus();
   }
 
   async function renderPicks(profile: Profile, isMe: boolean, barz: Awaited<ReturnType<typeof barzFeed>>, tastePromise: Promise<Taste | null>, iFollow: Set<string>) {
@@ -1366,11 +1444,38 @@ import Layout from '../layouts/Layout.astro';
     }
   }
 
-  /* Top 5 : grands numéros, pochettes à la suite (rangée qui défile sur mobile) */
+  /* Tops : un titre et son bouton Modifier par liste (artistes, albums, singles) */
+  .top-group[hidden] {
+    display: none;
+  }
+
+  .top-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 28px 0 20px;
+  }
+
+  .bz-section-head + .top-group .top-head {
+    margin-top: 0;
+  }
+
+  .top-head .sub {
+    margin: 0;
+  }
+
+  /* Artistes : photo ronde */
+  .top5-list--artists :global(.bz-cover),
+  .top5-dialog[data-kind='artists'] :global(.bz-cover) {
+    border-radius: 50%;
+  }
+
+  /* Tops : grands numéros, pochettes à la suite (rangée qui défile sur mobile) */
   .top5-list {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 18px;
+    gap: 30px 18px;
     padding: 0;
     list-style: none;
   }

@@ -1,5 +1,5 @@
 // API publique de Deezer depuis le navigateur : JSONP (<script> + fonction de rappel globale), car l'API
-// n'accepte pas fetch depuis un autre site. Utilisé par la page album et le top 5 du profil.
+// n'accepte pas fetch depuis un autre site. Utilisé par la page album et les tops du profil.
 export function deezerJsonp<T>(path: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const name = `barzDeezer${Date.now()}${Math.floor(Math.random() * 1e6)}`;

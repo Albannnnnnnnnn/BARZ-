@@ -1,7 +1,8 @@
 ---
 // RETOURS : les membres signalent un bug, proposent une idée ou laissent une remarque.
 // Les retours sont écrits dans la table feedback (supabase/feedback.sql) ; Alban est prévenu par notification
-// et voit tous les retours en bas de cette page, où il change leur statut.
+// et voit tous les retours en bas de cette page, où il change leur statut. Une capture d'écran peut être jointe
+// (supabase/feedback-images.sql).
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -21,6 +22,16 @@ import Layout from '../layouts/Layout.astro';
         <span id="fb-label">Que s’est-il passé ?</span>
         <textarea class="bz-input" name="body" id="fb-body" rows="6" maxlength="2000" required placeholder="Sur quelle page, ce que tu as fait, ce qui s’est affiché…"></textarea>
       </label>
+      <div class="attach">
+        <label class="bz-btn bz-btn--outline bz-btn--small attach-pick" id="fb-image-pick">
+          <input type="file" accept="image/*" id="fb-image" class="sr-only" />
+          Joindre une capture d’écran
+        </label>
+        <div class="attach-preview" id="fb-image-preview" hidden>
+          <img alt="Capture jointe" id="fb-image-thumb" />
+          <button type="button" class="bz-link" id="fb-image-remove">Retirer l’image</button>
+        </div>
+      </div>
       <p class="bz-notice" id="fb-page" hidden></p>
       <p id="fb-message" class="bz-notice" hidden></p>
       <button type="submit" class="bz-btn bz-btn--lime" id="fb-submit">Envoyer</button>
@@ -49,7 +60,7 @@ import Layout from '../layouts/Layout.astro';
 
   type Kind = 'bug' | 'idee' | 'remarque';
   type Status = 'nouveau' | 'prevu' | 'fait' | 'ecarte';
-  type Item = { id: string; kind: Kind; body: string; page: string | null; device: string | null; status: Status; created_at: string; author?: { username: string } | null };
+  type Item = { id: string; kind: Kind; body: string; page: string | null; device: string | null; image_path?: string | null; status: Status; created_at: string; author?: { username: string } | null };
 
   const KINDS: Record<Kind, { label: string; prompt: string; placeholder: string }> = {
     bug: { label: '🐞 Bug', prompt: 'Que s’est-il passé ?', placeholder: 'Sur quelle page, ce que tu as fait, ce qui s’est affiché…' },
@@ -64,6 +75,60 @@ import Layout from '../layouts/Layout.astro';
   const message = document.getElementById('fb-message')!;
   const submit = document.getElementById('fb-submit') as HTMLButtonElement;
   let kind: Kind = 'bug';
+
+  // Capture d'écran jointe : réduite à 1600 px de côté au plus et convertie en WebP avant l'envoi (plus légère,
+  // et sans les métadonnées de la photo, GPS compris)
+  const IMAGE_MAX = 1600;
+  const imageInput = document.getElementById('fb-image') as HTMLInputElement;
+  const preview = document.getElementById('fb-image-preview')!;
+  const thumb = document.getElementById('fb-image-thumb') as HTMLImageElement;
+  let image: Blob | null = null;
+
+  async function toWebp(file: Blob): Promise<Blob> {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, IMAGE_MAX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82));
+    if (!blob) throw new Error('Impossible de préparer cette image.');
+    return blob;
+  }
+
+  async function attach(file: File | null | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return show('Choisis une image (capture d’écran, photo…).', 'error');
+    if (file.size > 20 * 1024 * 1024) return show('Image trop lourde (20 Mo maximum).', 'error');
+    try {
+      image = await toWebp(file);
+      if (thumb.src) URL.revokeObjectURL(thumb.src);
+      thumb.src = URL.createObjectURL(image);
+      preview.hidden = false;
+      document.getElementById('fb-image-pick')!.hidden = true;
+      message.hidden = true;
+    } catch (err) {
+      show(errorText(err), 'error');
+    }
+  }
+
+  function detach() {
+    image = null;
+    imageInput.value = '';
+    preview.hidden = true;
+    document.getElementById('fb-image-pick')!.hidden = false;
+  }
+
+  imageInput.addEventListener('change', () => attach(imageInput.files?.[0]));
+  document.getElementById('fb-image-remove')!.addEventListener('click', detach);
+  // Une capture collée dans le message (Ctrl+V / Cmd+V) est jointe aussi
+  body.addEventListener('paste', (event) => {
+    const file = [...(event.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'));
+    if (!file) return;
+    event.preventDefault();
+    attach(file);
+  });
 
   // Page d'où vient le membre (lien « Un bug, une idée ? » : ?depuis=/BARZ-/…), jointe au retour
   const from = new URLSearchParams(location.search).get('depuis');
@@ -106,12 +171,23 @@ import Layout from '../layouts/Layout.astro';
         }
       </div>
       <p class="item-body">${escapeHtml(item.body)}</p>
+      ${item.image_path && imageUrls.get(item.image_path) ? `<a class="item-image" href="${escapeHtml(imageUrls.get(item.image_path)!)}" target="_blank" rel="noopener"><img src="${escapeHtml(imageUrls.get(item.image_path)!)}" alt="Capture jointe" loading="lazy" /></a>` : ''}
       ${admin && item.device ? `<p class="device">${escapeHtml(item.device)}</p>` : ''}
     </li>`;
 
+  // Images privées : adresses signées valables une heure
+  const imageUrls = new Map<string, string>();
+  async function signImages(items: Item[]) {
+    const paths = items.map((i) => i.image_path).filter((p): p is string => !!p && !imageUrls.has(p));
+    if (!paths.length) return;
+    const { data } = await supabase!.storage.from('feedback').createSignedUrls(paths, 3600);
+    for (const d of data ?? []) if (d.path && d.signedUrl) imageUrls.set(d.path, d.signedUrl);
+  }
+
   async function loadMine(userId: string) {
-    const { data } = await supabase!.from('feedback').select('id, kind, body, page, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+    const { data } = await supabase!.from('feedback').select('id, kind, body, page, image_path, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
     const items = (data ?? []) as Item[];
+    await signImages(items);
     document.getElementById('fb-mine')!.hidden = !items.length;
     document.getElementById('fb-mine-list')!.innerHTML = items.map((i) => itemHtml(i, false)).join('');
   }
@@ -119,11 +195,12 @@ import Layout from '../layouts/Layout.astro';
   // Vue d'Alban : tous les retours, filtrés par statut
   let filter = 'open';
   async function loadAdmin() {
-    let query = supabase!.from('feedback').select('id, kind, body, page, device, status, created_at, author:profiles(username)').order('created_at', { ascending: false }).limit(200);
+    let query = supabase!.from('feedback').select('id, kind, body, page, device, image_path, status, created_at, author:profiles(username)').order('created_at', { ascending: false }).limit(200);
     if (filter === 'open') query = query.in('status', ['nouveau', 'prevu']);
     else if (filter !== 'all') query = query.eq('status', filter);
     const { data } = await query;
     const items = (data ?? []) as unknown as Item[];
+    await signImages(items);
     document.getElementById('fb-admin-list')!.innerHTML = items.length ? items.map((i) => itemHtml(i, true)).join('') : '<li class="bz-empty">Rien ici.</li>';
   }
 
@@ -164,10 +241,17 @@ import Layout from '../layouts/Layout.astro';
     try {
       // Identifiant choisi ici : sans compte, la ligne envoyée ne peut pas être relue
       const id = crypto.randomUUID();
-      const { error } = await supabase.from('feedback').insert({ id, kind, body: text, page, device: navigator.userAgent.slice(0, 300) });
+      let image_path: string | null = null;
+      if (image) {
+        image_path = `${id}.webp`;
+        const upload = await supabase.storage.from('feedback').upload(image_path, image, { contentType: 'image/webp' });
+        if (upload.error) throw new Error(`L’image n’a pas pu être envoyée (${upload.error.message}). Retire-la pour envoyer ton message sans elle.`);
+      }
+      const { error } = await supabase.from('feedback').insert({ id, kind, body: text, page, device: navigator.userAgent.slice(0, 300), ...(image_path ? { image_path } : {}) });
       if (error) throw error;
       supabase.functions.invoke('notify', { body: { action: 'feedback', id } }).catch(() => {});
       body.value = '';
+      detach();
       show(session ? 'Merci, c’est envoyé ! Tu peux suivre ton retour juste en dessous.' : 'Merci, c’est envoyé !');
       if (session) loadMine(session.user.id);
     } catch (err) {
@@ -207,6 +291,37 @@ import Layout from '../layouts/Layout.astro';
 
   .block {
     margin-top: 56px;
+  }
+
+  .attach-pick {
+    align-self: flex-start;
+    cursor: pointer;
+  }
+
+  .attach-pick:focus-within {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .attach-preview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .attach-preview img,
+  .item-image img {
+    display: block;
+    max-width: 160px;
+    max-height: 160px;
+    border: var(--line);
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .item-image {
+    display: inline-block;
+    margin-top: 12px;
   }
 
   #fb-filters {

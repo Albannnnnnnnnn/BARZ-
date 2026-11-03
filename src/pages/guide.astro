@@ -539,11 +539,25 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
     color: var(--color-on-accent);
   }
 
+  /* Précédent / Suivant toujours visibles en bas de l'écran, même quand l'étape est plus haute que lui */
   .controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
     display: flex;
     justify-content: space-between;
     gap: 12px;
     margin-top: 24px;
+    padding: 20px 0 max(12px, env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, var(--color-bg) 16px);
+  }
+
+  /* Au-dessus de la barre de navigation du bas (62 px, plus la zone du geste d'accueil des iPhone) */
+  @media (max-width: 900px) {
+    .controls {
+      bottom: calc(62px + env(safe-area-inset-bottom));
+      padding-bottom: 12px;
+    }
   }
 
   .controls[hidden],
@@ -580,12 +594,6 @@ const TOTAL = STEPS.length + 2; // + comptes à connecter + installer
     }
     .account .bz-btn {
       margin-left: 40px;
-    }
-    .controls {
-      position: sticky;
-      bottom: 92px; /* au-dessus de la barre de navigation du bas */
-      padding: 12px 0;
-      background: linear-gradient(transparent, var(--color-bg) 30%);
     }
   }
 </style>
