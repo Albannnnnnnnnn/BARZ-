@@ -1,6 +1,6 @@
 // Cartes de partage au format story (1080 × 1920) : un Barz, un top, le bilan du mois, la série aux jeux.
 // Dessinées dans le navigateur (canvas), aux couleurs et polices de l'appli, avec le logo et le lien ; partagées
-// avec le menu du téléphone (Instagram, WhatsApp…) ou téléchargées sur ordinateur. Les pochettes de Deezer, Apple et
+// depuis un aperçu (menu du téléphone : Instagram, WhatsApp…) ou enregistrées. Les pochettes de Deezer, Apple et
 // Spotify autorisent ce dessin (en-tête CORS) ; une image qui ne charge pas est remplacée par un aplat.
 
 const W = 1080;
@@ -119,24 +119,70 @@ async function prepare(eyebrow: string): Promise<{ canvas: HTMLCanvasElement; ct
   return { canvas, ctx, t };
 }
 
-// Partage de l'image (menu du téléphone), sinon téléchargement
+// L'image est d'abord montrée en aperçu : le partage doit partir au toucher (Safari sur iPhone refuse un partage lancé
+// après le temps de préparation de l'image). « Partager » ouvre le menu du téléphone (Instagram, WhatsApp…) ;
+// « Enregistrer » télécharge l'image (sur iPhone, un appui long sur l'aperçu permet aussi de l'enregistrer).
 async function deliver(canvas: HTMLCanvasElement, name: string) {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('Impossible de créer l’image.');
   const file = new File([blob], `${name}.png`, { type: 'image/png' });
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: 'BARZ¡' });
+  const url = URL.createObjectURL(blob);
+  const canShare = !!navigator.canShare?.({ files: [file] });
+
+  const dialog = document.createElement('dialog');
+  dialog.className = 'share-preview';
+  dialog.innerHTML = `
+    <img src="${url}" alt="Aperçu de l’image à partager" />
+    <p class="share-preview-hint">${canShare ? 'Partage-la en story ou envoie-la à tes potes.' : 'Enregistre l’image, puis poste-la en story.'} Sur iPhone, un appui long sur l’image permet aussi de l’enregistrer.</p>
+    <div class="share-preview-actions">
+      ${canShare ? '<button type="button" class="bz-btn bz-btn--lime bz-btn--small" data-act="share">Partager</button>' : ''}
+      <button type="button" class="bz-btn ${canShare ? 'bz-btn--outline' : 'bz-btn--lime'} bz-btn--small" data-act="save">Enregistrer</button>
+      <button type="button" class="bz-btn bz-btn--outline bz-btn--small" data-act="close">Fermer</button>
+    </div>`;
+  Object.assign(dialog.style, {
+    width: 'min(420px, calc(100vw - 32px))',
+    maxHeight: 'calc(100dvh - 32px)',
+    margin: 'auto',
+    padding: '16px',
+    border: 'var(--line)',
+    borderRadius: '14px',
+    background: 'var(--color-paper)',
+    color: 'var(--color-text)',
+    overflow: 'auto',
+  });
+  const img = dialog.querySelector('img')!;
+  Object.assign(img.style, { display: 'block', width: '100%', maxHeight: '62dvh', objectFit: 'contain', borderRadius: '10px' });
+  Object.assign((dialog.querySelector('.share-preview-hint') as HTMLElement).style, { margin: '12px 0', fontSize: '14px', color: 'var(--color-text-muted)' });
+  Object.assign((dialog.querySelector('.share-preview-actions') as HTMLElement).style, { display: 'flex', flexWrap: 'wrap', gap: '8px' });
+
+  const close = () => {
+    dialog.close();
+    dialog.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  dialog.addEventListener('click', async (event) => {
+    if (event.target === dialog) return close();
+    const act = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-act]')?.dataset.act;
+    if (act === 'close') return close();
+    if (act === 'save') {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      a.click();
       return;
-    } catch (err) {
-      if ((err as Error)?.name === 'AbortError') return;
     }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = file.name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    if (act === 'share') {
+      try {
+        await navigator.share({ files: [file], title: 'BARZ¡' });
+        close();
+      } catch (err) {
+        if ((err as Error)?.name !== 'AbortError') alert('Le partage n’a pas marché : enregistre l’image à la place.');
+      }
+    }
+  });
+  dialog.addEventListener('cancel', close);
+  document.body.append(dialog);
+  dialog.showModal();
 }
 
 export type BarzCardData = { name: string; username: string; title: string; artist: string; cover: string | null; score: number; body: string };
