@@ -48,6 +48,10 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
       </div>
 
       <aside class="side">
+        <a class="friday-link" href="/BARZ-/vendredi">
+          <b>Le vendredi</b>
+          <span>La discussion de la semaine et le top des Barz →</span>
+        </a>
         <section id="top" hidden>
           <div class="bz-section-head"><h2 class="bz-h2">Top contributeurs</h2></div>
           <ol class="top" id="top-list"></ol>
@@ -326,5 +330,25 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     .composer .bz-btn {
       margin-left: auto;
     }
+  }
+
+  .friday-link {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+    color: var(--color-text);
+  }
+
+  .friday-link b {
+    font: 800 17px/1.2 var(--font-display);
+  }
+
+  .friday-link span {
+    color: var(--color-text-muted);
+    font-size: 14px;
   }
 </style>

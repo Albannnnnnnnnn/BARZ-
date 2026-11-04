@@ -1,0 +1,286 @@
+---
+// LE VENDREDI : la discussion de la semaine sur les sorties (ouverte du vendredi au dimanche, heure de Paris) et le top
+// de la semaine selon les Barz (communauté, et amis pour un membre connecté). Tables : supabase/community.sql.
+// ?semaine=AAAA-MM-JJ (un vendredi) : une semaine passée, en lecture seule.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Le vendredi" description="La discussion de la semaine sur les sorties du vendredi, et le top des Barz.">
+  <div class="bz-page friday">
+    <span class="bz-eyebrow" id="fr-eyebrow">Le vendredi</span>
+    <h1 class="bz-display">La discussion <em>du vendredi.</em></h1>
+    <p class="intro" id="fr-intro">Les sorties de la semaine, tes premières impressions, ce que tu as retourné en boucle.</p>
+
+    <section class="block" id="fr-top-block" hidden aria-labelledby="fr-top-title">
+      <div class="bz-section-head">
+        <h2 class="bz-h2" id="fr-top-title">Le top <em>de la semaine</em></h2>
+        <div class="bz-chips" id="fr-top-tabs" hidden>
+          <button type="button" class="bz-chip is-active" data-top="all" aria-pressed="true">Tout le monde</button>
+          <button type="button" class="bz-chip" data-top="friends" aria-pressed="false">Mes amis</button>
+        </div>
+      </div>
+      <div class="bz-tiles bz-rail" id="fr-top"></div>
+      <p class="bz-empty" id="fr-top-empty" hidden></p>
+    </section>
+
+    <section class="block" aria-labelledby="fr-thread-title">
+      <div class="bz-section-head"><h2 class="bz-h2" id="fr-thread-title">Le fil</h2><span class="count" id="fr-count"></span></div>
+      <form class="composer" id="fr-form" hidden>
+        <label class="sr-only" for="fr-body">Ton message</label>
+        <textarea class="bz-input" id="fr-body" maxlength="1000" rows="3" placeholder="Qu’est-ce que tu as écouté cette semaine ? Le meilleur, la déception, la surprise…"></textarea>
+        <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Publier</button>
+      </form>
+      <p class="bz-notice" id="fr-closed" hidden></p>
+      <ul class="posts" id="fr-posts"></ul>
+      <p class="bz-empty" id="fr-empty" hidden>Personne n’a encore écrit cette semaine. Lance la discussion !</p>
+    </section>
+
+    <nav class="weeks" id="fr-weeks" aria-label="Semaines précédentes"></nav>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, avatarUrl, errorText, escapeHtml, getSession, loginUrl, myFriendships, releaseTileHtml, supabase, timeAgo } from '../scripts/social';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const parisToday = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' });
+  const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  const weekday = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay(); // 0 dimanche … 5 vendredi
+  // Le vendredi de la semaine en cours (ou le dernier passé)
+  const lastFriday = (iso: string) => addDays(iso, -((weekday(iso) + 2) % 7));
+  const today = parisToday();
+  const current = lastFriday(today);
+  const isOpenDay = [5, 6, 0].includes(weekday(today));
+  const asked = new URLSearchParams(location.search).get('semaine');
+  const week = asked && /^\d{4}-\d{2}-\d{2}$/.test(asked) && weekday(asked) === 5 && asked <= current ? asked : current;
+  const open = week === current && isOpenDay;
+  const longDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+
+  $('fr-eyebrow').textContent = `Semaine du vendredi ${longDate(week)}`;
+  let myId: string | null = null;
+
+  type Post = { id: string; body: string; created_at: string; user_id: string; profile: { username: string; display_name: string; avatar_path: string | null } | null };
+
+  async function renderPosts() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from('friday_posts')
+      .select('id, body, created_at, user_id, profile:profiles!friday_posts_user_id_fkey(username, display_name, avatar_path)')
+      .eq('week', week)
+      .order('created_at', { ascending: false })
+      .limit(300);
+    if (error) {
+      $('fr-closed').textContent = 'La discussion du vendredi n’est pas encore activée.';
+      $('fr-closed').hidden = false;
+      return;
+    }
+    const posts = (data ?? []) as unknown as Post[];
+    $('fr-count').textContent = posts.length ? `${posts.length} message${posts.length > 1 ? 's' : ''}` : '';
+    $('fr-empty').hidden = posts.length > 0 || !open;
+    $('fr-posts').innerHTML = posts
+      .map((p) => {
+        const name = p.profile?.display_name ?? 'Membre';
+        const href = p.profile ? `${BASE}profil?u=${encodeURIComponent(p.profile.username)}` : '#';
+        const avatar = p.profile?.avatar_path ? `<img src="${escapeHtml(avatarUrl(p.profile.avatar_path))}" alt="" loading="lazy" />` : escapeHtml(name[0] ?? '?');
+        return `<li class="post">
+          <a class="barz-avatar" href="${href}">${avatar}</a>
+          <div class="post-main">
+            <div class="post-head"><a href="${href}"><b>${escapeHtml(name)}</b></a><span>${escapeHtml(timeAgo(p.created_at))}</span>
+              ${myId === p.user_id ? `<button type="button" class="barz-delete" data-delete="${p.id}">Supprimer</button>` : ''}</div>
+            <p>${escapeHtml(p.body)}</p>
+          </div>
+        </li>`;
+      })
+      .join('');
+  }
+
+  // Top de la semaine : les sorties les mieux notées dans les Barz des 7 jours (au moins 2 Barz, ou 1 entre amis)
+  type BarzRow = { score: number; user_id: string; release: { id: string; title: string; slug: string; cover_url: string | null; release_type: string; artist: { name: string } | null } | null };
+  let weekBarz: BarzRow[] = [];
+  let friendIds = new Set<string>();
+  function paintTop(scope: 'all' | 'friends') {
+    const rows = scope === 'friends' ? weekBarz.filter((b) => friendIds.has(b.user_id) || b.user_id === myId) : weekBarz;
+    const byRelease = new Map<string, { release: NonNullable<BarzRow['release']>; sum: number; count: number }>();
+    for (const b of rows) {
+      if (!b.release) continue;
+      const cur = byRelease.get(b.release.id) ?? { release: b.release, sum: 0, count: 0 };
+      cur.sum += Number(b.score);
+      cur.count++;
+      byRelease.set(b.release.id, cur);
+    }
+    const min = scope === 'friends' ? 1 : 2;
+    const top = [...byRelease.values()]
+      .filter((r) => r.count >= min)
+      .sort((a, b) => b.sum / b.count - a.sum / a.count || b.count - a.count)
+      .slice(0, 10);
+    $('fr-top').innerHTML = top.map((r) => releaseTileHtml(r.release, { badge: `★ ${(r.sum / r.count).toFixed(1).replace('.', ',')}`, reason: `${r.count} Barz` })).join('');
+    $('fr-top-empty').textContent = scope === 'friends' ? 'Tes amis n’ont pas encore noté de sortie cette semaine.' : 'Pas encore assez de Barz cette semaine pour un top.';
+    $('fr-top-empty').hidden = top.length > 0;
+  }
+
+  async function renderTop() {
+    if (!supabase) return;
+    const from = `${week}T00:00:00`;
+    const to = `${addDays(week, 7)}T00:00:00`;
+    const { data } = await supabase
+      .from('barz')
+      .select('score, user_id, release:releases(id, title, slug, cover_url, release_type, artist:artists!artist_id(name))')
+      .gte('created_at', from)
+      .lt('created_at', to)
+      .limit(3000);
+    weekBarz = (data ?? []) as unknown as BarzRow[];
+    $('fr-top-block').hidden = false;
+    paintTop('all');
+    if (myId) {
+      friendIds = new Set((await myFriendships().catch(() => [])).filter((f) => f.status === 'friends').map((f) => f.profile.id));
+      $('fr-top-tabs').hidden = false;
+    }
+  }
+
+  $('fr-top-tabs').addEventListener('click', (event) => {
+    const chip = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-top]');
+    if (!chip) return;
+    document.querySelectorAll<HTMLButtonElement>('[data-top]').forEach((c) => {
+      c.classList.toggle('is-active', c === chip);
+      c.setAttribute('aria-pressed', String(c === chip));
+    });
+    paintTop(chip.dataset.top as 'all' | 'friends');
+  });
+
+  $('fr-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const box = $('fr-body') as HTMLTextAreaElement;
+    const body = box.value.trim();
+    if (!body || !supabase) return;
+    const { error } = await supabase.from('friday_posts').insert({ week, body });
+    if (error) return alert(errorText(error));
+    box.value = '';
+    renderPosts();
+  });
+
+  $('fr-posts').addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-delete]');
+    if (!button || !supabase || !confirm('Supprimer ce message ?')) return;
+    const { error } = await supabase.from('friday_posts').delete().eq('id', button.dataset.delete!);
+    if (error) return alert(errorText(error));
+    renderPosts();
+  });
+
+  // Les 6 semaines précédentes
+  $('fr-weeks').innerHTML = `<span>Semaines précédentes :</span> ${Array.from({ length: 6 }, (_, i) => addDays(current, -7 * (i + 1)))
+    .map((w) => `<a class="bz-link" href="${BASE}vendredi?semaine=${w}">${longDate(w)}</a>`)
+    .join(' ')}${week !== current ? ` <a class="bz-link" href="${BASE}vendredi">Cette semaine →</a>` : ''}`;
+
+  getSession().then(async (session) => {
+    myId = session?.user.id ?? null;
+    if (open && session) $('fr-form').hidden = false;
+    else {
+      $('fr-closed').innerHTML = open
+        ? `<a href="${loginUrl()}">Connecte-toi</a> pour écrire dans le fil.`
+        : week === current
+          ? 'Le fil ouvre vendredi à minuit et reste ouvert tout le week-end.'
+          : 'Cette discussion est terminée.';
+      $('fr-closed').hidden = false;
+    }
+    renderPosts();
+    renderTop();
+  });
+</script>
+
+<style>
+  .friday {
+    max-width: 980px;
+  }
+
+  .intro {
+    margin: 20px 0 36px;
+    color: var(--color-text-muted);
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .block + .block {
+    margin-top: 48px;
+  }
+
+  .count {
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  .composer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .composer textarea {
+    resize: vertical;
+    min-height: 90px;
+  }
+
+  .composer .bz-btn {
+    align-self: flex-start;
+  }
+
+  .posts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .post {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+  }
+
+  .post-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .post-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    font-size: 14px;
+  }
+
+  .post-head span {
+    color: var(--color-text-muted);
+  }
+
+  .post-head .barz-delete {
+    margin-left: auto;
+  }
+
+  .post p {
+    margin: 6px 0 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .weeks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: baseline;
+    margin-top: 40px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>

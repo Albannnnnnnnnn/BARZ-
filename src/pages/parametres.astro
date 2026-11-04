@@ -72,6 +72,10 @@ import { DISCORD_URL } from '../lib/changelog';
               <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
               <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
             </form>
+            <label class="share-toggle" id="lastfm-share-toggle">
+              <input type="checkbox" id="lastfm-share" />
+              <span>Montrer à mes amis ce que j’écoute en ce moment (via Last.fm)</span>
+            </label>
             <p class="bz-notice" id="lastfm-status" hidden></p>
             </details>
           </section>
@@ -123,6 +127,19 @@ import { DISCORD_URL } from '../lib/changelog';
     renderDeezer(profile).catch(() => {});
     renderGamesToggle(profile);
     $('p-lastfm').hidden = false;
+    // Écoute en direct via Last.fm : même réglage que pour Spotify (profiles.share_listening)
+    const lastfmShare = document.getElementById('lastfm-share') as HTMLInputElement;
+    lastfmShare.checked = !!profile.share_listening;
+    lastfmShare.onchange = async () => {
+      try {
+        await updateMyProfile({ share_listening: lastfmShare.checked });
+        profile.share_listening = lastfmShare.checked;
+        (document.getElementById('share-listening') as HTMLInputElement).checked = lastfmShare.checked;
+      } catch (err) {
+        lastfmShare.checked = !lastfmShare.checked;
+        alert(errorText(err));
+      }
+    };
     (document.getElementById('lastfm-input') as HTMLInputElement).value = profile.lastfm_username ?? '';
     if (profile.lastfm_username) {
       const { count } = await supabase.from('lastfm_artists').select('*', { count: 'exact', head: true }).eq('user_id', profile.id);

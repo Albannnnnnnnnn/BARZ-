@@ -43,6 +43,13 @@ import Layout from '../layouts/Layout.astro';
 
       <div id="p-np" hidden></div>
 
+      <!-- Stats du mois et badges (calculés à partir des écoutes, des Barz et des jeux) -->
+      <section class="block" id="p-badges" hidden aria-labelledby="badges-title">
+        <div class="bz-section-head"><h2 id="badges-title" class="bz-h2">Ses <em>badges</em></h2></div>
+        <p class="month-stats" id="p-month-stats"></p>
+        <ul class="badges" id="p-badges-list"></ul>
+      </section>
+
       <!-- Tops (supabase/top-lists.sql) : 3 artistes, 10 albums et 10 singles choisis par le membre, dans l'ordre -->
       <section class="block top5" id="p-tops" hidden aria-labelledby="tops-title">
         <div class="bz-section-head"><h2 id="tops-title" class="bz-h2">Ses <em>tops</em></h2></div>
@@ -76,6 +83,16 @@ import Layout from '../layouts/Layout.astro';
           </div>
           <ol class="top5-list bz-rail"></ol>
         </div>
+      </section>
+
+      <!-- Listes de disques (src/pages/liste.astro, supabase/community.sql) -->
+      <section class="block" id="p-lists" hidden aria-labelledby="lists-title">
+        <div class="bz-section-head">
+          <h2 id="lists-title" class="bz-h2">Ses <em>listes</em></h2>
+          <a class="bz-link" id="p-list-new" href="/BARZ-/liste?nouvelle=1" hidden>Nouvelle liste</a>
+        </div>
+        <div class="lists bz-rail" id="p-lists-grid"></div>
+        <p class="bz-empty" id="p-lists-empty" hidden>Pas encore de liste. Crée la première : tes classiques, tes albums pour la route, tes découvertes…</p>
       </section>
 
       <dialog class="top5-dialog" id="top5-dialog" aria-labelledby="top5-dialog-title">
@@ -350,6 +367,8 @@ import Layout from '../layouts/Layout.astro';
     const theirTaste = loadTasteOf(profile.id);
     renderFriendship(profile, isMe, !!session).catch((err) => console.warn('Amis indisponibles :', err));
     renderTops(profile, isMe);
+    renderLists(profile, isMe).catch(() => {});
+    renderBadges(profile, isMe).catch(() => {});
     renderPicks(profile, isMe, barz, theirTaste, iFollow).catch((err) => console.warn('Coups de cœur indisponibles :', err));
     watchNowPlaying(profile, isMe, !!session);
 
@@ -744,6 +763,73 @@ import Layout from '../layouts/Layout.astro';
     paint();
     dialog.showModal();
     if (picked.length < top.max) input.focus();
+  }
+
+  // Badges : chacun avec sa condition, gagnés en couleur, les autres grisés avec ce qu'il reste à faire
+  async function renderBadges(profile: Profile, isMe: boolean) {
+    const [listened, barz, games] = await Promise.all([
+      supabase!.from('listened').select('created_at, release:releases(genres)').eq('user_id', profile.id).limit(5000),
+      supabase!.from('barz').select('body, created_at, release:releases(created_at)').eq('user_id', profile.id).limit(5000),
+      supabase!.from('game_results').select('day').eq('user_id', profile.id).limit(2000),
+    ]);
+    const L = (listened.data ?? []) as unknown as { created_at: string; release: { genres: string[] | null } | null }[];
+    const B = (barz.data ?? []) as unknown as { body: string; created_at: string; release: { created_at: string } | null }[];
+    const days = [...new Set(((games.data ?? []) as { day: string }[]).map((g) => g.day))].sort();
+    const month = new Date().toISOString().slice(0, 7);
+    // Genres préférés : ceux des disques écoutés
+    const genreCount = new Map<string, number>();
+    for (const l of L) for (const c of GENRE_CHIPS) if (c.genres.some((g) => l.release?.genres?.includes(g))) genreCount.set(c.label, (genreCount.get(c.label) ?? 0) + 1);
+    const favorites = [...genreCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([g]) => g);
+    const listenedMonth = L.filter((l) => l.created_at.startsWith(month)).length;
+    const barzMonth = B.filter((b) => b.created_at.startsWith(month)).length;
+    $('p-month-stats').textContent = [
+      `Ce mois-ci : ${listenedMonth} disque${listenedMonth > 1 ? 's' : ''} écouté${listenedMonth > 1 ? 's' : ''}, ${barzMonth} Barz`,
+      favorites.length ? `Genres préférés : ${favorites.join(' · ')}` : '',
+    ]
+      .filter(Boolean)
+      .join(' — ');
+    // Meilleure série aux jeux : jours d'affilée
+    let bestStreak = 0;
+    let run = 0;
+    days.forEach((d, i) => {
+      run = i && Date.parse(d) - Date.parse(days[i - 1]) === 86_400_000 ? run + 1 : 1;
+      bestStreak = Math.max(bestStreak, run);
+    });
+    const flair = B.filter((b) => b.release && Date.parse(b.created_at) - Date.parse(b.release.created_at) <= 3600_000).length;
+    const long = B.filter((b) => b.body.length > 280).length;
+    const BADGES = [
+      { icon: '⚡', name: 'Flair', done: flair >= 1, text: flair ? `${flair} Barz dans l’heure qui suit une sortie` : 'Un Barz dans l’heure qui suit une sortie' },
+      { icon: '✍️', name: 'Plume', done: long >= 5, text: long >= 5 ? `${long} Barz de plus de 280 caractères` : `Des Barz détaillés : ${long}/5` },
+      { icon: '🔥', name: 'Régularité', done: bestStreak >= 7, text: bestStreak >= 7 ? `${bestStreak} jours d’affilée aux jeux` : `7 jours d’affilée aux jeux : ${bestStreak}/7` },
+      { icon: '🎧', name: 'Mélomanie', done: L.length >= 100, text: L.length >= 100 ? `${L.length} disques écoutés` : `100 disques écoutés : ${L.length}/100` },
+      { icon: '🧭', name: 'Curiosité', done: genreCount.size >= 5, text: genreCount.size >= 5 ? `${genreCount.size} genres écoutés` : `5 genres différents : ${genreCount.size}/5` },
+    ];
+    // Sur le profil d'un autre membre, seulement les badges gagnés
+    const shown = isMe ? BADGES : BADGES.filter((b) => b.done);
+    $('badges-title').innerHTML = isMe ? 'Tes <em>badges</em>' : 'Ses <em>badges</em>';
+    $('p-badges-list').innerHTML = shown
+      .map((b) => `<li class="badge${b.done ? ' is-done' : ''}"><span class="badge-icon" aria-hidden="true">${b.icon}</span><b>${b.name}</b><span>${escapeHtml(b.text)}</span></li>`)
+      .join('');
+    $('p-badges').hidden = !shown.length && !listenedMonth && !barzMonth;
+  }
+
+  // Listes : quatre pochettes en mosaïque, titre, nombre de disques
+  async function renderLists(profile: Profile, isMe: boolean) {
+    const { data, error } = await supabase!.from('lists').select('id, title, items').eq('user_id', profile.id).order('updated_at', { ascending: false });
+    if (error) return; // SQL pas encore lancé
+    const lists = (data ?? []) as { id: string; title: string; items: TopAlbum[] }[];
+    $('lists-title').innerHTML = isMe ? 'Tes <em>listes</em>' : 'Ses <em>listes</em>';
+    $('p-list-new').hidden = !isMe;
+    $('p-lists-grid').innerHTML = lists
+      .map(
+        (l) => `<a class="list-card" href="${BASE}liste?id=${l.id}">
+          <span class="mosaic">${[0, 1, 2, 3].map((i) => (l.items[i] ? coverHtml(l.items[i].title, l.items[i].cover) : '<span class="mosaic-empty"></span>')).join('')}</span>
+          <b>${escapeHtml(l.title)}</b><span>${l.items.length} disque${l.items.length > 1 ? 's' : ''}</span>
+        </a>`
+      )
+      .join('');
+    $('p-lists-empty').hidden = lists.length > 0 || !isMe;
+    $('p-lists').hidden = !lists.length && !isMe;
   }
 
   async function renderPicks(profile: Profile, isMe: boolean, barz: Awaited<ReturnType<typeof barzFeed>>, tastePromise: Promise<Taste | null>, iFollow: Set<string>) {
@@ -1689,5 +1775,95 @@ import Layout from '../layouts/Layout.astro';
       grid-auto-columns: 40%;
       padding-top: 12px;
     }
+  }
+
+  /* Listes : mosaïque de pochettes */
+  .lists {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .lists :global(.list-card) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--color-text);
+  }
+
+  .lists :global(.mosaic) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    overflow: hidden;
+    border: var(--line);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+
+  .lists :global(.mosaic .bz-cover) {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .lists :global(.mosaic-empty) {
+    aspect-ratio: 1;
+    background: var(--color-bg-elevated);
+  }
+
+  .lists :global(.list-card > span:last-child) {
+    color: var(--color-text-muted);
+    font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    body .lists.bz-rail.bz-rail {
+      grid-auto-columns: 44%;
+    }
+  }
+
+  /* Badges */
+  .month-stats {
+    margin: 0 0 16px;
+    color: var(--color-text-muted);
+  }
+
+  .badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .badges :global(.badge) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    opacity: 0.55;
+  }
+
+  .badges :global(.badge.is-done) {
+    opacity: 1;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  .badges :global(.badge-icon) {
+    font-size: 26px;
+  }
+
+  .badges :global(.badge b) {
+    font: 800 17px/1.2 var(--font-display);
+  }
+
+  .badges :global(.badge span:last-child) {
+    font-size: 13px;
+    line-height: 1.35;
   }
 </style>

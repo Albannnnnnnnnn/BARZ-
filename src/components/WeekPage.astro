@@ -94,6 +94,12 @@ const builtAt = new Date().toISOString();
       {current && <span class="week-sticker" aria-hidden="true">Ce vendredi</span>}
     </header>
     <SortiesTabs active={current ? 'semaine' : undefined} weekCount={current ? count : undefined} upcomingCount={upcomingCount} />
+    {current && (
+      <a class="friday-talk" id="friday-talk" href="/BARZ-/vendredi" hidden>
+        <b>La discussion du vendredi est ouverte</b>
+        <span>Tes premières impressions sur les sorties de la semaine, jusqu’à dimanche soir →</span>
+      </a>
+    )}
 
     <nav class="week-nav" aria-label="Semaines">
       {first && prevFriday >= first ? (
@@ -213,6 +219,12 @@ const builtAt = new Date().toISOString();
 </Layout>
 
 <script>
+  // Bandeau de la discussion du vendredi (src/pages/vendredi.astro) : du vendredi au dimanche, heure de Paris
+  const talk = document.getElementById('friday-talk');
+  if (talk) {
+    const day = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' })).getDay();
+    talk.hidden = ![5, 6, 0].includes(day);
+  }
   import { BASE, escapeHtml, getSession, myFollows, releaseTileHtml, supabase, timeAgo } from '../scripts/social';
   import { canRecommend, dismissButtonHtml, loadTaste, rank, scoreRelease, wireDismiss, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit } from '../scripts/engage';
@@ -895,5 +907,30 @@ const builtAt = new Date().toISOString();
     .group-title {
       font-size: 18px;
     }
+  }
+
+  .friday-talk {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 0 24px;
+    padding: 14px 18px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .friday-talk[hidden] {
+    display: none;
+  }
+
+  .friday-talk b {
+    font: 800 17px/1.25 var(--font-display);
+  }
+
+  .friday-talk span {
+    font-size: 14px;
   }
 </style>

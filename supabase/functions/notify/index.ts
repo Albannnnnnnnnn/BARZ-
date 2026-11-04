@@ -10,6 +10,8 @@
 //              ont aimé ton Barz »), téléphone au plus une fois par heure (déclencheurs, supabase/barz-reactions-notify.sql).
 // - games    : rappel des jeux du jour à 18h (pg_cron, supabase/games-reminder.sql), aux membres qui ont joué ces
 //              7 derniers jours, pas encore aujourd'hui, et qui n'ont pas coupé le rappel ; il rappelle leur série de jours.
+// - week-top : le dimanche à 11h (pg_cron, supabase/community.sql), le disque de la semaine selon les Barz des amis de
+//              chaque membre (ou de toute la communauté s'ils n'ont rien noté), vers la page /vendredi.
 // - announcement : une annonce d'album attend la validation d'Alban (pending), ou vient d'être publiée : les membres
 //              qui suivent l'artiste sont prévenus, une seule fois (déclencheur, supabase/announcements.sql).
 // - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
@@ -91,7 +93,7 @@ function parisNow() {
 
 // Boîte de notifications de l'appli (la cloche, supabase/inbox.sql) : écrite pour chaque destinataire,
 // qu'il ait activé ou non les notifications du téléphone. On en profite pour oublier celles de plus de 60 jours.
-type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like' | 'announcement' | 'games';
+type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like' | 'announcement' | 'games' | 'week';
 async function toInbox(kind: Kind, entries: [string, Message][]) {
   if (!entries.length) return;
   const rows = entries.map(([user_id, m]) => ({ user_id, kind, title: m.title, body: m.body, url: m.url }));
@@ -393,6 +395,60 @@ Deno.serve(async (req) => {
     const sent = recent ? 0 : await send(await subsOf([barz.user_id]), () => message);
     await toInbox('like', [[barz.user_id, message]]);
     return reply({ sent, grouped: recent });
+  }
+
+  if (body.action === 'week-top') {
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { hour, weekday } = parisNow();
+    if (typeof body.hour === 'number' && (weekday !== 'Sun' || hour !== body.hour)) return reply({ skipped: `${weekday} ${hour}h à Paris` });
+    const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    const [{ data: barzRows }, { data: links }, { data: subs }, { data: followers }] = await Promise.all([
+      admin.from('barz').select('user_id, score, release:releases(id, title, artist:artists!artist_id(name))').gte('created_at', since).limit(5000),
+      admin.from('friendships').select('requester_id, addressee_id').eq('status', 'accepted'),
+      admin.from('push_subscriptions').select('user_id'),
+      admin.from('follows').select('user_id').limit(20000),
+    ]);
+    type Row = { user_id: string; score: number; release: { id: string; title: string; artist: { name: string } | null } | null };
+    const rows = ((barzRows ?? []) as unknown as Row[]).filter((r) => r.release);
+    if (!rows.length) return reply({ sent: 0, skipped: 'aucun Barz cette semaine' });
+    // Meilleure moyenne parmi les Barz donnés (au moins minCount Barz), à égalité le plus noté
+    const best = (list: Row[], minCount: number) => {
+      const by = new Map<string, { r: Row['release']; sum: number; count: number }>();
+      for (const b of list) {
+        const cur = by.get(b.release!.id) ?? { r: b.release, sum: 0, count: 0 };
+        cur.sum += Number(b.score);
+        cur.count++;
+        by.set(b.release!.id, cur);
+      }
+      return [...by.values()].filter((x) => x.count >= minCount).sort((a, b) => b.sum / b.count - a.sum / a.count || b.count - a.count)[0] ?? null;
+    };
+    const community = best(rows, 2) ?? best(rows, 1);
+    const friendsOf = new Map<string, Set<string>>();
+    for (const l of links ?? []) {
+      for (const [a, b] of [[l.requester_id, l.addressee_id], [l.addressee_id, l.requester_id]] as [string, string][]) {
+        if (!friendsOf.has(a)) friendsOf.set(a, new Set());
+        friendsOf.get(a)!.add(b);
+      }
+    }
+    const members = [...new Set([...(subs ?? []).map((s) => s.user_id as string), ...(followers ?? []).map((f) => f.user_id as string), ...friendsOf.keys()])];
+    const label = (x: { r: Row['release']; sum: number; count: number }) =>
+      `${x.r!.title}${x.r!.artist?.name ? ` — ${x.r!.artist.name}` : ''} (${(x.sum / x.count).toFixed(1).replace('.', ',')})`;
+    const messages = new Map<string, Message>();
+    for (const id of members) {
+      const friends = friendsOf.get(id);
+      const mine = friends ? best(rows.filter((r) => friends.has(r.user_id)), 1) : null;
+      const pick = mine ?? community;
+      if (!pick) continue;
+      messages.set(id, {
+        title: mine ? 'Le disque de la semaine selon tes amis' : 'Le disque de la semaine sur BARZ¡',
+        body: `${label(pick)}. Le top complet et la discussion du week-end t’attendent.`,
+        url: `${SITE}vendredi`,
+        tag: 'week-top',
+      });
+    }
+    const sent = await send(await subsOf([...messages.keys()]), (userId) => messages.get(userId) ?? null);
+    await toInbox('week', [...messages.entries()]);
+    return reply({ sent, members: messages.size });
   }
 
   if (body.action === 'games') {

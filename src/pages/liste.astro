@@ -1,0 +1,379 @@
+---
+// LISTE DE DISQUES (?id=…) : « Mes classiques du rap FR », « À écouter en voiture »… (table lists, supabase/community.sql)
+// Publique ; son auteur la modifie ici (titre, texte, disques cherchés sur Deezer, ordre). ?nouvelle=1 : en créer une.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Liste" description="Une liste de disques sur BARZ¡.">
+  <div class="bz-page list-page">
+    <p class="bz-empty" id="ls-error" hidden></p>
+
+    <section id="ls-view" hidden>
+      <a class="back" id="ls-back" href="/BARZ-/profil">← Profil</a>
+      <span class="bz-eyebrow" id="ls-meta"></span>
+      <h1 class="bz-display" id="ls-title"></h1>
+      <p class="desc" id="ls-desc" hidden></p>
+      <div class="actions">
+        <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="ls-share">Partager en image</button>
+        <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="ls-copy">Copier le lien</button>
+        <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="ls-edit" hidden>Modifier</button>
+      </div>
+      <ol class="items" id="ls-items"></ol>
+      <p class="bz-empty" id="ls-empty" hidden>Cette liste est encore vide.</p>
+    </section>
+
+    <section id="ls-editor" hidden>
+      <span class="bz-eyebrow" id="ls-editor-eyebrow">Nouvelle liste</span>
+      <label class="bz-field"><span>Titre</span><input class="bz-input" id="ls-in-title" maxlength="80" placeholder="Mes classiques du rap FR" /></label>
+      <label class="bz-field"><span>Quelques mots (facultatif)</span><textarea class="bz-input" id="ls-in-desc" maxlength="500" rows="2"></textarea></label>
+      <h2 class="sub">Les disques</h2>
+      <ol class="edit-items" id="ls-edit-items"></ol>
+      <label class="sr-only" for="ls-q">Chercher un album</label>
+      <input class="bz-input" id="ls-q" type="search" placeholder="Ajouter un album : titre ou artiste…" autocomplete="off" />
+      <ul class="results" id="ls-results"></ul>
+      <p class="bz-notice" id="ls-message" hidden></p>
+      <div class="actions">
+        <button type="button" class="bz-btn bz-btn--lime" id="ls-save">Enregistrer</button>
+        <button type="button" class="bz-btn bz-btn--outline" id="ls-cancel">Annuler</button>
+        <button type="button" class="bz-link danger" id="ls-delete" hidden>Supprimer la liste</button>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, coverHtml, errorText, escapeHtml, getSession, requireSession, supabase, type TopAlbum } from '../scripts/social';
+  import { deezerJsonp } from '../scripts/deezer-jsonp';
+
+  type List = { id: string; user_id: string; title: string; description: string | null; items: TopAlbum[]; updated_at: string; author: { username: string; display_name: string } | null };
+  const $ = (id: string) => document.getElementById(id)!;
+  const params = new URLSearchParams(location.search);
+  const MAX = 100;
+  let list: List | null = null;
+  let draft: TopAlbum[] = [];
+  let found: TopAlbum[] = [];
+
+  const fail = (text: string) => {
+    $('ls-error').textContent = text;
+    $('ls-error').hidden = false;
+  };
+
+  function renderView() {
+    if (!list) return;
+    document.title = `${list.title} | BARZ¡`;
+    $('ls-title').textContent = list.title;
+    $('ls-meta').textContent = `Une liste de ${list.author?.display_name ?? 'membre'} · ${list.items.length} disque${list.items.length > 1 ? 's' : ''}`;
+    ($('ls-back') as HTMLAnchorElement).href = list.author ? `${BASE}profil?u=${encodeURIComponent(list.author.username)}` : `${BASE}profil`;
+    $('ls-back').textContent = `← ${list.author?.display_name ?? 'Profil'}`;
+    $('ls-desc').textContent = list.description ?? '';
+    $('ls-desc').hidden = !list.description;
+    $('ls-items').innerHTML = list.items
+      .map(
+        (a, i) => `<li><a class="item" href="${BASE}album?d=${a.id}">
+          <span class="rank">${i + 1}</span>${coverHtml(a.title, a.cover)}
+          <span class="text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span>
+        </a></li>`
+      )
+      .join('');
+    $('ls-empty').hidden = list.items.length > 0;
+    $('ls-share').hidden = !list.items.length;
+    $('ls-view').hidden = false;
+    $('ls-editor').hidden = true;
+  }
+
+  function paintEditor() {
+    $('ls-edit-items').innerHTML = draft.length
+      ? draft
+          .map(
+            (a, i) => `<li class="row">
+              <span class="rank">${i + 1}</span>${coverHtml(a.title, a.cover)}
+              <span class="text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span>
+              <span class="moves">
+                <button type="button" data-move="${i}" data-dir="-1" aria-label="Monter" ${i === 0 ? 'disabled' : ''}>↑</button>
+                <button type="button" data-move="${i}" data-dir="1" aria-label="Descendre" ${i === draft.length - 1 ? 'disabled' : ''}>↓</button>
+                <button type="button" data-remove="${i}" aria-label="Retirer">×</button>
+              </span>
+            </li>`
+          )
+          .join('')
+      : '<li class="hint">Cherche un album ci-dessous pour l’ajouter.</li>';
+    $('ls-results').innerHTML = found
+      .map((a, i) => {
+        const already = draft.some((d) => d.id === a.id);
+        return `<li><button type="button" class="result" data-add="${i}" ${already || draft.length >= MAX ? 'disabled' : ''}>
+          ${coverHtml(a.title, a.cover)}<span class="text"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.artist)}</span></span><span class="plus">${already ? '✓' : '+'}</span>
+        </button></li>`;
+      })
+      .join('');
+  }
+
+  function openEditor() {
+    draft = [...(list?.items ?? [])];
+    found = [];
+    ($('ls-in-title') as HTMLInputElement).value = list?.title ?? '';
+    ($('ls-in-desc') as HTMLTextAreaElement).value = list?.description ?? '';
+    ($('ls-q') as HTMLInputElement).value = '';
+    $('ls-editor-eyebrow').textContent = list ? 'Modifier la liste' : 'Nouvelle liste';
+    $('ls-delete').hidden = !list;
+    $('ls-message').hidden = true;
+    paintEditor();
+    $('ls-view').hidden = true;
+    $('ls-editor').hidden = false;
+    ($('ls-in-title') as HTMLInputElement).focus();
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  $('ls-q').addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const input = $('ls-q') as HTMLInputElement;
+      const q = input.value.trim();
+      if (q.length < 2) return void ((found = []), paintEditor());
+      const res = await deezerJsonp<{ data?: any[] }>(`/search/album?q=${encodeURIComponent(q)}&limit=12`).catch(() => ({ data: [] }));
+      if (input.value.trim() !== q) return;
+      const seen = new Set<string>();
+      found = (res.data ?? [])
+        .map((a) => ({ id: a.id, title: a.title, artist: a.artist?.name ?? '', artistId: a.artist?.id ?? null, cover: a.cover_big ?? a.cover_medium ?? null }))
+        .filter((a) => !seen.has(`${a.artist}|${a.title}`.toLowerCase()) && !!seen.add(`${a.artist}|${a.title}`.toLowerCase()));
+      paintEditor();
+    }, 250);
+  });
+
+  $('ls-results').addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-add]');
+    if (!button || draft.length >= MAX) return;
+    draft.push(found[Number(button.dataset.add)]);
+    paintEditor();
+  });
+
+  $('ls-edit-items').addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (!button) return;
+    if (button.dataset.remove) draft.splice(Number(button.dataset.remove), 1);
+    if (button.dataset.move) {
+      const i = Number(button.dataset.move);
+      const j = i + Number(button.dataset.dir);
+      [draft[i], draft[j]] = [draft[j], draft[i]];
+    }
+    paintEditor();
+  });
+
+  $('ls-save').addEventListener('click', async () => {
+    const title = ($('ls-in-title') as HTMLInputElement).value.trim();
+    const description = ($('ls-in-desc') as HTMLTextAreaElement).value.trim() || null;
+    const message = $('ls-message');
+    if (!title) {
+      message.textContent = 'Donne un titre à ta liste.';
+      message.className = 'bz-notice bz-notice--error';
+      message.hidden = false;
+      return;
+    }
+    const fields = { title, description, items: draft, updated_at: new Date().toISOString() };
+    const res = list ? await supabase!.from('lists').update(fields).eq('id', list.id).select('id').single() : await supabase!.from('lists').insert(fields).select('id').single();
+    if (res.error) {
+      message.textContent = /lists/.test(res.error.message) ? 'Les listes ne sont pas encore activées.' : errorText(res.error);
+      message.className = 'bz-notice bz-notice--error';
+      message.hidden = false;
+      return;
+    }
+    location.href = `${BASE}liste?id=${(res.data as { id: string }).id}`;
+  });
+
+  $('ls-cancel').addEventListener('click', () => (list ? renderView() : history.back()));
+  $('ls-delete').addEventListener('click', async () => {
+    if (!list || !confirm('Supprimer cette liste ?')) return;
+    const { error } = await supabase!.from('lists').delete().eq('id', list.id);
+    if (error) return alert(errorText(error));
+    location.href = list.author ? `${BASE}profil?u=${encodeURIComponent(list.author.username)}` : `${BASE}profil`;
+  });
+  $('ls-edit').addEventListener('click', openEditor);
+
+  $('ls-share').addEventListener('click', async () => {
+    if (!list) return;
+    const button = $('ls-share') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const { shareTopCard } = await import('../scripts/share-card');
+      await shareTopCard(`${list.title} · ${list.author?.display_name ?? ''}`, list.items.map((a) => ({ title: a.title, sub: a.artist, cover: a.cover })));
+    } catch (err) {
+      alert(errorText(err));
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $('ls-copy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(location.href).catch(() => {});
+    $('ls-copy').textContent = 'Lien copié !';
+  });
+
+  async function load() {
+    if (!supabase) return fail('Liste introuvable.');
+    if (params.get('nouvelle')) {
+      if (!(await requireSession())) return;
+      return openEditor();
+    }
+    const id = params.get('id');
+    if (!id || !/^[0-9a-f-]{36}$/.test(id)) return fail('Liste introuvable.');
+    const { data, error } = await supabase.from('lists').select('id, user_id, title, description, items, updated_at, author:profiles!lists_user_id_fkey(username, display_name)').eq('id', id).maybeSingle();
+    if (error || !data) return fail('Cette liste n’existe pas (ou plus).');
+    list = data as unknown as List;
+    renderView();
+    const session = await getSession();
+    $('ls-edit').hidden = session?.user.id !== list.user_id;
+  }
+
+  load().catch((err) => fail(errorText(err)));
+</script>
+
+<style>
+  .list-page {
+    max-width: 860px;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .desc {
+    margin: 16px 0 0;
+    color: var(--color-text-muted);
+    font-size: 17px;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0 28px;
+  }
+
+  .items,
+  .edit-items,
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .items :global(.item),
+  .edit-items :global(.row),
+  .results :global(.result) {
+    display: grid;
+    grid-template-columns: 30px 64px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 8px 10px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    color: var(--color-text);
+    text-align: left;
+  }
+
+  .results :global(.result) {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    cursor: pointer;
+  }
+
+  .results :global(.result:disabled) {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .results {
+    max-height: 360px;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+
+  .list-page :global(.bz-cover) {
+    width: 64px;
+  }
+
+  .list-page :global(.rank) {
+    font: 800 18px/1 var(--font-display);
+    color: var(--color-accent);
+    text-align: center;
+  }
+
+  .list-page :global(.text) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .list-page :global(.text b),
+  .list-page :global(.text span) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .list-page :global(.text span) {
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  .edit-items :global(.moves) {
+    display: flex;
+    gap: 4px;
+  }
+
+  .edit-items :global(.moves button) {
+    width: 30px;
+    height: 30px;
+    border: var(--line);
+    border-radius: 8px;
+    background: var(--color-paper);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .edit-items :global(.moves button:disabled) {
+    opacity: 0.3;
+  }
+
+  .results :global(.plus) {
+    font: 800 20px/1 var(--font-display);
+    color: var(--color-accent);
+    padding-right: 6px;
+  }
+
+  .edit-items :global(.hint) {
+    color: var(--color-text-muted);
+  }
+
+  #ls-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  #ls-editor[hidden],
+  [hidden] {
+    display: none !important;
+  }
+
+  .sub {
+    margin: 12px 0 0;
+    font: 600 13px/1 var(--font-sans);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .danger {
+    margin-left: auto;
+    color: #c0392b !important;
+  }
+</style>

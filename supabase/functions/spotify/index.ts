@@ -5,7 +5,8 @@
 // - connect     { code, verifier, redirectUri } : échange le code OAuth (PKCE) et garde les jetons
 // - status      : le compte Spotify du membre est-il relié ?
 // - disconnect  : oublie les jetons et coupe le partage
-// - now-playing { userIds } : ce qu'écoutent ces membres (soi-même, ou des amis qui partagent leur écoute)
+// - now-playing { userIds } : ce qu'écoutent ces membres (soi-même, ou des amis qui partagent leur écoute) ; sans
+//               Spotify (5 comptes au plus), le morceau en cours sur Last.fm (secret LASTFM_API_KEY, facultatif)
 // - import      : ses artistes les plus écoutés et ceux qu'il suit, rapprochés du catalogue (supabase/music-imports.sql)
 //
 // Déploiement (par Alban) : supabase functions deploy spotify
@@ -13,6 +14,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CLIENT_ID = Deno.env.get('SPOTIFY_CLIENT_ID') ?? '';
+const LASTFM_KEY = Deno.env.get('LASTFM_API_KEY') ?? '';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
 const ORIGINS = ['https://albannnnnnnnnn.github.io', 'http://127.0.0.1:4322'];
@@ -70,6 +72,24 @@ async function accessTokenOf(row: TokenRow): Promise<string | null> {
   };
   await admin.from('spotify_tokens').update(update).eq('user_id', row.user_id);
   return data.access_token;
+}
+
+// Morceau en cours sur Last.fm (« scrobblé » depuis Spotify, Deezer, Apple Music…) ; null s'il n'écoute rien
+async function lastfmNowPlaying(username: string): Promise<NowPlaying | null> {
+  if (!LASTFM_KEY) return null;
+  const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(username)}&limit=1&format=json&api_key=${LASTFM_KEY}`;
+  const data = await fetch(url, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const track = [data?.recenttracks?.track ?? []].flat()[0];
+  if (!track || track['@attr']?.nowplaying !== 'true') return null;
+  const images = (track.image ?? []) as { '#text': string }[];
+  return {
+    playing: true,
+    title: track.name,
+    artists: track.artist?.['#text'] ?? track.artist?.name ?? '',
+    album: track.album?.['#text'] ?? '',
+    image: images.at(-1)?.['#text'] || null,
+    url: track.url ?? null,
+  };
 }
 
 async function nowPlayingOf(row: TokenRow): Promise<NowPlaying | null> {
@@ -224,7 +244,19 @@ Deno.serve(async (req) => {
     if (!allowed.size) return reply({ listening: {} });
     const { data: rows } = await admin.from('spotify_tokens').select('*').in('user_id', [...allowed]);
     const entries = await Promise.all(((rows ?? []) as TokenRow[]).map(async (row) => [row.user_id, await nowPlayingOf(row).catch(() => null)] as const));
-    return reply({ listening: Object.fromEntries(entries) });
+    const listening: Record<string, NowPlaying | null> = Object.fromEntries(entries);
+    // Sans Spotify, ou rien en cours sur Spotify : Last.fm, pour ceux qui y ont relié leur compte
+    const rest = [...allowed].filter((id) => !listening[id]?.title);
+    if (rest.length && LASTFM_KEY) {
+      const { data: profiles } = await admin.from('profiles').select('id, lastfm_username').in('id', rest).not('lastfm_username', 'is', null);
+      await Promise.all(
+        (profiles ?? []).map(async (p) => {
+          const np = await lastfmNowPlaying(p.lastfm_username as string);
+          if (np) listening[p.id as string] = np;
+        })
+      );
+    }
+    return reply({ listening });
   }
 
   return reply({ error: 'Action inconnue.' }, 400);
