@@ -297,6 +297,13 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
       <footer>
         <button type="button" class="barz-like${liked ? ' is-liked' : ''}" data-like="${escapeHtml(b.id)}" aria-pressed="${liked}">♥ <span>${b.likes.length}</span></button>
         <button type="button" class="barz-like" data-replies="${escapeHtml(b.id)}" aria-expanded="${open}">💬 <span>${replies.length ? replies.length : 'Répondre'}</span></button>
+        ${
+          b.release
+            ? `<button type="button" class="barz-like" data-share-barz="${escapeHtml(
+                JSON.stringify({ name, username: b.profile?.username ?? '', title: b.release.title, artist: b.release.artist?.name ?? '', cover: b.release.cover_url, score: Number(b.score), body: b.body })
+              )}" aria-label="Partager ce Barz en image">↗ <span>Partager</span></button>`
+            : ''
+        }
         ${myId && myId === b.user_id ? `<button type="button" class="barz-delete" data-delete="${escapeHtml(b.id)}">Supprimer</button>` : ''}
       </footer>
       ${thread}
@@ -331,6 +338,16 @@ export function wireBarzActions(container: HTMLElement, onChange: () => void) {
     const del = target.closest<HTMLButtonElement>('[data-delete]');
     const toggle = target.closest<HTMLButtonElement>('[data-replies]');
     const delReply = target.closest<HTMLButtonElement>('[data-delete-reply]');
+    const share = target.closest<HTMLButtonElement>('[data-share-barz]');
+    if (share) {
+      // Carte au format story (src/scripts/share-card.ts), chargée seulement au premier partage
+      share.disabled = true;
+      import('./share-card')
+        .then(({ shareBarzCard }) => shareBarzCard(JSON.parse(share.dataset.shareBarz!)))
+        .catch((err) => alert(errorText(err)))
+        .finally(() => (share.disabled = false));
+      return;
+    }
     if (toggle) {
       const id = toggle.dataset.replies!;
       const thread = container.querySelector<HTMLElement>(`[data-thread="${CSS.escape(id)}"]`);

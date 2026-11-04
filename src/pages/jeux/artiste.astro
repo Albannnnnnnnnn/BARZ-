@@ -28,6 +28,7 @@ import Layout from '../../layouts/Layout.astro';
           <p class="verdict" id="a-verdict"></p>
           <div class="end-actions">
             <button type="button" class="bz-btn bz-btn--lime" id="a-share">Partager mon résultat</button>
+            <button type="button" class="bz-btn bz-btn--outline" id="a-story">En image</button>
             <a class="bz-btn bz-btn--outline" id="a-listen" target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
           </div>
           <p class="streak" id="a-streak" hidden></p>
@@ -60,6 +61,9 @@ import Layout from '../../layouts/Layout.astro';
   import { normalizeSearch, searchScore } from '../../lib/fuzzy';
 
   const MAX = 50;
+  // Série de jours, reprise dans le texte partagé ; image de la réponse, pour la carte story
+  let streak = 0;
+  let answerImage: string | null = null;
   const SITE = 'https://albannnnnnnnnn.github.io/BARZ-/jeux/artiste';
 
   type Status = 'ok' | 'near' | 'no' | 'unknown';
@@ -137,6 +141,7 @@ import Layout from '../../layouts/Layout.astro';
       ? `${n === 1 ? 'Du premier coup !' : `Trouvé en ${n} essais !`} C’était <b>${escapeHtml(answer.name)}</b>.`
       : `C’était <b>${escapeHtml(answer.name)}</b>. Revanche demain !`;
     if (answer.image) $<HTMLImageElement>('a-photo').src = answer.image;
+    answerImage = answer.image;
     $<HTMLAnchorElement>('a-listen').href = answer.link;
     render();
     await saveResult();
@@ -160,7 +165,7 @@ import Layout from '../../layouts/Layout.astro';
     if (!session) return;
     const { data: mine } = await supabase!.from('game_results').select('day').eq('user_id', session.user.id).eq('game', 'artiste').order('day', { ascending: false }).limit(400);
     const days = new Set((mine ?? []).map((r) => r.day as string));
-    let streak = 0;
+    streak = 0;
     for (let d = new Date(`${today.day}T12:00:00`); days.has(d.toISOString().slice(0, 10)); d.setDate(d.getDate() - 1)) streak++;
     if (streak > 0) {
       $('a-streak').textContent = streak === 1 ? '🔥 Premier jour de ta série. Reviens demain !' : `🔥 ${streak} jours d’affilée`;
@@ -240,10 +245,32 @@ import Layout from '../../layouts/Layout.astro';
     await finish();
   });
 
+  // Résultat en image au format story (src/scripts/share-card.ts) : la série si elle dure, sinon le nombre d'essais
+  $('a-story').addEventListener('click', async () => {
+    const button = $('a-story') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const { shareStatCard } = await import('../../scripts/share-card');
+      const n = state.rows.length;
+      const result = state.won ? `Trouvé en ${n} essai${n > 1 ? 's' : ''}` : 'Pas trouvé aujourd’hui';
+      await shareStatCard(
+        `Jeux du jour · L’artiste mystère n° ${today.number}`,
+        streak >= 2 ? String(streak) : state.won ? String(n) : 'X',
+        streak >= 2 ? 'jours d’affilée aux jeux de BARZ¡' : state.won ? `essai${n > 1 ? 's' : ''} pour trouver` : 'Revanche demain',
+        [result, 'Et toi, tu fais mieux ?'],
+        [answerImage]
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      button.disabled = false;
+    }
+  });
+
   $('a-share').addEventListener('click', async () => {
     const lines = state.rows.slice(-6).map((r) => r.cells.map((c) => SQUARE[c.status]).join(''));
     const more = state.rows.length > 6 ? `(+${state.rows.length - 6} essais avant)\n` : '';
-    const text = `BARZ¡ · L’artiste mystère n° ${today.number}\n${state.won ? `Trouvé en ${state.rows.length} essai${state.rows.length > 1 ? 's' : ''}` : 'Abandon'}\n${more}${lines.join('\n')}\n${SITE}`;
+    const text = `BARZ¡ · L’artiste mystère n° ${today.number}\n${state.won ? `Trouvé en ${state.rows.length} essai${state.rows.length > 1 ? 's' : ''}` : 'Abandon'}\n${more}${lines.join('\n')}${streak >= 2 ? `\n🔥 ${streak} jours d’affilée` : ''}\n${SITE}`;
     try {
       if (navigator.share) await navigator.share({ text });
       else {

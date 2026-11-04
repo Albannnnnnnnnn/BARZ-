@@ -8,6 +8,8 @@ import Layout from '../layouts/Layout.astro';
     <span class="bz-eyebrow">Ton compte</span>
     <h1 class="bz-display" id="auth-title">Content de te <em>revoir.</em></h1>
 
+    <p class="bz-notice bz-notice--ok" id="invite-note" hidden></p>
+
     <div class="tabs" role="tablist">
       <button type="button" class="bz-chip is-active" data-mode="login" role="tab" aria-selected="true">Connexion</button>
       <button type="button" class="bz-chip" data-mode="signup" role="tab" aria-selected="false">Créer un compte</button>
@@ -34,6 +36,15 @@ import Layout from '../layouts/Layout.astro';
 
 <script>
   import { BASE, supabase, authErrorMessage, errorText, getSession } from '../scripts/social';
+  import { readInvite } from '../scripts/invite';
+
+  // Lien d'invitation : on dit qui invite ; l'amitié se fera dès la connexion
+  readInvite().then((who) => {
+    if (!who) return;
+    const note = document.getElementById('invite-note')!;
+    note.textContent = `${who.display_name} (@${who.username}) t’invite sur BARZ¡ : crée ton compte, vous serez amis directement.`;
+    note.hidden = false;
+  });
 
   const next = new URLSearchParams(location.search).get('next') || `${BASE}profil`;
 

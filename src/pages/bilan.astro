@@ -59,7 +59,8 @@ import Layout from '../layouts/Layout.astro';
       </article>
 
       <div class="share">
-        <button type="button" class="bz-btn bz-btn--lime" id="share">Partager ce bilan</button>
+        <button type="button" class="bz-btn bz-btn--lime" id="share-story" hidden>Partager en story</button>
+        <button type="button" class="bz-btn bz-btn--outline" id="share">Partager le lien</button>
         <a class="bz-btn bz-btn--outline" id="back-profile" href="/BARZ-/profil">Voir le profil</a>
         <span class="share-status" id="share-status" aria-live="polite"></span>
       </div>
@@ -192,6 +193,22 @@ import Layout from '../layouts/Layout.astro';
       : '';
     $('record-block').hidden = !record;
 
+    // Carte story (src/scripts/share-card.ts) : les chiffres du mois et quelques pochettes
+    const topGenre = top[0] ? `Genre du mois : ${top[0][0]} (${Math.round((top[0][1] / total) * 100)} %)` : '';
+    story = {
+      eyebrow: `Bilan ${ofMonth} · ${profile.display_name}`,
+      big: String(listenedM.length || barzM.length),
+      caption: listenedM.length ? `disque${listenedM.length > 1 ? 's' : ''} écouté${listenedM.length > 1 ? 's' : ''} en ${monthName}` : `Barz écrit${barzM.length > 1 ? 's' : ''} en ${monthName}`,
+      details: [
+        barzM.length ? `${barzM.length} Barz · note moyenne ${avg!.toFixed(1).replace('.', ',')}` : '',
+        topGenre,
+        record ? `Disque du mois : ${record.title} — ${record.artist?.name ?? ''}` : '',
+        newArtists.length ? `${newArtists.length} nouvel${newArtists.length > 1 ? 's' : ''} artiste${newArtists.length > 1 ? 's' : ''}` : '',
+      ].filter(Boolean),
+      covers: [record?.cover_url ?? null, ...[...releasesM.values()].filter((r) => r.id !== record?.id).map((r) => r.cover_url)],
+    };
+    $('share-story').hidden = false;
+
     $('new-artists').textContent = newArtists.length ? newArtists.slice(0, 6).join(' · ') + (newArtists.length > 6 ? ` et ${newArtists.length - 6} autres` : '') : 'Aucun ce mois-ci.';
 
     const doneM = challengesM.filter((c) => c.done).length;
@@ -214,6 +231,21 @@ import Layout from '../layouts/Layout.astro';
       }
     }
   }
+
+  let story: { eyebrow: string; big: string; caption: string; details: string[]; covers: (string | null)[] } | null = null;
+  $('share-story').addEventListener('click', async () => {
+    if (!story) return;
+    const button = $('share-story') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const { shareStatCard } = await import('../scripts/share-card');
+      await shareStatCard(story.eyebrow, story.big, story.caption, story.details, story.covers);
+    } catch (err) {
+      alert(errorText(err));
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   // Partage : le lien public du bilan (pseudo + mois)
   $('share').addEventListener('click', async () => {

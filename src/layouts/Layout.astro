@@ -103,9 +103,12 @@ const currentPath = Astro.url.pathname;
     <WhatsNew />
     <script>
       import '../scripts/error-report';
+      import '../scripts/barz-averages';
       import '../scripts/listen';
       import { promptGuide } from '../scripts/guide-prompt';
+      import { acceptPendingInvite } from '../scripts/invite';
       promptGuide().catch(() => {});
+      acceptPendingInvite().catch(() => {});
     </script>
   </body>
 </html>

@@ -34,6 +34,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/parametres">Paramètres</a>
+            <button type="button" class="bz-btn bz-btn--lime" id="p-invite">Inviter un ami</button>
           </div>
           <div class="own-actions" id="p-friend" hidden></div>
         </div>
@@ -48,21 +49,30 @@ import Layout from '../layouts/Layout.astro';
         <div class="top-group" data-top="artists" hidden>
           <div class="top-head">
             <h3 class="sub">Top 3 artistes</h3>
-            <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+            <span class="top-links">
+              <button type="button" class="bz-link" data-top-share hidden>Partager</button>
+              <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+            </span>
           </div>
           <ol class="top5-list top5-list--artists bz-rail"></ol>
         </div>
         <div class="top-group" data-top="albums" hidden>
           <div class="top-head">
             <h3 class="sub">Top 10 albums</h3>
-            <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+            <span class="top-links">
+              <button type="button" class="bz-link" data-top-share hidden>Partager</button>
+              <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+            </span>
           </div>
           <ol class="top5-list bz-rail"></ol>
         </div>
         <div class="top-group" data-top="singles" hidden>
           <div class="top-head">
             <h3 class="sub">Top 10 singles</h3>
-            <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+            <span class="top-links">
+              <button type="button" class="bz-link" data-top-share hidden>Partager</button>
+              <button type="button" class="bz-link" data-top-edit hidden>Modifier</button>
+            </span>
           </div>
           <ol class="top5-list bz-rail"></ol>
         </div>
@@ -174,6 +184,7 @@ import Layout from '../layouts/Layout.astro';
     updateMyProfile,
     type TopAlbum,
   } from '../scripts/social';
+  import { shareInvite } from '../scripts/invite';
   import { GENRE_CHIPS } from '../lib/genres';
   import { deezerJsonp } from '../scripts/deezer-jsonp';
   import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
@@ -263,6 +274,7 @@ import Layout from '../layouts/Layout.astro';
     $('p-bio').textContent = profile.bio?.trim() ?? '';
     $('p-bio').hidden = !profile.bio?.trim();
     $('p-own').hidden = !isMe;
+    if (isMe) ($('p-invite') as HTMLButtonElement).onclick = (event) => shareInvite(event.currentTarget as HTMLButtonElement);
     // Le bilan du mois qui vient de finir, mis en avant les 4 premiers jours du mois ; ensuite dans l'onglet Bilans
     const today = new Date();
     const bilanHref = (d: Date) => `${BASE}bilan?m=${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}&u=${encodeURIComponent(profile.username)}`;
@@ -605,6 +617,21 @@ import Layout from '../layouts/Layout.astro';
             )
             .join('')
         : `<li class="bz-empty top5-empty">${top.empty}</li>`;
+      // Partager ce top en image (src/scripts/share-card.ts)
+      const share = group.querySelector<HTMLButtonElement>('[data-top-share]')!;
+      share.hidden = !items.length;
+      share.onclick = async () => {
+        share.disabled = true;
+        try {
+          const { shareTopCard } = await import('../scripts/share-card');
+          const heading = `${kind === 'artists' ? 'Top 3 artistes' : kind === 'albums' ? 'Top 10 albums' : 'Top 10 singles'} · ${profile.display_name}`;
+          await shareTopCard(heading, items.map((a) => ({ title: a.title, sub: kind === 'artists' ? '' : a.artist, cover: a.cover })), kind === 'artists');
+        } catch (err) {
+          alert(errorText(err));
+        } finally {
+          share.disabled = false;
+        }
+      };
       const edit = group.querySelector<HTMLButtonElement>('[data-top-edit]')!;
       edit.hidden = !isMe;
       edit.textContent = items.length ? 'Modifier' : top.choose;
@@ -1459,6 +1486,11 @@ import Layout from '../layouts/Layout.astro';
 
   .bz-section-head + .top-group .top-head {
     margin-top: 0;
+  }
+
+  .top-links {
+    display: flex;
+    gap: 16px;
   }
 
   .top-head .sub {

@@ -35,6 +35,7 @@ import Layout from '../../layouts/Layout.astro';
           <p class="answer" id="g-answer"></p>
           <div class="end-actions">
             <button type="button" class="bz-btn bz-btn--lime" id="g-share">Partager mon résultat</button>
+            <button type="button" class="bz-btn bz-btn--outline" id="g-story">En image</button>
             <a class="bz-btn bz-btn--outline" id="g-listen" target="_blank" rel="noopener">Écouter sur Deezer ↗</a>
           </div>
           <p class="streak" id="g-streak" hidden></p>
@@ -56,6 +57,9 @@ import Layout from '../../layouts/Layout.astro';
 
   const MAX = 6;
   const BLUR = [28, 18, 11, 6, 3, 1.5]; // en pixels, selon le nombre d'essais déjà faits
+  // Série de jours, reprise dans le texte partagé ; image de la réponse, pour la carte story
+  let streak = 0;
+  let answerImage: string | null = null;
   const SITE = 'https://albannnnnnnnnn.github.io/BARZ-/jeux/pochette';
 
   type Result = 'miss' | 'artist' | 'found' | 'skip';
@@ -131,6 +135,7 @@ import Layout from '../../layouts/Layout.astro';
     $('g-answer').innerHTML = `<b>${escapeHtml(answer.title)}</b> · ${escapeHtml(answer.artist)}${answer.year ? ` (${escapeHtml(answer.year)})` : ''}`;
     $<HTMLAnchorElement>('g-listen').href = answer.link;
     cover.src = answer.cover;
+    answerImage = answer.cover;
     render();
     await saveResult();
     showSocial();
@@ -155,7 +160,7 @@ import Layout from '../../layouts/Layout.astro';
     if (!session) return;
     const { data: mine } = await supabase!.from('game_results').select('day').eq('user_id', session.user.id).eq('game', 'pochette').order('day', { ascending: false }).limit(400);
     const days = new Set((mine ?? []).map((r) => r.day as string));
-    let streak = 0;
+    streak = 0;
     for (let d = new Date(`${today.day}T12:00:00`); days.has(d.toISOString().slice(0, 10)); d.setDate(d.getDate() - 1)) streak++;
     if (streak > 0) {
       $('g-streak').textContent = streak === 1 ? '🔥 Premier jour de ta série. Reviens demain !' : `🔥 ${streak} jours d’affilée`;
@@ -242,9 +247,31 @@ import Layout from '../../layouts/Layout.astro';
   });
   $('g-skip').addEventListener('click', () => guess(null));
 
+  // Résultat en image au format story (src/scripts/share-card.ts) : la série si elle dure, sinon le nombre d'essais
+  $('g-story').addEventListener('click', async () => {
+    const button = $('g-story') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const { shareStatCard } = await import('../../scripts/share-card');
+      const n = state.tries.length;
+      const result = state.won ? `Trouvé en ${n} essai${n > 1 ? 's' : ''}` : 'Pas trouvé aujourd’hui';
+      await shareStatCard(
+        `Jeux du jour · Pochette floue n° ${today.number}`,
+        streak >= 2 ? String(streak) : state.won ? String(n) : 'X',
+        streak >= 2 ? 'jours d’affilée aux jeux de BARZ¡' : state.won ? `essai${n > 1 ? 's' : ''} pour trouver` : 'Revanche demain',
+        [result, 'Et toi, tu fais mieux ?'],
+        [answerImage]
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      button.disabled = false;
+    }
+  });
+
   $('g-share').addEventListener('click', async () => {
     const line = state.tries.map((t) => SQUARE[t.result]).join('');
-    const text = `BARZ¡ · Pochette floue n° ${today.number}\n${line} ${state.won ? state.tries.length : 'X'}/${MAX}\n${SITE}`;
+    const text = `BARZ¡ · Pochette floue n° ${today.number}\n${line} ${state.won ? state.tries.length : 'X'}/${MAX}${streak >= 2 ? `\n🔥 ${streak} jours d’affilée` : ''}\n${SITE}`;
     try {
       if (navigator.share) await navigator.share({ text });
       else {
