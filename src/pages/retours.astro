@@ -173,6 +173,7 @@ import Layout from '../layouts/Layout.astro';
       <p class="item-body">${escapeHtml(item.body)}</p>
       ${item.image_path && imageUrls.get(item.image_path) ? `<a class="item-image" href="${escapeHtml(imageUrls.get(item.image_path)!)}" target="_blank" rel="noopener"><img src="${escapeHtml(imageUrls.get(item.image_path)!)}" alt="Capture jointe" loading="lazy" /></a>` : ''}
       ${admin && item.device ? `<p class="device">${escapeHtml(item.device)}</p>` : ''}
+      <button type="button" class="bz-link item-delete" data-delete="${item.id}" data-image="${escapeHtml(item.image_path ?? '')}">Supprimer</button>
     </li>`;
 
   // Images privées : adresses signées valables une heure
@@ -211,6 +212,22 @@ import Layout from '../layouts/Layout.astro';
     document.querySelectorAll('[data-filter]').forEach((c) => c.classList.toggle('is-active', c === chip));
     loadAdmin();
   });
+
+  // Supprimer un retour (le sien, ou n'importe lequel pour Alban) : l'image d'abord, puis le retour
+  async function deleteItem(event: Event) {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-delete]');
+    if (!button || !supabase || !confirm('Supprimer ce retour ?')) return;
+    button.disabled = true;
+    if (button.dataset.image) await supabase.storage.from('feedback').remove([button.dataset.image]);
+    const { data, error } = await supabase.from('feedback').delete().eq('id', button.dataset.delete!).select('id');
+    if (error || !data?.length) {
+      button.disabled = false;
+      return alert(error ? errorText(error) : 'Ce retour ne peut pas encore être supprimé : il manque une mise à jour de la base.');
+    }
+    button.closest('li')?.remove();
+  }
+  document.getElementById('fb-mine-list')!.addEventListener('click', deleteItem);
+  document.getElementById('fb-admin-list')!.addEventListener('click', deleteItem);
 
   document.getElementById('fb-admin-list')!.addEventListener('change', async (event) => {
     const select = event.target as HTMLSelectElement;
@@ -398,6 +415,11 @@ import Layout from '../layouts/Layout.astro';
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     line-height: 1.5;
+  }
+
+  .item-delete {
+    margin-top: 10px;
+    font-size: 12px;
   }
 
   .device {
