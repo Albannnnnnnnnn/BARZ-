@@ -16,6 +16,7 @@ export type Announcement = {
   status: string;
   created_at: string;
   artist: { id: string; name: string; slug: string; image_url: string | null } | null;
+  author?: { username: string; display_name: string } | null; // membre qui l'a signalée (file à valider)
 };
 
 export const ANNOUNCEMENT_FIELDS = 'id, title, kind, release_date, date_precision, source, source_url, note, cover_url, status, created_at, artist:artists(id, name, slug, image_url)';

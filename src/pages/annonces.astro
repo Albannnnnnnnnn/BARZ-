@@ -43,7 +43,7 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-  import { errorText, escapeHtml, getSession, searchArtists, supabase, type ArtistLite } from '../scripts/social';
+  import { BASE, errorText, escapeHtml, getSession, searchArtists, supabase, timeAgo, type ArtistLite } from '../scripts/social';
   import { ANNOUNCEMENT_FIELDS, PRECISIONS, announceWhen, announcementCardHtml, normalizeDate, publishedAnnouncements, type Announcement, type Precision } from '../scripts/announcements';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -61,13 +61,23 @@ import Layout from '../layouts/Layout.astro';
 
   // File à valider : chaque annonce se complète (titre, type, date) avant d'être publiée
   async function renderQueue() {
-    const { data } = await supabase!.from('announcements').select(ANNOUNCEMENT_FIELDS).eq('status', 'pending').order('created_at', { ascending: false }).limit(100);
+    const { data } = await supabase!
+      .from('announcements')
+      .select(`${ANNOUNCEMENT_FIELDS}, author:profiles!announcements_created_by_fkey(username, display_name)`)
+      .eq('status', 'pending').order('created_at', { ascending: false }).limit(100);
     const items = (data ?? []) as unknown as Announcement[];
     $('an-queue').innerHTML = items.length
       ? items
           .map(
             (a) => `<li class="item" data-id="${a.id}">
-              <div class="item-head"><b>${escapeHtml(a.artist?.name ?? '?')}</b><span>${escapeHtml(SOURCES[a.source] ?? a.source)}</span></div>
+              <div class="item-head">
+                <b>${escapeHtml(a.artist?.name ?? '?')}</b>
+                <span>${
+                  a.author
+                    ? `Signalée par <a class="author" href="${BASE}profil?u=${encodeURIComponent(a.author.username)}">${escapeHtml(a.author.display_name)} (@${escapeHtml(a.author.username)})</a>`
+                    : escapeHtml(SOURCES[a.source] ?? a.source)
+                } · ${escapeHtml(timeAgo(a.created_at))}</span>
+              </div>
               ${a.note ? `<p class="note">${escapeHtml(a.note)}</p>` : ''}
               <a class="bz-link" href="${escapeHtml(a.source_url)}" target="_blank" rel="noopener">Voir la source ↗</a>
               <div class="row">
@@ -225,6 +235,11 @@ import Layout from '../layouts/Layout.astro';
     flex-wrap: wrap;
     gap: 6px 12px;
     align-items: baseline;
+  }
+
+  .author {
+    color: var(--color-accent);
+    font-weight: 700;
   }
 
   .item-head span,

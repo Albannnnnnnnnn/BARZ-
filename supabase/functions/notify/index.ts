@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { data } = await admin
       .from('announcements')
-      .select('id, title, kind, release_date, date_precision, note, status, notified_at, artist:artists(id, name, slug)')
+      .select('id, title, kind, release_date, date_precision, note, status, notified_at, artist:artists(id, name, slug), author:profiles!announcements_created_by_fkey(username)')
       .eq('id', String(body.id))
       .maybeSingle();
     const a = data as unknown as {
@@ -386,12 +386,13 @@ Deno.serve(async (req) => {
       status: string;
       notified_at: string | null;
       artist: { id: string; name: string; slug: string } | null;
+      author: { username: string } | null;
     } | null;
     if (!a?.artist) return reply({ sent: 0 });
     const record = a.kind === 'ep' ? 'un nouvel EP' : 'un nouvel album';
     if (body.event === 'pending' && a.status === 'pending') {
       const message: Message = {
-        title: 'Annonce à valider',
+        title: a.author ? `Annonce à valider, signalée par @${a.author.username}` : 'Annonce à valider',
         body: `${a.artist.name} — ${a.note ?? a.title ?? record}`.slice(0, 180),
         url: `${SITE}annonces`,
         tag: `announcement-${a.id}`,
