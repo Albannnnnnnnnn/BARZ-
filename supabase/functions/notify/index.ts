@@ -4,7 +4,8 @@
 // - test   : une notification de test vers ses propres appareils (appelée depuis le profil).
 // - feedback : prévient Alban d'un nouveau retour (appelée depuis la page Retours, même sans compte).
 // - friend   : demande d'ami reçue ou acceptée (appelée par un déclencheur de la base, supabase/notifications.sql).
-// - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql).
+// - barz     : un ami a publié un Barz (déclencheur sur barz, supabase/barz-notify.sql) ; une rafale de Barz du même
+//              membre est regroupée (« Léa a publié 12 Barz »), téléphone au plus une fois toutes les 3 heures.
 // - reply    : quelqu'un a répondu à ton Barz ; like : quelqu'un a aimé ton Barz, regroupés par Barz (« Léa et 2 autres
 //              ont aimé ton Barz »), téléphone au plus une fois par heure (déclencheurs, supabase/barz-reactions-notify.sql).
 // - announcement : une annonce d'album attend la validation d'Alban (pending), ou vient d'être publiée : les membres
@@ -108,6 +109,10 @@ function announceWhen(date: string | null, precision: string): string {
   if (precision === 'season') return `prévu ${['en hiver', 'en hiver', 'au printemps', 'au printemps', 'au printemps', 'en été', 'en été', 'en été', 'en automne', 'en automne', 'en automne', 'en hiver'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
   return `prévu en ${d.getUTCFullYear()}`;
 }
+
+// Barz d'un même membre regroupés sur 6 heures ; le téléphone sonne au plus une fois toutes les 3 heures par auteur
+const BARZ_BURST_MS = 6 * 3600_000;
+const BARZ_PUSH_GAP_MS = 3 * 3600_000;
 
 // Nom comparable (mêmes règles que src/lib/feat.ts)
 const normName = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
@@ -299,16 +304,35 @@ Deno.serve(async (req) => {
       .or(`requester_id.eq.${barz.user_id},addressee_id.eq.${barz.user_id}`);
     const friends = (links ?? []).map((f) => (f.requester_id === barz.user_id ? f.addressee_id : f.requester_id));
     if (!friends.length) return reply({ sent: 0 });
+    // Rafale (plusieurs Barz du même membre en quelques heures) : une seule ligne dans la cloche, remplacée à chaque Barz
+    // (« Léa a publié 12 Barz »), et le téléphone au plus une fois toutes les 3 heures par auteur
+    const name = barz.author.display_name;
+    const since = new Date(Date.now() - BARZ_BURST_MS).toISOString();
+    const { count } = await admin.from('barz').select('id', { count: 'exact', head: true }).eq('user_id', barz.user_id).gte('created_at', since);
+    const burst = Math.max(1, count ?? 1);
+    const { data: unread } = await admin.from('notifications').select('id, user_id, title, created_at').in('user_id', friends).eq('kind', 'barz').is('read_at', null).gte('created_at', since);
+    const previous = (unread ?? []).filter((n) => String(n.title).startsWith(`${name} a publié`));
+    if (previous.length) await admin.from('notifications').delete().in('id', previous.map((n) => n.id));
+    const pushedRecently = new Set(previous.filter((n) => Date.now() - Date.parse(n.created_at) < BARZ_PUSH_GAP_MS).map((n) => n.user_id as string));
     const text = barz.body.length > 110 ? `${barz.body.slice(0, 109)}…` : barz.body;
-    const message: Message = {
-      title: `${barz.author!.display_name} a publié un Barz`,
-      body: `${barz.release!.title} · ${Number(barz.score).toFixed(1)}/10 — « ${text} »`,
-      url: `${SITE}releases/${barz.release!.slug}`,
-      tag: `barz-${String(body.barz)}`,
-    };
-    const sent = await send(await subsOf(friends), () => message);
+    const score = `${Number(barz.score).toFixed(1)}/10`;
+    const message: Message =
+      burst > 1
+        ? {
+            title: `${name} a publié ${burst} Barz`,
+            body: `Le dernier : ${barz.release.title} · ${score}`,
+            url: `${SITE}profil?u=${encodeURIComponent(barz.author.username)}`,
+            tag: `barz-author-${barz.user_id}`,
+          }
+        : {
+            title: `${name} a publié un Barz`,
+            body: `${barz.release.title} · ${score} — « ${text} »`,
+            url: `${SITE}releases/${barz.release.slug}`,
+            tag: `barz-author-${barz.user_id}`,
+          };
+    const sent = await send(await subsOf(friends.filter((f) => !pushedRecently.has(f))), () => message);
     await toInbox('barz', friends.map((f) => [f, message] as [string, Message]));
-    return reply({ sent, friends: friends.length });
+    return reply({ sent, friends: friends.length, burst });
   }
 
   if (body.action === 'reply') {
