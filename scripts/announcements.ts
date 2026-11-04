@@ -17,8 +17,10 @@ const PRESS_MIN_NAME = 4; // « Dua », « SCH »… trop courts : trop de faux 
 const PRESS_MAX_AGE_DAYS = 7;
 const ANNOUNCE = /\b(annonce|annoncent|dévoile|dévoilent|révèle|officialise|tease|announces?|unveils?|reveals?|confirms?|shares? details)\b/i;
 const RECORD = /\b(album|albums|EP|mixtape|projet|LP|record)\b/i;
-// Pas un nouveau disque : réédition, live, deluxe, anniversaire, tournée
-const NOT_NEW = /réédition|reissue|remaster|\blive\b|deluxe|anniversa|\btour\b|tournée/i;
+// Pas un nouveau disque : réédition, live, deluxe, anniversaire, tournée, ou enregistré dans une salle de concert
+// (« Phoebe Bridgers Announces Madison Square Garden EP »)
+const NOT_NEW =
+  /réédition|reissue|remaster|\blive\b|deluxe|anniversa|\btour\b|tournée|concert|madison square|garden|arena|stadium|stade|olympia|zénith|zenith|bercy|cigale|bataclan|royal albert|red rocks|wembley|coachella|glastonbury|festival|session/i;
 
 type Artist = { id: string; name: string; popularity: number | null; audience: number | null };
 

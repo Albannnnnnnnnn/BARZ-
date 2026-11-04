@@ -54,7 +54,23 @@ import Layout from '../layouts/Layout.astro';
   async function renderPublished() {
     const list = await publishedAnnouncements();
     $('an-published').innerHTML = list
-      .map((a) => `<div class="pub">${announcementCardHtml(a)}${admin ? `<button type="button" class="bz-link pub-remove" data-remove="${a.id}">Retirer</button>` : ''}</div>`)
+      .map(
+        (a) => `<div class="pub" data-id="${a.id}">${announcementCardHtml(a)}${
+          admin
+            ? `<div class="pub-actions">
+                <button type="button" class="bz-link" data-edit>Modifier</button>
+                <button type="button" class="bz-link" data-remove="${a.id}">Retirer</button>
+              </div>
+              <div class="pub-edit" hidden>
+                <input class="bz-input" data-field="title" value="${escapeHtml(a.title ?? '')}" placeholder="Titre (si connu)" maxlength="200" />
+                <select class="bz-input" data-field="kind"><option value="album"${a.kind === 'album' ? ' selected' : ''}>Album</option><option value="ep"${a.kind === 'ep' ? ' selected' : ''}>EP</option></select>
+                <select class="bz-input" data-field="precision">${precisionOptions(a.date_precision)}</select>
+                <input class="bz-input" type="date" data-field="date" value="${a.release_date ?? ''}" />
+                <button type="button" class="bz-btn bz-btn--lime bz-btn--small" data-save>Enregistrer</button>
+              </div>`
+            : ''
+        }</div>`
+      )
       .join('');
     $('an-empty').hidden = list.length > 0;
   }
@@ -116,11 +132,36 @@ import Layout from '../layouts/Layout.astro';
     renderPublished();
   });
 
+  // Annonce publiée : la retirer, ou corriger son titre, son type ou sa date
   $('an-published').addEventListener('click', async (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-remove]');
-    if (!button || !confirm('Retirer cette annonce ?')) return;
-    const { error } = await supabase!.from('announcements').update({ status: 'rejected' }).eq('id', button.dataset.remove!);
-    if (error) return alert(errorText(error));
+    const target = event.target as HTMLElement;
+    const pub = target.closest<HTMLElement>('.pub');
+    if (!pub) return;
+    if (target.closest('[data-edit]')) {
+      const form = pub.querySelector<HTMLElement>('.pub-edit')!;
+      form.hidden = !form.hidden;
+      return;
+    }
+    if (target.closest('[data-remove]')) {
+      if (!confirm('Retirer cette annonce ?')) return;
+      const { error } = await supabase!.from('announcements').update({ status: 'rejected' }).eq('id', pub.dataset.id!);
+      if (error) return alert(errorText(error));
+      return renderPublished();
+    }
+    const save = target.closest<HTMLButtonElement>('[data-save]');
+    if (!save) return;
+    const field = (name: string) => pub.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)!.value;
+    const precision = field('precision') as Precision;
+    if (precision !== 'soon' && !field('date')) return alert('Choisis une date, ou « Date inconnue ».');
+    save.disabled = true;
+    const { error } = await supabase!
+      .from('announcements')
+      .update({ title: field('title').trim() || null, kind: field('kind'), date_precision: precision, release_date: normalizeDate(field('date'), precision) })
+      .eq('id', pub.dataset.id!);
+    if (error) {
+      save.disabled = false;
+      return alert(errorText(error));
+    }
     renderPublished();
   });
 
@@ -320,9 +361,23 @@ import Layout from '../layouts/Layout.astro';
     gap: 6px;
   }
 
-  .pub-remove {
+  .pub-actions {
+    display: flex;
+    gap: 14px;
+  }
+
+  .pub-actions .bz-link {
+    font-size: 12px;
+  }
+
+  .pub-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pub-edit .bz-btn {
     align-self: flex-start;
-    font-size: 13px;
   }
 
   [hidden] {
