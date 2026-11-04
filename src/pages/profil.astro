@@ -435,7 +435,15 @@ import Layout from '../layouts/Layout.astro';
       const key = `${np.title}|${np.artists}|${np.playing}`;
       // On ne redessine la carte (et sa pochette) que si le morceau ou l'état change
       if (key !== current?.key) {
-        const label = np.playing ? (isMe ? 'Tu écoutes' : 'En écoute') : 'En pause';
+        const label = np.playing
+          ? isMe
+            ? 'Tu écoutes'
+            : 'En écoute'
+          : np.agoMin !== undefined
+            ? np.agoMin <= 1
+              ? 'Écouté à l’instant'
+              : `Écouté il y a ${np.agoMin} min`
+            : 'En pause';
         box.innerHTML = nowPlayingHtml(np, label);
         box.hidden = false;
       }
@@ -461,7 +469,7 @@ import Layout from '../layouts/Layout.astro';
     if (!ids.length || !spotifyAvailable()) return;
     const listening = await nowPlaying(ids).catch(() => ({}) as Record<string, null>);
     for (const [id, np] of Object.entries(listening)) {
-      if (!np?.playing || !np.title) continue;
+      if (!np?.title || (!np.playing && np.agoMin === undefined)) continue;
       const row = document.querySelector<HTMLElement>(`#friend-list li[data-friend-id="${CSS.escape(id)}"]`);
       row?.insertAdjacentHTML('beforeend', `<span class="friend-np">♪ ${escapeHtml(np.title)} — ${escapeHtml(np.artists ?? '')}</span>`);
     }

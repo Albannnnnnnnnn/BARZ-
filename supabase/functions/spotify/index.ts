@@ -23,7 +23,7 @@ const CACHE_MS = 10_000;
 const UUID = /^[0-9a-f-]{36}$/i;
 
 type TokenRow = { user_id: string; refresh_token: string; access_token: string | null; expires_at: string | null; spotify_name: string | null; now_playing: unknown; checked_at: string | null };
-type NowPlaying = { playing: boolean; title?: string; artists?: string; album?: string; image?: string | null; url?: string | null; progressMs?: number; durationMs?: number };
+type NowPlaying = { playing: boolean; title?: string; artists?: string; album?: string; image?: string | null; url?: string | null; progressMs?: number; durationMs?: number; agoMin?: number };
 
 function cors(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') ?? '';
@@ -74,16 +74,22 @@ async function accessTokenOf(row: TokenRow): Promise<string | null> {
   return data.access_token;
 }
 
-// Morceau en cours sur Last.fm (« scrobblé » depuis Spotify, Deezer, Apple Music…) ; null s'il n'écoute rien
+// Morceau en cours sur Last.fm (« scrobblé » depuis Spotify, Deezer, Apple Music…). Toutes les applis ne signalent pas
+// le morceau en cours : sinon, le dernier morceau enregistré s'il date de moins de 15 minutes (agoMin) ; null au-delà.
+const LASTFM_RECENT_MIN = 15;
 async function lastfmNowPlaying(username: string): Promise<NowPlaying | null> {
   if (!LASTFM_KEY) return null;
   const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(username)}&limit=1&format=json&api_key=${LASTFM_KEY}`;
   const data = await fetch(url, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const track = [data?.recenttracks?.track ?? []].flat()[0];
-  if (!track || track['@attr']?.nowplaying !== 'true') return null;
+  if (!track) return null;
+  const playing = track['@attr']?.nowplaying === 'true';
+  const agoMin = playing ? undefined : Math.round((Date.now() / 1000 - Number(track.date?.uts ?? 0)) / 60);
+  if (!playing && !(agoMin! >= 0 && agoMin! <= LASTFM_RECENT_MIN)) return null;
   const images = (track.image ?? []) as { '#text': string }[];
   return {
-    playing: true,
+    playing,
+    ...(playing ? {} : { agoMin }),
     title: track.name,
     artists: track.artist?.['#text'] ?? track.artist?.name ?? '',
     album: track.album?.['#text'] ?? '',

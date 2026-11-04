@@ -8,7 +8,8 @@ const CLIENT_ID = import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID as string;
 const SCOPES = 'user-read-currently-playing user-read-playback-state user-top-read user-follow-read';
 const PENDING_KEY = 'barz-spotify-pending';
 
-export type NowPlaying = { playing: boolean; title?: string; artists?: string; album?: string; image?: string | null; url?: string | null; progressMs?: number; durationMs?: number };
+// agoMin : écouté il y a quelques minutes (Last.fm, quand l'appli d'écoute ne signale pas le morceau en cours)
+export type NowPlaying = { playing: boolean; title?: string; artists?: string; album?: string; image?: string | null; url?: string | null; progressMs?: number; durationMs?: number; agoMin?: number };
 
 export const spotifyAvailable = () => !!CLIENT_ID && !!supabase;
 const redirectUri = () => `${location.origin}${BASE}spotify`;
@@ -75,7 +76,7 @@ export function nowPlayingHtml(np: NowPlaying, label: string): string {
       <span class="np-label">${np.playing ? '<span class="np-dot" aria-hidden="true"></span>' : ''}${escapeHtml(label)}</span>
       <b>${escapeHtml(np.title ?? '')}</b>
       <span>${escapeHtml(np.artists ?? '')}</span>
-      ${np.playing ? `<span class="np-bar"><span style="width:${progress}%"></span></span>` : ''}
+      ${np.playing && np.durationMs ? `<span class="np-bar"><span style="width:${progress}%"></span></span>` : ''}
     </span>`;
   return np.url ? `<a class="np" href="${escapeHtml(np.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="np">${inner}</div>`;
 }
