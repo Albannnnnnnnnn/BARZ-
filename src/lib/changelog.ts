@@ -11,6 +11,50 @@ export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: '2026-11-04',
+    title: 'Partage en story, la discussion du vendredi et tes listes',
+    items: [
+      {
+        title: 'Partage en story',
+        text: 'Un Barz, ton top, ton bilan du mois ou ton résultat aux jeux en image, prête à poster sur Instagram ou à envoyer à tes potes.',
+      },
+      {
+        title: 'La discussion du vendredi',
+        text: 'Chaque week-end, un fil pour parler des sorties de la semaine, du vendredi au dimanche, avec le top des Barz de la communauté et de tes amis.',
+        href: '/BARZ-/vendredi',
+        link: 'Ouvrir le fil',
+      },
+      {
+        title: 'Invite tes amis',
+        text: 'Sur ton profil, « Inviter un ami » : la personne qui s’inscrit avec ton lien est ajoutée à tes amis directement.',
+        href: '/BARZ-/profil',
+        link: 'Inviter un ami',
+      },
+      {
+        title: 'Tes listes de disques',
+        text: 'Tes classiques, tes albums pour la route, tes découvertes : crée des listes et partage-les.',
+        href: '/BARZ-/liste?nouvelle=1',
+        link: 'Créer une liste',
+      },
+      {
+        title: 'La note BARZ¡ sur chaque sortie',
+        text: 'La moyenne des Barz s’affiche sur les cartes : tu vois d’un coup d’œil ce qui vaut le coup.',
+      },
+      {
+        title: 'Des badges sur ton profil',
+        text: 'Flair, Plume, Régularité, Mélomanie, Curiosité : gagne-les en notant vite, en écrivant, en jouant et en écoutant.',
+      },
+      {
+        title: 'Le disque de la semaine',
+        text: 'Chaque dimanche matin, une notif avec le disque le mieux noté par tes amis.',
+      },
+      {
+        title: 'Ce que tes amis écoutent, via Last.fm',
+        text: 'Plus besoin de Spotify : avec Last.fm, tes amis voient ce que tu écoutes en ce moment, si tu l’actives dans les Paramètres.',
+      },
+    ],
+  },
+  {
     id: '2026-11-03-3',
     title: 'Les albums annoncés, et des notifs pour tes Barz',
     items: [
