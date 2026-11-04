@@ -394,7 +394,7 @@ export async function setFollow(artistId: string, on: boolean) {
   else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
 }
 
-export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[]; top_artists?: TopAlbum[]; top_singles?: TopAlbum[] }) {
+export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[]; top_artists?: TopAlbum[]; top_singles?: TopAlbum[]; notify_games?: boolean }) {
   const session = await requireSession();
   if (!session || !supabase) return;
   must(await supabase.from('profiles').update(fields).eq('id', session.user.id));

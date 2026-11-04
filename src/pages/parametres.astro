@@ -17,12 +17,16 @@ import { DISCORD_URL } from '../lib/changelog';
     <div class="settings" id="settings" hidden>
           <section class="block lastfm" id="p-push" hidden aria-labelledby="push-title">
             <div class="bz-section-head"><h2 id="push-title" class="bz-h2">Notifications</h2></div>
-            <p id="push-status">Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, quand un ami publie un Barz, et le vendredi matin pour les nouveautés.</p>
+            <p id="push-status">Une notification quand un artiste que tu suis sort ou annonce quelque chose, quand on te demande en ami, quand un ami publie un Barz ou répond au tien, le vendredi matin pour les nouveautés, et un rappel des jeux du jour.</p>
             <div class="spotify-actions">
               <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="push-on" hidden>Activer sur cet appareil</button>
               <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-test" hidden>Envoyer un test</button>
               <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="push-off" hidden>Désactiver</button>
             </div>
+            <label class="share-toggle" id="games-toggle" hidden>
+              <input type="checkbox" id="notify-games" />
+              <span>Rappel des jeux du jour à 18 h, si tu n’as pas encore joué</span>
+            </label>
             <p class="bz-notice" id="push-notice" hidden></p>
           </section>
 
@@ -117,6 +121,7 @@ import { DISCORD_URL } from '../lib/changelog';
     renderPush().catch((err) => console.warn('Notifications indisponibles :', err));
     renderSpotify(profile).catch((err) => console.warn('Spotify indisponible :', err));
     renderDeezer(profile).catch(() => {});
+    renderGamesToggle(profile);
     $('p-lastfm').hidden = false;
     (document.getElementById('lastfm-input') as HTMLInputElement).value = profile.lastfm_username ?? '';
     if (profile.lastfm_username) {
@@ -149,9 +154,26 @@ import { DISCORD_URL } from '../lib/changelog';
     'needs-install': 'Sur iPhone, les notifications marchent seulement dans l’appli installée : touche Partager dans Safari, puis « Sur l’écran d’accueil », et ouvre BARZ¡ depuis son icône.',
     unsupported: 'Ce navigateur ne gère pas les notifications.',
     denied: 'Les notifications sont bloquées pour BARZ¡ dans les réglages de ton navigateur.',
-    off: 'Une notification quand un artiste que tu suis sort quelque chose, quand on te demande en ami, quand un ami publie un Barz, et le vendredi matin pour les nouveautés.',
-    on: 'Activées sur cet appareil : sorties de tes artistes, demandes d’ami, Barz de tes amis et nouveautés du vendredi.',
+    off: 'Une notification quand un artiste que tu suis sort ou annonce quelque chose, quand on te demande en ami, quand un ami publie un Barz ou répond au tien, le vendredi matin pour les nouveautés, et un rappel des jeux du jour.',
+    on: 'Activées sur cet appareil : sorties et annonces de tes artistes, demandes d’ami, Barz de tes amis, réponses et ♥, nouveautés du vendredi et rappel des jeux.',
   } as const;
+
+  // Rappel des jeux du jour (supabase/games-reminder.sql) : sans la colonne, l'interrupteur reste caché
+  function renderGamesToggle(profile: Profile) {
+    const value = (profile as Profile & { notify_games?: boolean }).notify_games;
+    if (value === undefined) return;
+    const box = document.getElementById('notify-games') as HTMLInputElement;
+    box.checked = value;
+    $('games-toggle').hidden = false;
+    box.onchange = async () => {
+      try {
+        await updateMyProfile({ notify_games: box.checked });
+      } catch (err) {
+        box.checked = !box.checked;
+        alert(errorText(err));
+      }
+    };
+  }
 
   async function renderPush() {
     const state = await pushState();
@@ -392,6 +414,10 @@ import { DISCORD_URL } from '../lib/changelog';
   .lastfm[hidden],
   #p-push [hidden],
   .spotify-actions [hidden],
+  #games-toggle {
+    margin-top: 12px;
+  }
+
   .share-toggle[hidden],
   .bz-notice[hidden] {
     display: none;

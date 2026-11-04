@@ -8,6 +8,8 @@
 //              membre est regroupée (« Léa a publié 12 Barz »), téléphone au plus une fois toutes les 3 heures.
 // - reply    : quelqu'un a répondu à ton Barz ; like : quelqu'un a aimé ton Barz, regroupés par Barz (« Léa et 2 autres
 //              ont aimé ton Barz »), téléphone au plus une fois par heure (déclencheurs, supabase/barz-reactions-notify.sql).
+// - games    : rappel des jeux du jour à 18h (pg_cron, supabase/games-reminder.sql), aux membres qui ont joué ces
+//              7 derniers jours, pas encore aujourd'hui, et qui n'ont pas coupé le rappel ; il rappelle leur série de jours.
 // - announcement : une annonce d'album attend la validation d'Alban (pending), ou vient d'être publiée : les membres
 //              qui suivent l'artiste sont prévenus, une seule fois (déclencheur, supabase/announcements.sql).
 // - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
@@ -89,7 +91,7 @@ function parisNow() {
 
 // Boîte de notifications de l'appli (la cloche, supabase/inbox.sql) : écrite pour chaque destinataire,
 // qu'il ait activé ou non les notifications du téléphone. On en profite pour oublier celles de plus de 60 jours.
-type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like' | 'announcement';
+type Kind = 'friend' | 'barz' | 'release' | 'friday' | 'feedback' | 'reply' | 'like' | 'announcement' | 'games';
 async function toInbox(kind: Kind, entries: [string, Message][]) {
   if (!entries.length) return;
   const rows = entries.map(([user_id, m]) => ({ user_id, kind, title: m.title, body: m.body, url: m.url }));
@@ -391,6 +393,44 @@ Deno.serve(async (req) => {
     const sent = recent ? 0 : await send(await subsOf([barz.user_id]), () => message);
     await toInbox('like', [[barz.user_id, message]]);
     return reply({ sent, grouped: recent });
+  }
+
+  if (body.action === 'games') {
+    // pg_cron à 16h et 17h UTC : seul le passage de 18h à Paris envoie. Sans « hour », envoi immédiat (test à la main).
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { hour, today } = parisNow();
+    if (typeof body.hour === 'number' && hour !== body.hour) return reply({ skipped: `${hour}h à Paris` });
+    const dayOffset = (n: number) => new Date(Date.parse(`${today}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+    // Les parties des 60 derniers jours suffisent pour la série ; les joueurs actifs sont ceux des 7 derniers jours
+    const { data: results } = await admin.from('game_results').select('user_id, day').gte('day', dayOffset(-60)).limit(50000);
+    const days = new Map<string, Set<string>>();
+    for (const r of (results ?? []) as { user_id: string; day: string }[]) {
+      if (!days.has(r.user_id)) days.set(r.user_id, new Set());
+      days.get(r.user_id)!.add(r.day);
+    }
+    const candidates = [...days.entries()].filter(([, d]) => !d.has(today) && [...d].some((x) => x >= dayOffset(-7))).map(([id]) => id);
+    if (!candidates.length) return reply({ sent: 0 });
+    const { data: optedIn } = await admin.from('profiles').select('id').in('id', candidates).eq('notify_games', true);
+    const recipients = (optedIn ?? []).map((p) => p.id as string);
+    // Série : jours d'affilée joués, jusqu'à hier
+    const streakOf = (id: string) => {
+      let n = 0;
+      while (days.get(id)!.has(dayOffset(-(n + 1)))) n++;
+      return n;
+    };
+    const messageFor = (id: string): Message => {
+      const streak = streakOf(id);
+      return {
+        title: streak >= 2 ? `Ta série de ${streak} jours t’attend` : 'Les jeux du jour sont en ligne',
+        body: streak >= 2 ? 'La pochette floue et l’artiste mystère du jour sont en ligne : ne casse pas ta série.' : 'La pochette floue et l’artiste mystère du jour t’attendent.',
+        url: `${SITE}jeux`,
+        tag: `games-${today}`,
+      };
+    };
+    const messages = new Map(recipients.map((id) => [id, messageFor(id)]));
+    const sent = await send(await subsOf(recipients), (userId) => messages.get(userId) ?? null);
+    await toInbox('games', [...messages.entries()]);
+    return reply({ sent, recipients: recipients.length });
   }
 
   if (body.action === 'announcement') {
