@@ -11,6 +11,52 @@ export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: '2026-11-05',
+    title: 'Nouveaux menus : noter en un geste, les Barz et les jeux à portée de main',
+    items: [
+      {
+        title: 'Quatre rubriques, plus de sous-menus',
+        text: 'Sorties, Barz, Jeux et Moi : tout est à un toucher, plus besoin de fouiller.',
+      },
+      {
+        title: 'Le bouton ＋ pour noter',
+        text: 'Au milieu de la barre, depuis n’importe où : cherche un son ou un album, mets ta note, écris un Barz si tu veux. La note seule suffit.',
+      },
+      {
+        title: 'La rubrique Barz',
+        text: 'Les Barz de tes amis d’abord, puis ceux de toute la commu. On y trouve aussi le fil du vendredi et les actus. Le week-end, elle s’ouvre directement sur le fil du vendredi.',
+        href: '/BARZ-/commu',
+        link: 'Voir les Barz',
+      },
+      {
+        title: 'Une rubrique Jeux',
+        text: 'Pochette floue et L’artiste mystère, puis de quoi creuser : tous les artistes, un tirage au hasard, et Explorer pour sortir de ta bulle.',
+        href: '/BARZ-/jeux',
+        link: 'Jouer',
+      },
+      {
+        title: 'Sorties : bientôt, en bas de la semaine',
+        text: 'Les albums annoncés et les sorties les plus attendues, juste après celles de la semaine. La vue par semaine a maintenant des filtres par genre.',
+      },
+      {
+        title: 'Ton profil, plus clair',
+        text: 'Une seule rangée d’onglets : Spin list, Écoutés, Notés, Listes, Artistes, Bilans.',
+      },
+      {
+        title: 'Ton menu sous ta photo',
+        text: 'Paramètres, Quoi de neuf, le guide, un bug ou une idée, et inviter un ami.',
+      },
+      {
+        title: 'Masquer les artistes IA',
+        text: 'Une case sur Sorties et dans la vue par semaine. Tu tombes sur un artiste généré par IA ? Signale-le depuis sa fiche.',
+      },
+      {
+        title: 'Corrigés',
+        text: 'Dans le jeu de l’artiste, une ligne toute verte veut enfin dire que tu as trouvé. Le texte des badges ne dépasse plus. La rangée de tes artistes s’affiche en entier sur ordinateur.',
+      },
+    ],
+  },
+  {
     id: '2026-11-04',
     title: 'Partage en story, la discussion du vendredi et tes listes',
     items: [
