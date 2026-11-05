@@ -8,7 +8,6 @@ import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
 import Cover from '../components/Cover.astro';
-import SortiesTabs from '../components/SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
@@ -37,8 +36,8 @@ const DATES_SHOWN = 4;
 <Layout title="À venir" description="Le calendrier des sorties musicales annoncées pour les prochains mois.">
   <div class="bz-page">
     <span class="bz-eyebrow">Les 4 prochains mois</span>
-    <h1 class="bz-display">Sorties</h1>
-    <SortiesTabs active="a-venir" upcomingCount={releases.length} />
+    <h1 class="bz-display">Le <em>calendrier.</em></h1>
+    <a class="back-sorties" href="/BARZ-/">← Sorties de la semaine</a>
         <p class="lead">
           {releases.length > 0
             ? `${releases.length} sortie${releases.length > 1 ? 's' : ''} annoncée${releases.length > 1 ? 's' : ''} pour les 4 prochains mois.`
@@ -161,6 +160,14 @@ const DATES_SHOWN = 4;
 </script>
 
 <style>
+  .back-sorties {
+    display: inline-block;
+    margin: 18px 0 8px;
+    font: 700 13px/1 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
   .announced {
     margin: 8px 0 40px;
   }

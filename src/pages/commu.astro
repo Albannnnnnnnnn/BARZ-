@@ -11,9 +11,9 @@ const recent = await fetchReleasesBetween(getSupabaseServerSafe(), addDays(today
 const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist?.name ?? 'Artiste inconnu'}` }));
 ---
 
-<Layout title="Fil" description="Les Barz du jour : les avis de la communauté sur les sorties de la semaine.">
+<Layout title="Barz" description="Les Barz de tes amis et de la communauté sur les sorties de la semaine.">
   <div class="bz-page">
-    <span class="bz-eyebrow">Fil</span>
+    <span class="bz-eyebrow">Barz</span>
     <h1 class="bz-display">Les <em>Barz</em> du jour.</h1>
     <FilTabs active="barz" />
 
@@ -42,16 +42,18 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
         </form>
         <p class="bz-notice" id="composer-message" hidden></p>
 
+        <!-- Les Barz des amis d'abord, puis toute la commu -->
+        <section id="feed-friends-block" hidden>
+          <h2 class="bz-h2 feed-title">Tes <em>amis</em></h2>
+          <div id="feed-friends" class="barz-list"></div>
+          <h2 class="bz-h2 feed-title">Toute la <em>commu</em></h2>
+        </section>
         <div id="feed-live" class="barz-list" hidden></div>
 
         <p id="feed-empty" class="bz-empty">Aucun Barz pour l’instant. Écris le premier !</p>
       </div>
 
       <aside class="side">
-        <a class="friday-link" href="/BARZ-/vendredi">
-          <b>Le vendredi</b>
-          <span>La discussion de la semaine et le top des Barz →</span>
-        </a>
         <section id="top" hidden>
           <div class="bz-section-head"><h2 class="bz-h2">Top contributeurs</h2></div>
           <ol class="top" id="top-list"></ol>
@@ -62,7 +64,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
 </Layout>
 
 <script>
-  import { BASE, authErrorMessage, errorText, barzCardHtml, barzFeed, escapeHtml, getMyProfile, getSession, loginUrl, saveBarz, wireBarzActions } from '../scripts/social';
+  import { BASE, authErrorMessage, errorText, barzCardHtml, barzFeed, escapeHtml, getMyProfile, getSession, loginUrl, myFriendships, saveBarz, wireBarzActions } from '../scripts/social';
 
   const live = document.getElementById('feed-live')!;
   const empty = document.getElementById('feed-empty')!;
@@ -70,6 +72,22 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   const form = document.getElementById('composer') as HTMLFormElement;
   const message = document.getElementById('composer-message')!;
   let myId: string | null = null;
+  let friendIds = new Set<string>();
+
+  // Du vendredi au dimanche (heure de Paris), la rubrique s'ouvre une fois par jour sur le fil du vendredi
+  {
+    const parisDay = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' });
+    const weekday = new Date(`${parisDay}T12:00:00Z`).getUTCDay();
+    const key = `barz-friday-${parisDay}`;
+    let seen = true;
+    try {
+      seen = sessionStorage.getItem(key) === '1';
+      sessionStorage.setItem(key, '1');
+    } catch {
+      /* stockage bloqué : on reste sur les Barz */
+    }
+    if ([5, 6, 0].includes(weekday) && !seen && !new URLSearchParams(location.search).has('barz')) location.replace(`${BASE}vendredi`);
+  }
 
   async function render() {
     try {
@@ -77,7 +95,11 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
       if (!barz.length) return;
       empty.hidden = true;
       live.hidden = false;
-      live.innerHTML = barz.map((b) => barzCardHtml(b, myId)).join('');
+      const mine = barz.filter((b) => friendIds.has(b.user_id));
+      const others = barz.filter((b) => !friendIds.has(b.user_id));
+      document.getElementById('feed-friends-block')!.hidden = !mine.length;
+      document.getElementById('feed-friends')!.innerHTML = mine.map((b) => barzCardHtml(b, myId)).join('');
+      live.innerHTML = (mine.length ? others : barz).map((b) => barzCardHtml(b, myId)).join('');
 
       // Top contributeurs : nombre de Barz, puis j'aime reçus
       const scores = new Map<string, { username: string; barz: number; likes: number }>();
@@ -100,13 +122,15 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   }
 
   getSession()
-    .then((session) => {
+    .then(async (session) => {
       myId = session?.user.id ?? null;
+
       // Les visiteurs voient une invitation à la place du formulaire
       form.hidden = !myId;
       const login = document.getElementById('composer-login') as HTMLAnchorElement;
       login.href = loginUrl();
       login.hidden = !!myId;
+      if (myId) friendIds = new Set((await myFriendships().catch(() => [])).filter((f) => f.status === 'friends').map((f) => f.profile.id));
     })
     .then(render);
   getMyProfile().then((profile) => {
@@ -329,6 +353,14 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     .composer .bz-btn {
       margin-left: auto;
     }
+  }
+
+  .feed-title {
+    margin: 8px 0 14px;
+  }
+
+  #feed-friends-block .feed-title + .barz-list + .feed-title {
+    margin-top: 36px;
   }
 
   .friday-link {

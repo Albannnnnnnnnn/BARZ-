@@ -22,12 +22,11 @@ const active = activeNav(currentPath);
         {item.label}
       </a>
     ))}
+    <button type="button" class="note-btn" data-note-open><NavIcon name="plus" />Noter</button>
   </nav>
 
+  <!-- Paramètres, nouveautés, guide et retours : dans le menu du compte (barre du haut) -->
   <div class="install-slot">
-    <a href="/BARZ-/nouveautes" class="feedback-link">Quoi de neuf ?</a>
-    <a href="/BARZ-/guide" class="feedback-link">Comment ça marche ?</a>
-    <a href={`/BARZ-/retours?depuis=${encodeURIComponent(currentPath)}`} class="feedback-link">Un bug, une idée ?</a>
     <InstallApp compact />
   </div>
 </aside>
@@ -72,17 +71,26 @@ const active = activeNav(currentPath);
     padding: 0 6px;
   }
 
-  .feedback-link {
-    display: block;
-    margin: 0 0 14px 12px;
-    font: 600 14px/1.3 var(--font-sans);
-    color: var(--color-text-muted);
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  .note-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 22px;
+    padding: 13px 16px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard-sm);
+    font: 700 15px/1 var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-text);
+    cursor: pointer;
   }
 
-  .feedback-link:hover {
-    color: var(--color-text);
+  .note-btn:hover {
+    background: var(--color-bg-hover);
   }
 
   .nav {

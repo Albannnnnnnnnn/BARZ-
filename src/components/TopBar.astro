@@ -34,13 +34,26 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
         <ul class="inbox-list" id="inbox-list"></ul>
       </div>
     </div>
-    <!-- Remplacé par l'initiale du membre une fois connecté -->
-    <a href="/BARZ-/connexion" class="account is-guest" id="account-link">Connexion</a>
+    <!-- Remplacé par la photo ou l'initiale du membre une fois connecté ; il ouvre alors le menu du compte -->
+    <div class="account-wrap" id="account-wrap">
+      <a href="/BARZ-/connexion" class="account is-guest" id="account-link">Connexion</a>
+      <nav class="account-menu" id="account-menu" aria-label="Mon compte" hidden>
+        <p class="account-name" id="account-name"></p>
+        <a href="/BARZ-/profil">Mon profil</a>
+        <a href="/BARZ-/parametres">Paramètres</a>
+        <a href="/BARZ-/nouveautes">Quoi de neuf ?</a>
+        <a href="/BARZ-/guide">Comment ça marche ?</a>
+        <a href="/BARZ-/retours" id="account-feedback">Un bug, une idée ?</a>
+        <button type="button" id="account-invite">Inviter un ami</button>
+        <button type="button" id="account-logout">Déconnexion</button>
+      </nav>
+    </div>
   </div>
 </header>
 
 <script>
-  import { BASE, avatarUrl, escapeHtml, getMyProfile, getSession, searchArtists, supabase, timeAgo, type ArtistLite } from '../scripts/social';
+  import { BASE, avatarUrl, escapeHtml, getMyProfile, getSession, searchArtists, signOut, supabase, timeAgo, type ArtistLite } from '../scripts/social';
+  import { shareInvite } from '../scripts/invite';
   import { formatAudience } from '../lib/audience';
   import { normalizeSearch } from '../lib/fuzzy';
 
@@ -177,9 +190,37 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
       ? `<img src="${escapeHtml(avatarUrl(profile.avatar_path))}" alt="" />`
       : escapeHtml(profile.display_name.slice(0, 1).toUpperCase());
     link.href = `${BASE}profil`;
-    link.setAttribute('aria-label', `Mon profil (${profile.display_name})`);
+    link.setAttribute('aria-label', `Mon compte (${profile.display_name})`);
+    link.setAttribute('aria-haspopup', 'true');
+    link.setAttribute('aria-expanded', 'false');
     link.classList.remove('is-guest');
+    document.getElementById('account-name')!.textContent = profile.display_name;
+    wireAccountMenu(link);
   });
+
+  // Menu du compte : paramètres, nouveautés, guide, retours, invitation, déconnexion
+  function wireAccountMenu(link: HTMLAnchorElement) {
+    const menu = document.getElementById('account-menu')!;
+    const wrap = document.getElementById('account-wrap')!;
+    (document.getElementById('account-feedback') as HTMLAnchorElement).href = `${BASE}retours?depuis=${encodeURIComponent(location.pathname)}`;
+    const show = (open: boolean) => {
+      menu.hidden = !open;
+      link.setAttribute('aria-expanded', String(open));
+    };
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      show(menu.hidden);
+    });
+    document.addEventListener('click', (event) => {
+      if (!menu.hidden && !wrap.contains(event.target as Node)) show(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !menu.hidden) show(false);
+    });
+    document.getElementById('account-invite')!.addEventListener('click', (event) => shareInvite(event.currentTarget as HTMLButtonElement));
+    document.getElementById('account-logout')!.addEventListener('click', () => signOut());
+  }
 
   // ============================================================
   // CLOCHE : notifications de l'appli, écrites par la fonction notify
@@ -557,6 +598,61 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .account-wrap {
+    position: relative;
+  }
+
+  .account-menu {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    padding: 8px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .account-menu[hidden] {
+    display: none;
+  }
+
+  .account-name {
+    margin: 6px 10px;
+    font: 800 14px/1.2 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .account-menu a,
+  .account-menu button {
+    display: block;
+    width: 100%;
+    padding: 11px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    text-align: left;
+    font: 700 15px/1.2 var(--font-sans);
+    color: var(--color-text) !important;
+    cursor: pointer;
+  }
+
+  .account-menu a:hover,
+  .account-menu button:hover {
+    background: var(--color-bg-hover);
+  }
+
+  #account-logout {
+    margin-top: 4px;
+    border-top: 2px solid var(--color-line);
+    border-radius: 0 0 8px 8px;
+    color: var(--color-text-muted) !important;
   }
 
   .account.is-guest {

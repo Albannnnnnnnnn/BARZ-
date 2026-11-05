@@ -1,17 +1,18 @@
 ---
-// Onglets de la rubrique Fil : les Barz de la communauté et les actus musicales (même style que SortiesTabs)
+// Onglets de la rubrique Barz : les Barz (amis puis commu), le fil du vendredi et les actus
 interface Props {
-  active: 'barz' | 'actus';
+  active: 'barz' | 'vendredi' | 'actus';
 }
 
 const { active } = Astro.props;
 const tabs = [
-  { id: 'barz', href: '/BARZ-/commu', label: 'Barz de la commu' },
+  { id: 'barz', href: '/BARZ-/commu', label: 'Barz' },
+  { id: 'vendredi', href: '/BARZ-/vendredi', label: 'Vendredi' },
   { id: 'actus', href: '/BARZ-/actus', label: 'Actus' },
 ];
 ---
 
-<nav class="fil-tabs" aria-label="Fil">
+<nav class="fil-tabs" aria-label="Barz">
   {tabs.map((t) => (
     <a href={t.href} class:list={{ 'is-active': t.id === active }} aria-current={t.id === active ? 'page' : undefined}>
       {t.label}

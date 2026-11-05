@@ -19,10 +19,11 @@ const allReleases = ordered.flatMap((w) => w.releases as unknown as ReleaseRow[]
 const genres = GENRE_CHIPS.filter((c) => allReleases.some((r) => chipIdsFor(r.genres).includes(c.id)));
 ---
 
-<Layout title="Mode digest" description="Les sorties musicales semaine par semaine.">
+<Layout title="Vue par semaine" description="Les sorties musicales semaine par semaine.">
   <div class="bz-page">
-    <span class="bz-eyebrow">Mode digest</span>
+    <span class="bz-eyebrow">Vue par semaine</span>
     <h1 class="bz-display">Semaine <em>par semaine.</em></h1>
+    <a class="back-sorties" href="/BARZ-/">← Vue normale</a>
 
     {ordered.length > 0 && (
       <div class="filters">
@@ -115,6 +116,14 @@ const genres = GENRE_CHIPS.filter((c) => allReleases.some((r) => chipIdsFor(r.ge
 </script>
 
 <style>
+  .back-sorties {
+    display: inline-block;
+    margin-top: 14px;
+    font: 700 13px/1 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
   .filters {
     position: sticky;
     top: var(--topbar-h, 0px);

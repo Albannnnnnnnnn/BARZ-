@@ -1,0 +1,312 @@
+---
+// Fenêtre « Noter » : ouverte par le bouton ＋ (barre du bas, barre latérale) ou tout élément [data-note-open].
+// Cherche une sortie, la note, texte facultatif ; enregistre via saveBarz (comme la fiche d'une sortie).
+// Un [data-note-open] peut porter data-release-id / data-release-title / data-release-artist / data-release-cover pour pré-choisir.
+---
+
+<dialog class="note-sheet" id="note-sheet" aria-labelledby="note-title">
+  <form method="dialog" class="note-box" id="note-form">
+    <div class="note-head">
+      <h2 class="bz-h2" id="note-title">Qu’as-tu <em>écouté</em> ?</h2>
+      <button type="submit" value="cancel" class="note-close" aria-label="Fermer">×</button>
+    </div>
+
+    <div class="note-pick" id="note-pick">
+      <label class="sr-only" for="note-q">Sortie</label>
+      <input class="bz-input" id="note-q" type="search" placeholder="Un son, un album, un artiste…" autocomplete="off" />
+      <ul class="note-results" id="note-results" role="listbox" aria-label="Sorties"></ul>
+    </div>
+
+    <div class="note-chosen" id="note-chosen" hidden>
+      <span class="note-cover" id="note-cover"></span>
+      <span class="note-meta"><b id="note-rtitle"></b><small id="note-rartist"></small></span>
+      <button type="button" class="bz-link" id="note-change">Changer</button>
+    </div>
+
+    <div class="note-score">
+      <input type="range" id="note-score" min="0" max="10" step="0.5" value="7" aria-label="Ta note sur 10" />
+      <output id="note-score-out">7.0</output>
+    </div>
+
+    <label class="bz-field">
+      <span>Ton Barz <span class="optional">(facultatif)</span></span>
+      <textarea class="bz-input" id="note-body" maxlength="1000" rows="3" placeholder="Ce que tu en as pensé… ou juste ta note"></textarea>
+    </label>
+
+    <p class="bz-notice" id="note-message" hidden></p>
+    <button type="button" class="bz-btn bz-btn--lime" id="note-send">Publier ma note</button>
+  </form>
+</dialog>
+
+<script>
+  import { BASE, coverHtml, errorText, escapeHtml, formatScore, getSession, loginUrl, saveBarz, searchArtists, supabase } from '../scripts/social';
+
+  type Pick = { id: string; title: string; artist: string; cover: string | null; slug?: string };
+  const $ = (id: string) => document.getElementById(id)!;
+  const dialog = $('note-sheet') as HTMLDialogElement;
+  const q = $('note-q') as HTMLInputElement;
+  const results = $('note-results');
+  const score = $('note-score') as HTMLInputElement;
+  const body = $('note-body') as HTMLTextAreaElement;
+  const send = $('note-send') as HTMLButtonElement;
+  const message = $('note-message');
+  let chosen: Pick | null = null;
+  let found: Pick[] = [];
+  let timer = 0;
+
+  const syncSend = () => (send.textContent = body.value.trim() ? 'Publier mon Barz' : 'Publier ma note');
+  const showMessage = (text: string, kind: 'ok' | 'error') => {
+    message.textContent = text;
+    message.className = `bz-notice bz-notice--${kind}`;
+    message.hidden = false;
+  };
+
+  function choose(p: Pick | null) {
+    chosen = p;
+    $('note-pick').hidden = !!p;
+    $('note-chosen').hidden = !p;
+    if (!p) return void setTimeout(() => q.focus(), 0);
+    $('note-cover').innerHTML = coverHtml(p.title, p.cover, '56px');
+    $('note-rtitle').textContent = p.title;
+    $('note-rartist').textContent = p.artist;
+  }
+
+  // Titre qui contient la recherche, plus les dernières sorties des artistes qui correspondent
+  async function search(text: string) {
+    if (!supabase) return [];
+    const clean = text.replace(/[%_,()]/g, '');
+    const cols = 'id, title, slug, cover_url, artist:artists!artist_id(name)';
+    const [byTitle, artists] = await Promise.all([
+      supabase.from('releases').select(cols).ilike('title', `%${clean}%`).order('release_date', { ascending: false }).limit(6),
+      searchArtists(text, { limit: 3 }).catch(() => []),
+    ]);
+    const byArtist = artists.length
+      ? await supabase.from('releases').select(cols).in('artist_id', artists.map((a) => a.id)).order('release_date', { ascending: false }).limit(8)
+      : { data: [] };
+    const seen = new Set<string>();
+    return [...((byArtist.data ?? []) as any[]), ...((byTitle.data ?? []) as any[])]
+      .filter((r) => !seen.has(r.id) && seen.add(r.id))
+      .slice(0, 10)
+      .map((r) => ({ id: r.id, title: r.title, slug: r.slug, artist: r.artist?.name ?? '', cover: r.cover_url }));
+  }
+
+  q.addEventListener('input', () => {
+    clearTimeout(timer);
+    const text = q.value.trim();
+    if (text.length < 2) return void (results.innerHTML = '');
+    timer = window.setTimeout(async () => {
+      found = await search(text);
+      if (q.value.trim() !== text) return;
+      results.innerHTML = found.length
+        ? found
+            .map((p, i) => `<li><button type="button" data-i="${i}">${coverHtml(p.title, p.cover, '44px')}<span><b>${escapeHtml(p.title)}</b><small>${escapeHtml(p.artist)}</small></span></button></li>`)
+            .join('')
+        : '<li class="note-none">Rien trouvé dans le catalogue.</li>';
+    }, 220);
+  });
+  results.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-i]');
+    if (button) choose(found[Number(button.dataset.i)]);
+  });
+  $('note-change').addEventListener('click', () => choose(null));
+  score.addEventListener('input', () => ($('note-score-out').textContent = formatScore(Number(score.value))));
+  body.addEventListener('input', syncSend);
+
+  send.addEventListener('click', async () => {
+    if (!chosen) return showMessage('Choisis d’abord une sortie.', 'error');
+    send.disabled = true;
+    try {
+      await saveBarz(chosen.id, Number(score.value), body.value);
+      const text = body.value.trim() ? 'Barz publié !' : 'Note publiée !';
+      const link = chosen.slug ? ` <a href="${BASE}releases/${encodeURIComponent(chosen.slug)}">Voir la sortie</a>` : '';
+      showMessage(text, 'ok');
+      if (link) message.insertAdjacentHTML('beforeend', link);
+      body.value = '';
+      syncSend();
+      setTimeout(() => dialog.open && dialog.close(), 1600);
+    } catch (err) {
+      showMessage(errorText(err), 'error');
+    } finally {
+      send.disabled = false;
+    }
+  });
+
+  // Ouverture : connecté seulement, avec une sortie pré-choisie si l'élément en porte une
+  document.addEventListener('click', async (event) => {
+    const opener = (event.target as HTMLElement).closest<HTMLElement>('[data-note-open]');
+    if (!opener) return;
+    event.preventDefault();
+    if (!(await getSession())) return void (location.href = loginUrl());
+    message.hidden = true;
+    const d = opener.dataset;
+    choose(d.releaseId ? { id: d.releaseId, title: d.releaseTitle ?? '', artist: d.releaseArtist ?? '', cover: d.releaseCover || null, slug: d.releaseSlug } : null);
+    dialog.showModal();
+    if (!d.releaseId) q.focus();
+  });
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close(); // clic sur le fond
+  });
+</script>
+
+<style>
+  .note-sheet {
+    width: min(460px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    margin: auto;
+    padding: 0;
+    border: var(--line);
+    border-radius: 16px;
+    box-shadow: 8px 8px 0 var(--color-ink);
+    background: var(--color-paper);
+    color: var(--color-text);
+  }
+
+  .note-sheet::backdrop {
+    background: rgb(10 10 10 / 0.5);
+  }
+
+  .note-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+  }
+
+  .note-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .note-head .bz-h2 {
+    margin: 0;
+  }
+
+  .note-close {
+    width: 36px;
+    height: 36px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper);
+    font: 700 22px/1 var(--font-sans);
+    cursor: pointer;
+  }
+
+  .note-results {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .note-results :global(button) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .note-results :global(button:hover) {
+    background: var(--color-bg-hover);
+  }
+
+  .note-results :global(.bz-cover),
+  .note-cover :global(.bz-cover) {
+    flex-shrink: 0;
+    width: 44px;
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .note-cover :global(.bz-cover) {
+    width: 56px;
+  }
+
+  .note-results :global(button > span),
+  .note-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .note-results :global(b),
+  .note-meta b {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .note-results :global(small),
+  .note-meta small {
+    color: var(--color-text-muted);
+  }
+
+  .note-results :global(.note-none) {
+    padding: 8px;
+    color: var(--color-text-muted);
+  }
+
+  .note-chosen {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border: var(--line);
+    border-radius: 10px;
+  }
+
+  .note-chosen[hidden],
+  .note-pick[hidden] {
+    display: none;
+  }
+
+  .note-meta {
+    flex: 1;
+  }
+
+  .note-score {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .note-score input {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+
+  .note-score output {
+    min-width: 52px;
+    font: 800 26px/1 var(--font-display);
+    color: var(--color-accent);
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 900px) {
+    .note-sheet {
+      width: 100%;
+      max-width: none;
+      margin: auto 0 0;
+      border-radius: 18px 18px 0 0;
+      box-shadow: none;
+    }
+
+    .note-box {
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+  }
+</style>

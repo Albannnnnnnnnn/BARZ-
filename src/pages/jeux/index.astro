@@ -1,5 +1,6 @@
 ---
-// PAGE JEUX : les jeux du jour, avec où on en est aujourd'hui (parties gardées sur l'appareil par chaque jeu)
+// RUBRIQUE JEUX : les jeux du jour (parties gardées sur l'appareil par chaque jeu), puis de quoi creuser :
+// tous les artistes, un tirage au hasard, et la page Explorer (curseur d'exploration et Rabbit Hole, src/pages/search.astro)
 import Layout from '../../layouts/Layout.astro';
 
 const GAMES = [
@@ -10,7 +11,6 @@ const GAMES = [
 
 <Layout title="Jeux" description="Les jeux musicaux du jour sur BARZ¡ : Pochette floue et L’artiste mystère.">
   <div class="bz-page">
-    <a class="back" href="/BARZ-/search">← Découvrir</a>
     <span class="bz-eyebrow">Jeux du jour</span>
     <h1 class="bz-display">Une minute, <em>deux jeux.</em></h1>
     <p class="intro">Les mêmes pour tout le monde, nouveaux chaque jour à minuit.</p>
@@ -28,6 +28,13 @@ const GAMES = [
         </a>
       ))}
     </div>
+
+    <h2 class="bz-h2 dig-title">Pour <em>creuser</em></h2>
+    <nav class="dig" aria-label="Pour creuser">
+      <a href="/BARZ-/artistes"><b>Tous les artistes</b><span>Par genre, par audience, ceux que tu suis</span></a>
+      <a href="/BARZ-/artistes?tri=hasard"><b>Au hasard</b><span>Un tirage dans tout le catalogue</span></a>
+      <a href="/BARZ-/search"><b>Explorer</b><span>Le curseur entre tes habitudes et l’inconnu, et le Rabbit Hole</span></a>
+    </nav>
   </div>
 </Layout>
 
@@ -44,9 +51,45 @@ const GAMES = [
 </script>
 
 <style>
-  .back {
-    display: inline-block;
-    margin-bottom: 18px;
+  .dig-title {
+    margin-top: 44px;
+  }
+
+  .dig {
+    display: grid;
+    max-width: 640px;
+    border-top: var(--line);
+  }
+
+  .dig a {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 16px 30px 16px 2px;
+    border-bottom: var(--line);
+    color: var(--color-text);
+    position: relative;
+  }
+
+  .dig a::after {
+    content: '→';
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font: 800 18px/1 var(--font-display);
+  }
+
+  .dig a:hover b {
+    color: var(--color-accent);
+  }
+
+  .dig b {
+    font: 800 15px/1.2 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .dig span {
     font-size: 14px;
     color: var(--color-text-muted);
   }

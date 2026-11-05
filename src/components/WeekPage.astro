@@ -6,7 +6,6 @@ import { addDays, format, getISOWeek, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from './AlbumTile.astro';
-import SortiesTabs from './SortiesTabs.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { GENRE_CHIPS, chipIdsFor, currentFriday, fetchReleasesBetween, firstFriday, getToday, weekHref, type ReleaseRow } from '../lib/releases';
 import { getReleaseTypeLabel, releaseSubtitle } from '../lib/utils';
@@ -23,7 +22,9 @@ const current = format(friday, 'yyyy-MM-dd') === format(thisFriday, 'yyyy-MM-dd'
 const supabase = getSupabaseServerSafe();
 // Une semaine de sorties : du vendredi au jeudi suivant
 const releases = await fetchReleasesBetween(supabase, friday, addDays(friday, 6));
-const upcomingCount = (await fetchReleasesBetween(supabase, addDays(today, 1), addDays(today, 120))).length;
+const upcoming = current ? await fetchReleasesBetween(supabase, addDays(today, 1), addDays(today, 120)) : [];
+// « Bientôt », en bas de la semaine en cours : les sorties à venir les plus attendues (le calendrier complet est sur /a-venir)
+const soon = [...upcoming].sort((a, b) => releaseScore(b) - releaseScore(a)).slice(0, 12);
 // Semaines voisines : la précédente si la base remonte jusque-là, la suivante si ce n'est pas la semaine en cours
 const first = await firstFriday(supabase);
 const prevFriday = addDays(friday, -7);
@@ -93,7 +94,12 @@ const builtAt = new Date().toISOString();
       <h1 class="bz-display">{count} sortie{count > 1 ? 's' : ''}</h1>
       {current && <span class="week-sticker" aria-hidden="true">Ce vendredi</span>}
     </header>
-    <SortiesTabs active={current ? 'semaine' : undefined} weekCount={current ? count : undefined} upcomingCount={upcomingCount} />
+    <!-- Plus d'onglets : la semaine, puis « Bientôt » en bas ; la vue par semaine (ex-mode digest) et le calendrier en liens -->
+    <nav class="sorties-links" aria-label="Autres vues">
+      {current && <a href="#bientot">Bientôt ↓</a>}
+      <a href="/BARZ-/calendar">Vue par semaine</a>
+      <a href="/BARZ-/a-venir">Calendrier</a>
+    </nav>
     {current && (
       <a class="friday-talk" id="friday-talk" href="/BARZ-/vendredi" hidden>
         <b>La discussion du vendredi est ouverte</b>
@@ -120,7 +126,7 @@ const builtAt = new Date().toISOString();
     <section class="artists" aria-labelledby="artists-title" id="artists-section" hidden={spotlight.size === 0}>
       <h2 id="artists-title" class="label">{current ? 'Les artistes de la semaine' : 'Les artistes de cette semaine-là'}</h2>
       <ul class="stories" id="stories">
-        {[...spotlight.values()].map((a) => (
+        {[...spotlight.values()].slice(0, 14).map((a) => (
           <li>
             <a class="story is-new" href={`/BARZ-/releases/${a.releaseSlug}`}>
               {a.image_url ? <img src={a.image_url} alt="" loading="lazy" /> : <span class="story-fallback">{a.name[0]}</span>}
@@ -128,6 +134,9 @@ const builtAt = new Date().toISOString();
             </a>
           </li>
         ))}
+        {spotlight.size > 14 && (
+          <li><a class="story" href="/BARZ-/artistes"><span class="story-fallback">+</span><span class="story-name">Tous</span></a></li>
+        )}
       </ul>
     </section>
 
@@ -217,6 +226,24 @@ const builtAt = new Date().toISOString();
         {current ? 'Elles apparaissent au fil de la journée, dès leur mise en ligne.' : 'BARZ¡ n’a pas de sorties enregistrées pour ces dates.'}
       </p>
     )}
+
+    {current && (
+      <section class="soon" id="bientot" aria-labelledby="soon-title">
+        <div class="bz-section-head">
+          <h2 class="bz-h2" id="soon-title">Bien<em>tôt</em></h2>
+          <a class="bz-link" href="/BARZ-/a-venir">Tout le calendrier →</a>
+        </div>
+        <!-- Annonces sans fiche (src/scripts/announcements.ts), lues en direct -->
+        <div class="bz-tiles bz-rail soon-announced" id="soon-announced" hidden></div>
+        {soon.length > 0 && (
+          <div class="bz-tiles bz-rail">
+            {soon.map((r) => (
+              <AlbumTile title={r.title} subtitle={`${r.artist?.name ?? ''} · ${format(parseISO(r.release_date), 'd MMM', { locale: fr })}`} cover={r.cover_url} href={`/BARZ-/releases/${r.slug}`} />
+            ))}
+          </div>
+        )}
+      </section>
+    )}
   </div>
 </Layout>
 
@@ -230,6 +257,19 @@ const builtAt = new Date().toISOString();
   import { BASE, escapeHtml, getSession, myFollows, releaseTileHtml, supabase, timeAgo } from '../scripts/social';
   import { canRecommend, dismissButtonHtml, loadTaste, rank, scoreRelease, wireDismiss, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit } from '../scripts/engage';
+  import { announcementCardHtml, publishedAnnouncements } from '../scripts/announcements';
+
+  // « Bientôt » : les albums annoncés par les artistes, avant les pré-sorties
+  {
+    const box = document.getElementById('soon-announced');
+    if (box)
+      publishedAnnouncements()
+        .then((list) => {
+          box.innerHTML = list.slice(0, 8).map((a) => announcementCardHtml(a)).join('');
+          box.hidden = !list.length;
+        })
+        .catch(() => {});
+  }
   import { normName } from '../lib/feat';
   import { wireAiToggle } from '../scripts/ai-filter';
 
@@ -941,6 +981,35 @@ const builtAt = new Date().toISOString();
     .group-title {
       font-size: 18px;
     }
+  }
+
+  .sorties-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin: 22px 0 6px;
+  }
+
+  .sorties-links a {
+    font: 700 13px/1 var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .sorties-links a:hover {
+    color: var(--color-accent);
+  }
+
+  .soon {
+    margin-top: 72px;
+    scroll-margin-top: 90px;
+  }
+
+  .soon-announced {
+    margin-bottom: 22px;
   }
 
   .friday-talk {

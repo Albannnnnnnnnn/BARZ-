@@ -11,11 +11,19 @@ const active = activeNav(Astro.props.currentPath);
 ---
 
 <nav class="bottom-nav" aria-label="Navigation principale">
-  {NAV_ITEMS.map((item) => (
-    <a href={item.href} class:list={{ 'is-active': item.id === active }} aria-current={item.id === active ? 'page' : undefined}>
-      <NavIcon name={item.icon} size={22} />
-      <span>{item.label}</span>
-    </a>
+  {NAV_ITEMS.map((item, i) => (
+    <>
+      {i === 2 && (
+        <button type="button" class="note-btn" data-note-open aria-label="Noter une sortie">
+          <span class="note-plus"><NavIcon name="plus" size={26} /></span>
+          <span>Noter</span>
+        </button>
+      )}
+      <a href={item.href} class:list={{ 'is-active': item.id === active }} aria-current={item.id === active ? 'page' : undefined}>
+        <NavIcon name={item.icon} size={22} />
+        <span>{item.label}</span>
+      </a>
+    </>
   ))}
 </nav>
 
@@ -28,7 +36,7 @@ const active = activeNav(Astro.props.currentPath);
     bottom: 0;
     z-index: 60;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     padding-bottom: env(safe-area-inset-bottom);
     background: var(--color-ink);
   }
@@ -44,6 +52,37 @@ const active = activeNav(Astro.props.currentPath);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #ffffff !important;
+  }
+
+  .note-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    min-height: 62px;
+    padding: 0 0 9px;
+    border: 0;
+    background: none;
+    font: 700 11px/1 var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+    cursor: pointer;
+  }
+
+  /* Bouton ＋ qui dépasse du bandeau */
+  .note-plus {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-top: -22px;
+    border: 2px solid #ffffff;
+    border-radius: 14px;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    box-shadow: 3px 3px 0 #ffffff;
   }
 
   a.is-active {

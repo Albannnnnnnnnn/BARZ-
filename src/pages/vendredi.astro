@@ -3,6 +3,7 @@
 // de la semaine selon les Barz (communauté, et amis pour un membre connecté). Tables : supabase/community.sql.
 // ?semaine=AAAA-MM-JJ (un vendredi) : une semaine passée, en lecture seule.
 import Layout from '../layouts/Layout.astro';
+import FilTabs from '../components/FilTabs.astro';
 ---
 
 <Layout title="Le vendredi" description="La discussion de la semaine sur les sorties du vendredi, et le top des Barz.">
@@ -10,6 +11,7 @@ import Layout from '../layouts/Layout.astro';
     <span class="bz-eyebrow" id="fr-eyebrow">Le vendredi</span>
     <h1 class="bz-display">La discussion <em>du vendredi.</em></h1>
     <p class="intro" id="fr-intro">Les sorties de la semaine, tes premières impressions, ce que tu as retourné en boucle.</p>
+    <FilTabs active="vendredi" />
 
     <section class="block" id="fr-top-block" hidden aria-labelledby="fr-top-title">
       <div class="bz-section-head">
@@ -49,6 +51,12 @@ import Layout from '../layouts/Layout.astro';
   // Le vendredi de la semaine en cours (ou le dernier passé)
   const lastFriday = (iso: string) => addDays(iso, -((weekday(iso) + 2) % 7));
   const today = parisToday();
+  // Déjà sur le fil du vendredi : l'onglet Barz ne doit plus y renvoyer aujourd'hui (src/pages/commu.astro)
+  try {
+    sessionStorage.setItem(`barz-friday-${today}`, '1');
+  } catch {
+    /* stockage bloqué */
+  }
   const current = lastFriday(today);
   const isOpenDay = [5, 6, 0].includes(weekday(today));
   const asked = new URLSearchParams(location.search).get('semaine');

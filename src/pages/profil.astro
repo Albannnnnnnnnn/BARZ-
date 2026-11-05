@@ -33,7 +33,6 @@ import Layout from '../layouts/Layout.astro';
           <a class="bz-link bilan-link" id="p-bilan" href="/BARZ-/bilan" hidden>Bilan du mois →</a>
           <div class="own-actions" id="p-own" hidden>
             <a class="bz-btn bz-btn--outline" href="/BARZ-/modifier-profil">Modifier le profil</a>
-            <a class="bz-btn bz-btn--outline" href="/BARZ-/parametres">Paramètres</a>
             <button type="button" class="bz-btn bz-btn--lime" id="p-invite">Inviter un ami</button>
           </div>
           <div class="own-actions" id="p-friend" hidden></div>
@@ -42,6 +41,28 @@ import Layout from '../layouts/Layout.astro';
       </section>
 
       <div id="p-np" hidden></div>
+
+      <!-- Ses disques : une seule rangée d'onglets (spin list, écoutés, notés, listes, artistes, bilans) -->
+      <section class="block collection" aria-label="Ses disques">
+        <div class="bz-chips" role="tablist" id="p-tabs">
+          <button type="button" class="bz-chip is-active" role="tab" aria-selected="true" data-tab="spin_list">Spin list</button>
+          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="listened">Écoutés</button>
+          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="barz">Notés</button>
+          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="lists" id="p-tab-lists" hidden>Listes</button>
+          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="artists">Artistes</button>
+          <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="bilans">Bilans</button>
+        </div>
+        <div class="spin" id="p-collection"></div>
+        <!-- Listes de disques (src/pages/liste.astro, supabase/community.sql) -->
+        <section class="lists-panel" id="p-lists" hidden aria-labelledby="lists-title">
+          <div class="bz-section-head">
+            <h2 id="lists-title" class="bz-h2">Ses <em>listes</em></h2>
+            <a class="bz-link" id="p-list-new" href="/BARZ-/liste?nouvelle=1" hidden>Nouvelle liste</a>
+          </div>
+          <div class="lists bz-rail" id="p-lists-grid"></div>
+          <p class="bz-empty" id="p-lists-empty" hidden>Pas encore de liste. Crée la première : tes classiques, tes albums pour la route, tes découvertes…</p>
+        </section>
+      </section>
 
       <!-- Stats du mois et badges (calculés à partir des écoutes, des Barz et des jeux) -->
       <section class="block" id="p-badges" hidden aria-labelledby="badges-title">
@@ -85,15 +106,6 @@ import Layout from '../layouts/Layout.astro';
         </div>
       </section>
 
-      <!-- Listes de disques (src/pages/liste.astro, supabase/community.sql) -->
-      <section class="block" id="p-lists" hidden aria-labelledby="lists-title">
-        <div class="bz-section-head">
-          <h2 id="lists-title" class="bz-h2">Ses <em>listes</em></h2>
-          <a class="bz-link" id="p-list-new" href="/BARZ-/liste?nouvelle=1" hidden>Nouvelle liste</a>
-        </div>
-        <div class="lists bz-rail" id="p-lists-grid"></div>
-        <p class="bz-empty" id="p-lists-empty" hidden>Pas encore de liste. Crée la première : tes classiques, tes albums pour la route, tes découvertes…</p>
-      </section>
 
       <dialog class="top5-dialog" id="top5-dialog" aria-labelledby="top5-dialog-title">
         <form method="dialog" class="top5-box" id="top5-form">
@@ -153,16 +165,6 @@ import Layout from '../layouts/Layout.astro';
 
         </div>
 
-        <section class="collection" aria-label="Collections">
-          <div class="bz-chips" role="tablist" id="p-tabs">
-            <button type="button" class="bz-chip is-active" role="tab" aria-selected="true" data-tab="spin_list">Spin list</button>
-            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="listened">Écoutés</button>
-            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="barz">Barz</button>
-            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="artists">Artistes</button>
-            <button type="button" class="bz-chip" role="tab" aria-selected="false" data-tab="bilans">Bilans</button>
-          </div>
-          <div class="spin" id="p-collection"></div>
-        </section>
       </div>
 
     </div>
@@ -331,6 +333,10 @@ import Layout from '../layouts/Layout.astro';
     const scoreOf = new Map(barz.filter((b) => b.release).map((b) => [b.release!.id, Number(b.score).toFixed(1)]));
     renderTab = (tab: string) => {
       const collection = $('p-collection');
+      // Les listes ont leur propre panneau (renderLists) ; les autres onglets s'affichent dans #p-collection
+      collection.hidden = tab === 'lists';
+      $('p-lists').hidden = tab !== 'lists';
+      if (tab === 'lists') return;
       collection.classList.toggle('is-barz', tab === 'barz');
       // Sur mobile, sorties et artistes défilent sur le côté ; les Barz et les bilans restent en colonne
       collection.classList.toggle('bz-rail', ['spin_list', 'listened', 'artists'].includes(tab));
@@ -837,7 +843,7 @@ import Layout from '../layouts/Layout.astro';
       )
       .join('');
     $('p-lists-empty').hidden = lists.length > 0 || !isMe;
-    $('p-lists').hidden = !lists.length && !isMe;
+    $('p-tab-lists').hidden = !lists.length && !isMe;
   }
 
   async function renderPicks(profile: Profile, isMe: boolean, barz: Awaited<ReturnType<typeof barzFeed>>, tastePromise: Promise<Taste | null>, iFollow: Set<string>) {
@@ -1370,11 +1376,20 @@ import Layout from '../layouts/Layout.astro';
     color: var(--color-text-muted);
   }
 
+  /* Sous les onglets : ADN musical, activité récente et amis, côte à côte quand il y a la place */
   .layout {
-    display: grid;
-    grid-template-columns: minmax(320px, 490px) minmax(0, 1fr);
-    gap: 64px;
     margin-top: 64px;
+  }
+
+  .left {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    align-items: start;
+    gap: 40px;
+  }
+
+  .collection .lists-panel {
+    margin-top: 8px;
   }
 
   .dna {

@@ -3,7 +3,6 @@
 import { addDays } from 'date-fns';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
-import DailyPlay from '../components/DailyPlay.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
 import { fetchReleasesBetween, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
@@ -55,11 +54,11 @@ const exploreData = recent.map((r) => ({
 const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.name ?? ''} ${(r.metadata?.featuring ?? []).join(' ')} ${(r.genres ?? []).join(' ')}`);
 ---
 
-<Layout title="Découvrir" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
+<Layout title="Explorer" description="Sors de ta bulle : curseur d’exploration et Rabbit Hole.">
   <div class="bz-page">
     <div class="head">
       <div>
-        <span class="bz-eyebrow">Découvrir</span>
+        <span class="bz-eyebrow">Explorer</span>
         <h1 class="bz-display">Sors de <em>ta bulle.</em></h1>
       </div>
       <a class="bz-link by-genre" href="/BARZ-/artistes">Artistes par genre →</a>
@@ -84,8 +83,6 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
       </div>
       <p id="results-empty" class="bz-empty" hidden>Rien trouvé. Essaie un nom d’artiste, un titre ou un genre (rap, jazz, électro…).</p>
     </section>
-
-    <DailyPlay />
 
 
     <section class="explorer" aria-labelledby="cursor-title">
