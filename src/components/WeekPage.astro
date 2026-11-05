@@ -170,6 +170,7 @@ const builtAt = new Date().toISOString();
               </select>
             </>
           )}
+          <label class="ai-toggle"><input type="checkbox" id="hide-ai" /> Masquer les artistes IA</label>
         </div>
 
         <div id="groups">
@@ -186,6 +187,7 @@ const builtAt = new Date().toISOString();
                     chips={chipIdsFor(r.genres)}
                     releaseId={r.id}
                     type={r.release_type}
+                    artistId={r.artist?.id}
                   />
                 ))}
               </div>
@@ -229,6 +231,9 @@ const builtAt = new Date().toISOString();
   import { canRecommend, dismissButtonHtml, loadTaste, rank, scoreRelease, wireDismiss, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit } from '../scripts/engage';
   import { normName } from '../lib/feat';
+  import { wireAiToggle } from '../scripts/ai-filter';
+
+  let hiddenAi = new Set<string>(); // artistes IA masqués (case de la barre de filtres)
 
   type WeekRelease = RecoRelease & { title: string; slug: string; date: string; group: string };
 
@@ -307,7 +312,7 @@ const builtAt = new Date().toISOString();
     const type = (document.getElementById('filter-type') as HTMLSelectElement | null)?.value ?? '';
     let visible = 0;
     tiles.forEach((tile) => {
-      const show = (!genre || tile.dataset.chips!.split(' ').includes(genre)) && (!type || tile.dataset.type === type);
+      const show = (!genre || tile.dataset.chips!.split(' ').includes(genre)) && (!type || tile.dataset.type === type) && !hiddenAi.has(tile.dataset.artistId ?? '');
       tile.hidden = !show;
       if (show && !tile.classList.contains('is-out')) visible++;
     });
@@ -337,6 +342,10 @@ const builtAt = new Date().toISOString();
   document.getElementById('sort-select')?.addEventListener('change', (event) => applySort((event.target as HTMLSelectElement).value));
   document.getElementById('filter-genre')?.addEventListener('change', applyFilters);
   document.getElementById('filter-type')?.addEventListener('change', applyFilters);
+  wireAiToggle(document.getElementById('hide-ai') as HTMLInputElement | null, (ids) => {
+    hiddenAi = ids;
+    applyFilters();
+  });
   groupsBox?.addEventListener('click', (event) => {
     const more = (event.target as HTMLElement).closest<HTMLElement>('.group-more');
     if (!more) return;
@@ -697,6 +706,15 @@ const builtAt = new Date().toISOString();
     scrollbar-width: none;
   }
 
+  /* À la souris, la barre de défilement cachée empêchait de voir la suite (et « Tous ») : la rangée passe à la ligne */
+  @media (hover: hover) and (pointer: fine) {
+    .stories {
+      flex-wrap: wrap;
+      row-gap: 16px;
+      overflow-x: visible;
+    }
+  }
+
   .stories :global(.story) {
     display: flex;
     flex-direction: column;
@@ -791,6 +809,22 @@ const builtAt = new Date().toISOString();
 
   .toolbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .ai-toggle {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    font-size: 13px;
+    white-space: nowrap;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .ai-toggle input {
+    accent-color: var(--color-accent);
   }
 
   .tool-sep {

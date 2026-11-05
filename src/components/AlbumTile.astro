@@ -14,13 +14,14 @@ interface Props {
   releaseId?: string; // pour le reclassement personnalisé côté navigateur
   type?: string; // album, ep, single : pour le filtre par type
   date?: string; // date de sortie lisible, sous l'artiste
+  artistId?: string; // pour masquer les artistes IA
 }
 
-const { title, subtitle, cover, palette, badge, href, checked = false, chips = [], releaseId, type, date } = Astro.props;
+const { title, subtitle, cover, palette, badge, href, checked = false, chips = [], releaseId, type, date, artistId } = Astro.props;
 const Tag = href ? 'a' : 'div';
 ---
 
-<Tag class="tile" href={href} data-chips={chips.join(' ')} data-release-id={releaseId} data-type={type}>
+<Tag class="tile" href={href} data-chips={chips.join(' ')} data-release-id={releaseId} data-type={type} data-artist-id={artistId}>
   <div class="tile-cover">
     <Cover title={title} src={cover} palette={palette} />
     {type === 'live' && <span class="tile-live" title="Enregistrement live">Live</span>}

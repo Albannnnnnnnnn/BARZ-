@@ -1854,6 +1854,12 @@ import Layout from '../layouts/Layout.astro';
     border-radius: 12px;
     background: var(--color-paper);
     opacity: 0.55;
+    /* La classe globale .badge (pastilles de genre) impose nowrap et le centrage : on les annule ici */
+    align-items: flex-start;
+    white-space: normal;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 400;
   }
 
   .badges :global(.badge.is-done) {

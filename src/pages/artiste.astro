@@ -17,6 +17,7 @@ import Layout from '../layouts/Layout.astro';
         <h1 class="bz-display" id="a-name"></h1>
         <p class="meta" id="a-meta"></p>
         <div class="actions" id="a-actions"></div>
+        <p class="ai-report" id="a-ai" hidden></p>
       </div>
     </section>
 
@@ -223,6 +224,7 @@ import Layout from '../layouts/Layout.astro';
       ${listenMenuHtml({ artist: a.name, deezerUrl: a.deezer_id ? `https://www.deezer.com/artist/${a.deezer_id}` : null })}`;
     initListen();
     $('artist-hero').hidden = false;
+    renderAiReport(a).catch(() => {}); // script ai-flags.sql pas encore lancé : pas de bouton
 
     renderAnnouncements(a).catch((err) => console.warn('Annonces indisponibles :', err));
     renderDiscography(a, (releases.data ?? []) as any[]).catch((err) => console.warn('Discographie indisponible :', err));
@@ -236,6 +238,48 @@ import Layout from '../layouts/Layout.astro';
       $('a-related').innerHTML = similar.map((s) => artistCardHtml(s, followed.has(s.id))).join('');
       $('a-related-block').hidden = false;
     }
+  }
+
+  // Artiste IA : un membre le signale (masqué à partir de 3 signalements), Alban tranche (supabase/ai-flags.sql)
+  async function renderAiReport(a: ArtistLite) {
+    const session = await getSession();
+    if (!session || !supabase) return;
+    const box = $('a-ai');
+    const { data: isAdmin } = await supabase.rpc('is_barz_admin' as never);
+    if (isAdmin) {
+      const [{ data: count, error }, { data: row }] = await Promise.all([
+        supabase.rpc('ai_report_count' as never, { artist: a.id } as never),
+        supabase.from('artists').select('ai_flag').eq('id', a.id).maybeSingle(),
+      ]);
+      if (error) return;
+      const flag = (row as { ai_flag?: string | null } | null)?.ai_flag ?? null;
+      const state = flag === 'ia' ? 'marqué IA' : flag === 'pas_ia' ? 'marqué pas IA' : 'pas tranché';
+      box.innerHTML = `<span>IA : ${count ?? 0} signalement${Number(count) > 1 ? 's' : ''}, ${state}.</span>
+        <button type="button" class="bz-link" data-ai-flag="ia">Marquer IA</button>
+        <button type="button" class="bz-link" data-ai-flag="pas_ia">Pas IA</button>
+        ${flag ? '<button type="button" class="bz-link" data-ai-flag="">Annuler</button>' : ''}`;
+      box.onclick = async (event) => {
+        const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-ai-flag]');
+        if (!btn) return;
+        await supabase!.rpc('set_ai_flag' as never, { artist: a.id, flag: btn.dataset.aiFlag || null } as never);
+        renderAiReport(a);
+      };
+    } else {
+      const { data, error } = await supabase.from('ai_reports' as never).select('artist_id').eq('artist_id', a.id).eq('user_id', session.user.id);
+      if (error) return;
+      const reported = (data ?? []).length > 0;
+      box.innerHTML = reported
+        ? '<span>Tu as signalé cet artiste comme IA.</span> <button type="button" class="bz-link" data-ai="off">Retirer</button>'
+        : '<button type="button" class="bz-link" data-ai="on">Artiste généré par IA ? Signale-le</button>';
+      box.onclick = async (event) => {
+        const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-ai]');
+        if (!btn) return;
+        if (btn.dataset.ai === 'on') await supabase!.from('ai_reports' as never).insert({ artist_id: a.id } as never);
+        else await supabase!.from('ai_reports' as never).delete().eq('artist_id', a.id).eq('user_id', session.user.id);
+        renderAiReport(a);
+      };
+    }
+    box.hidden = false;
   }
 
   // Annonces de l'artiste, et formulaire de signalement (connecté)
@@ -290,6 +334,16 @@ import Layout from '../layouts/Layout.astro';
 </script>
 
 <style>
+  .ai-report {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+
   .announce-empty,
   .announce-hint {
     color: var(--color-text-muted);

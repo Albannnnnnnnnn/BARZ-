@@ -5,7 +5,7 @@ import { fr } from 'date-fns/locale';
 import Layout from '../layouts/Layout.astro';
 import AlbumTile from '../components/AlbumTile.astro';
 import { getSupabaseServerSafe } from '../lib/supabase';
-import { fetchWeeklyReleases, getToday, type ReleaseRow } from '../lib/releases';
+import { GENRE_CHIPS, chipIdsFor, fetchWeeklyReleases, getToday, type ReleaseRow } from '../lib/releases';
 import { releaseSubtitle } from '../lib/utils';
 
 const today = getToday();
@@ -14,6 +14,9 @@ const weeks = await fetchWeeklyReleases(getSupabaseServerSafe(), addWeeks(thisWe
 const thisWeekIso = format(thisWeek, 'yyyy-MM-dd');
 // Les semaines les plus récentes d'abord ; les semaines à venir en tête si elles existent
 const ordered = [...weeks].sort((a, b) => b.week_start.localeCompare(a.week_start));
+// Seulement les genres présents dans les semaines affichées
+const allReleases = ordered.flatMap((w) => w.releases as unknown as ReleaseRow[]);
+const genres = GENRE_CHIPS.filter((c) => allReleases.some((r) => chipIdsFor(r.genres).includes(c.id)));
 ---
 
 <Layout title="Mode digest" description="Les sorties musicales semaine par semaine.">
@@ -21,18 +24,31 @@ const ordered = [...weeks].sort((a, b) => b.week_start.localeCompare(a.week_star
     <span class="bz-eyebrow">Mode digest</span>
     <h1 class="bz-display">Semaine <em>par semaine.</em></h1>
 
+    {ordered.length > 0 && (
+      <div class="filters">
+        <div class="bz-chips" role="group" aria-label="Filtrer par genre" id="digest-genres">
+          <button type="button" class="bz-chip is-active" data-chip="" aria-pressed="true">Tout</button>
+          {genres.map((c) => (
+            <button type="button" class="bz-chip" data-chip={c.id} aria-pressed="false">{c.label}</button>
+          ))}
+        </div>
+        <label class="ai-toggle"><input type="checkbox" id="hide-ai" /> Masquer les artistes IA</label>
+      </div>
+    )}
+    <p class="bz-empty digest-empty" hidden>Aucune sortie ne correspond à ces filtres.</p>
+
     {ordered.length > 0 ? (
       ordered.map((week) => {
         const releases = week.releases as unknown as ReleaseRow[];
         const start = parseISO(week.week_start);
         const label = week.week_start === thisWeekIso ? 'Cette semaine' : week.week_start > thisWeekIso ? 'À venir' : null;
         return (
-          <section class="week" aria-label={`Semaine du ${format(start, 'd MMMM', { locale: fr })}`}>
+          <section class="week" data-week aria-label={`Semaine du ${format(start, 'd MMMM', { locale: fr })}`}>
             <div class="bz-section-head">
               <h2 class="bz-h2">Semaine du {format(start, 'd MMMM', { locale: fr })}</h2>
               <span class="meta">
                 {label && <span class="label">{label}</span>}
-                {releases.length} sortie{releases.length > 1 ? 's' : ''}
+                <span class="count">{releases.length} sortie{releases.length > 1 ? 's' : ''}</span>
               </span>
             </div>
             <div class="bz-tiles">
@@ -42,6 +58,8 @@ const ordered = [...weeks].sort((a, b) => b.week_start.localeCompare(a.week_star
                   subtitle={releaseSubtitle(r)}
                   cover={r.cover_url}
                   href={`/BARZ-/releases/${r.slug}`}
+                  chips={chipIdsFor(r.genres)}
+                  artistId={r.artist?.id}
                 />
               ))}
             </div>
@@ -54,7 +72,80 @@ const ordered = [...weeks].sort((a, b) => b.week_start.localeCompare(a.week_star
   </div>
 </Layout>
 
+<script>
+  import { wireAiToggle } from '../scripts/ai-filter';
+
+  let genre = '';
+  let hiddenAi = new Set<string>();
+  const weeks = [...document.querySelectorAll<HTMLElement>('[data-week]')];
+
+  // Filtre les vignettes, recompte chaque semaine et cache les semaines vides
+  function apply() {
+    let total = 0;
+    for (const week of weeks) {
+      let shown = 0;
+      week.querySelectorAll<HTMLElement>('[data-chips]').forEach((tile) => {
+        const show = (!genre || tile.dataset.chips!.split(' ').includes(genre)) && !hiddenAi.has(tile.dataset.artistId ?? '');
+        tile.hidden = !show;
+        if (show) shown++;
+      });
+      week.hidden = shown === 0;
+      const count = week.querySelector('.count');
+      if (count) count.textContent = `${shown} sortie${shown > 1 ? 's' : ''}`;
+      total += shown;
+    }
+    const empty = document.querySelector<HTMLElement>('.digest-empty');
+    if (empty) empty.hidden = total > 0;
+  }
+
+  document.getElementById('digest-genres')?.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-chip]');
+    if (!button) return;
+    genre = button.dataset.chip!;
+    button.parentElement!.querySelectorAll('[data-chip]').forEach((b) => {
+      b.classList.toggle('is-active', b === button);
+      b.setAttribute('aria-pressed', String(b === button));
+    });
+    apply();
+  });
+  wireAiToggle(document.getElementById('hide-ai') as HTMLInputElement | null, (ids) => {
+    hiddenAi = ids;
+    apply();
+  });
+</script>
+
 <style>
+  .filters {
+    position: sticky;
+    top: var(--topbar-h, 0px);
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    margin-top: 32px;
+    padding: 12px 0;
+    border-bottom: var(--line);
+    background: var(--color-bg);
+  }
+
+  .ai-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .ai-toggle input {
+    accent-color: var(--color-accent);
+  }
+
+  .digest-empty {
+    margin-top: 48px;
+  }
+
   .week {
     margin-top: 64px;
   }

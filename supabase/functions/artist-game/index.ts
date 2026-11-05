@@ -104,8 +104,16 @@ function compare(guess: Entry, answer: Entry): Cell[] {
     },
     { key: 'kind', label: guess.kind === 'solo' ? 'Solo' : guess.kind === 'groupe' ? 'Groupe' : '?', status: !guess.kind ? 'unknown' : guess.kind === answer.kind ? 'ok' : 'no', arrow: null },
     compareNumber('firstAlbum', String, guess.firstAlbum, answer.firstAlbum!, (g, a) => Math.abs(g - a) <= 3),
-    compareNumber('listeners', listenersLabel, guess.listeners, answer.listeners!, (g, a) => Math.abs(g - a) <= a * 0.35, (g, a) => Math.abs(g - a) <= a * 0.1),
+    // « Juste » seulement si le nombre affiché est le même : à ±10 %, Vald (351 k) passait pour Naza (334 k)
+    compareNumber('listeners', listenersLabel, guess.listeners, answer.listeners!, (g, a) => Math.abs(g - a) <= a * 0.35, (g, a) => listenersLabel(g) === listenersLabel(a)),
   ];
+}
+
+// Une ligne tout en vert doit vouloir dire « trouvé » : sinon la dernière case passe en « proche »
+function guard(cells: Cell[], correct: boolean): Cell[] {
+  if (correct || cells.some((c) => c.status !== 'ok')) return cells;
+  const last = cells[cells.length - 1];
+  return [...cells.slice(0, -1), { ...last, status: 'near' }];
 }
 
 async function pickAnswer(day: string): Promise<number | null> {
@@ -154,7 +162,7 @@ Deno.serve(async (req) => {
   if (body.action === 'guess') {
     const guess = ARTISTS.find((a) => a.deezerId === Number(body.id));
     if (!guess) return reply({ error: 'Cet artiste ne fait pas partie du jeu.' }, 400);
-    return reply({ id: guess.deezerId, name: guess.name, image: guess.image, correct: guess.deezerId === answer.deezerId, cells: compare(guess, answer) });
+    return reply({ id: guess.deezerId, name: guess.name, image: guess.image, correct: guess.deezerId === answer.deezerId, cells: guard(compare(guess, answer), guess.deezerId === answer.deezerId) });
   }
 
   if (body.action === 'answer') return reply({ id: answer.deezerId, name: answer.name, image: answer.image, link: `https://www.deezer.com/artist/${answer.deezerId}` });
