@@ -217,7 +217,7 @@ export async function shareBarzCard(d: BarzCardData) {
   y += 100;
   ctx.fillStyle = t.ink;
   ctx.font = `600 50px ${t.sans}`;
-  const quote = lines(ctx, `« ${d.body} »`, W - 2 * PAD, Math.max(2, Math.floor((H - 250 - y) / 68)));
+  const quote = d.body.trim() ? lines(ctx, `« ${d.body} »`, W - 2 * PAD, Math.max(2, Math.floor((H - 250 - y) / 68))) : [];
   for (const l of quote) {
     ctx.fillText(l, PAD, y);
     y += 68;

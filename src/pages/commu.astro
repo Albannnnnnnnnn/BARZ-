@@ -31,7 +31,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
               {choices.map((c) => <option value={c.label} data-id={c.id} />)}
             </datalist>
             <label class="sr-only" for="composer-body">Ton Barz</label>
-            <textarea id="composer-body" class="composer-body" maxlength="1000" rows="1" placeholder="Qu’as-tu écouté aujourd’hui ? Écris ton Barz…"></textarea>
+            <textarea id="composer-body" class="composer-body" maxlength="1000" rows="1" placeholder="Qu’as-tu écouté aujourd’hui ? Écris ton Barz, ou mets juste ta note…"></textarea>
           </div>
           <label class="composer-score">
             <span class="sr-only">Note sur 10</span>
@@ -127,12 +127,11 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
     const body = (document.getElementById('composer-body') as HTMLTextAreaElement).value.trim();
     const score = Number((document.getElementById('composer-score') as HTMLInputElement).value);
     if (!option) return show('Choisis une sortie dans la liste (tape un titre ou un artiste).', 'error');
-    if (!body) return show('Écris ton Barz avant de publier.', 'error');
     if (!(score >= 0 && score <= 10)) return show('La note doit être entre 0 et 10.', 'error');
     try {
       await saveBarz(option.dataset.id!, score, body);
       form.reset();
-      show('Barz publié !', 'ok');
+      show(body ? 'Barz publié !' : 'Note publiée !', 'ok');
       render();
     } catch (err) {
       show(errorText(err), 'error');

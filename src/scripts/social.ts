@@ -198,11 +198,12 @@ export async function shelfOf(shelf: Shelf, userId: string): Promise<{ created_a
 export async function saveBarz(releaseId: string, score: number, body: string) {
   const session = await requireSession();
   if (!session || !supabase) return;
-  must(
-    await supabase
-      .from('barz')
-      .upsert({ user_id: session.user.id, release_id: releaseId, score, body: body.trim(), created_at: new Date().toISOString() }, { onConflict: 'user_id,release_id' })
-  );
+  const result = await supabase
+    .from('barz')
+    .upsert({ user_id: session.user.id, release_id: releaseId, score, body: body.trim(), created_at: new Date().toISOString() }, { onConflict: 'user_id,release_id' });
+  // Note sans texte avant supabase/barz-score-only.sql : la base refuse encore un texte vide
+  if (result.error && !body.trim() && /barz_body_check/.test(result.error.message)) throw new Error('Pour l’instant, il faut écrire quelques mots avec ta note.');
+  must(result);
   await supabase.from('listened').upsert({ user_id: session.user.id, release_id: releaseId }, { ignoreDuplicates: true });
 }
 
@@ -293,7 +294,7 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
         <a href="${profileHref}"><b>${escapeHtml(name)}</b></a>
         <span class="barz-handle">${escapeHtml(handle)} · ${escapeHtml(timeAgo(b.created_at))}${scoreInline}</span>
       </header>
-      <p class="barz-text${b.body.length > 280 ? ' barz-text--long' : ''}">« ${escapeHtml(b.body)} »</p>
+      ${b.body.trim() ? `<p class="barz-text${b.body.length > 280 ? ' barz-text--long' : ''}">« ${escapeHtml(b.body)} »</p>` : ''}
       <footer>
         <button type="button" class="barz-like${liked ? ' is-liked' : ''}" data-like="${escapeHtml(b.id)}" aria-pressed="${liked}">♥ <span>${b.likes.length}</span></button>
         <button type="button" class="barz-like" data-replies="${escapeHtml(b.id)}" aria-expanded="${open}">💬 <span>${replies.length ? replies.length : 'Répondre'}</span></button>

@@ -43,11 +43,11 @@ import Player from '../components/Player.astro';
           </span>
         </label>
         <label class="bz-field">
-          Ton Barz
-          <textarea class="bz-input" name="body" maxlength="1000" rows="4" placeholder="Ce que tu en as pensé, en une phrase ou en détail…" required></textarea>
+          <span>Ton Barz <span class="optional">(facultatif)</span></span>
+          <textarea class="bz-input" name="body" maxlength="1000" rows="4" placeholder="Ce que tu en as pensé, en une phrase ou en détail… ou juste ta note"></textarea>
         </label>
         <p class="bz-notice" id="barz-message" hidden></p>
-        <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Publier mon Barz</button>
+        <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" id="barz-submit">Publier ma note</button>
       </form>
       <a class="bz-notice login-hint" id="barz-login" href="/BARZ-/connexion" hidden>Connecte-toi pour noter ce disque et écrire ton Barz →</a>
       <div class="barz-list" id="barz-list"></div>
@@ -120,6 +120,7 @@ import Player from '../components/Player.astro';
       (form.elements.namedItem('score') as HTMLInputElement).value = String(mine.score);
       (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);
       (form.elements.namedItem('body') as HTMLTextAreaElement).value = mine.body;
+      document.getElementById('barz-submit')!.textContent = mine.body.trim() ? 'Publier mon Barz' : 'Publier ma note';
     }
   }
 
@@ -200,14 +201,19 @@ import Player from '../components/Player.astro';
 
   const form = $('barz-form') as HTMLFormElement;
   const message = $('barz-message');
+  // Sans texte, on publie juste une note
+  const syncSubmit = () => {
+    const text = (form.elements.namedItem('body') as HTMLTextAreaElement).value.trim();
+    document.getElementById('barz-submit')!.textContent = text ? 'Publier mon Barz' : 'Publier ma note';
+  };
   form.addEventListener('input', () => {
     (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(Number((form.elements.namedItem('score') as HTMLInputElement).value));
+    syncSubmit();
   });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(form);
     const body = String(data.get('body') ?? '').trim();
-    if (!body) return;
     try {
       await saveBarz(await ensureRelease(), Number(data.get('score')), body);
       message.hidden = true;
@@ -299,6 +305,11 @@ import Player from '../components/Player.astro';
 
   .barz {
     margin-top: 56px;
+  }
+
+  .barz-form .optional {
+    font-weight: 400;
+    color: var(--color-text-muted);
   }
 
   .barz-form {
