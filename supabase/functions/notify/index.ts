@@ -139,8 +139,8 @@ const featsOf = (r: ReleaseRow) => [...(r.metadata?.featuring ?? []), ...(r.trac
 // Invités titre par titre (supabase/release-track-feats.sql), ajoutés aux sorties lues
 async function withTrackFeats(rows: ReleaseRow[]): Promise<ReleaseRow[]> {
   const byId = new Map<string, { name: string; track: string }[]>();
-  for (let i = 0; i < rows.length; i += 300) {
-    const { data, error } = await admin.from('release_track_feats').select('release_id, feats').in('release_id', rows.slice(i, i + 300).map((r) => r.id));
+  for (let i = 0; i < rows.length; i += 100) {
+    const { data, error } = await admin.from('release_track_feats').select('release_id, feats').in('release_id', rows.slice(i, i + 100).map((r) => r.id));
     if (error) return rows; // table absente : seulement les invités de la sortie
     for (const d of (data ?? []) as { release_id: string; feats: { name: string; track: string }[] }[]) byId.set(d.release_id, d.feats ?? []);
   }
@@ -274,10 +274,12 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
 // ============================================================
 // INVITÉS TITRE PAR TITRE des albums et EP récents (supabase/release-track-feats.sql)
 // ============================================================
-// À chaque passage, au plus 8 disques pas encore vus, des plus suivis aux moins suivis. Le disque Deezer vient de son
+// À chaque passage, au plus 15 disques pas encore vus (rééditions écartées), les derniers arrivés d'abord. Le disque Deezer vient de son
 // lien, sinon de la discographie de l'artiste (même titre) ; pas trouvé : réessayé pendant 3 jours (sortie Apple
 // en avance sur Deezer). Invités : les contributeurs de chaque titre, sauf l'artiste du disque.
-const TRACK_FEATS_PER_RUN = 8;
+const TRACK_FEATS_PER_RUN = 15;
+// Rééditions et versions spéciales : longues listes de titres, pas de nouvel invité
+const REISSUE = /deluxe|remaster|anniversary|anniversaire|edition|édition|instrumental|live|greatest hits|best of|super ?deluxe|expanded|remix(es)?\b/i;
 const TRACK_FEATS_MIN_AUDIENCE = 30000;
 const squash = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 const deezer = async (path: string) => (await fetch(`https://api.deezer.com${path}`).then((r) => r.json()).catch(() => null)) as any;
@@ -285,26 +287,32 @@ const deezer = async (path: string) => (await fetch(`https://api.deezer.com${pat
 async function collectTrackFeats(today: string): Promise<number> {
   const since = new Date(Date.now() - 3 * 86400_000).toISOString();
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
-  const { data: recent } = await admin
+  const { data: recent, error: readError } = await admin
     .from('releases')
-    .select('id, title, deezer_url, artist:artists!artist_id(name, deezer_id, audience)')
+    .select('id, title, deezer_url, created_at, artist:artists!artist_id(name, deezer_id, audience)')
     .in('release_type', ['album', 'ep'])
     .gte('created_at', since)
     .gte('release_date', weekAgo)
     .lte('release_date', today)
     .limit(1000);
-  const rows = ((recent ?? []) as any[]).filter((r) => (r.artist?.audience ?? 0) >= TRACK_FEATS_MIN_AUDIENCE);
+  if (readError) throw new Error(`lecture des sorties : ${readError.message}`);
+  const rows = ((recent ?? []) as any[]).filter((r) => (r.artist?.audience ?? 0) >= TRACK_FEATS_MIN_AUDIENCE && !REISSUE.test(r.title ?? ''));
   if (!rows.length) return 0;
-  const { data: seen, error } = await admin.from('release_track_feats').select('release_id, deezer_album_id, checked_at').in('release_id', rows.map((r) => r.id));
-  if (error) return 0; // table absente
-  const known = new Map(((seen ?? []) as any[]).map((s) => [s.release_id, s]));
+  // Par lots de 100 : des centaines d'identifiants dans une seule adresse dépassent la longueur permise
+  const known = new Map<string, any>();
+  for (let i = 0; i < rows.length; i += 100) {
+    const { data: seen, error } = await admin.from('release_track_feats').select('release_id, deezer_album_id, checked_at').in('release_id', rows.slice(i, i + 100).map((r) => r.id));
+    if (error) throw new Error(`release_track_feats : ${error.message}`); // table absente
+    for (const k of (seen ?? []) as any[]) known.set(k.release_id, k);
+  }
   // Pas encore vus, ou pas trouvés sur Deezer il y a plus d'une heure
   const todo = rows
     .filter((r) => {
       const k = known.get(r.id);
       return !k || (!k.deezer_album_id && Date.now() - Date.parse(k.checked_at) > 3600_000);
     })
-    .sort((a, b) => (b.artist?.audience ?? 0) - (a.artist?.audience ?? 0))
+    // Les dernières arrivées d'abord (une notif doit partir vite), à égalité les plus suivis
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)) || (b.artist?.audience ?? 0) - (a.artist?.audience ?? 0))
     .slice(0, TRACK_FEATS_PER_RUN);
 
   for (const r of todo) {
@@ -328,7 +336,8 @@ async function collectTrackFeats(today: string): Promise<number> {
       };
       await Promise.all([worker(), worker(), worker()]);
     }
-    await admin.from('release_track_feats').upsert({ release_id: r.id, feats, deezer_album_id: albumId, checked_at: new Date().toISOString() });
+    const { error: writeError } = await admin.from('release_track_feats').upsert({ release_id: r.id, feats, deezer_album_id: albumId, checked_at: new Date().toISOString() });
+    if (writeError) throw new Error(`écriture : ${writeError.message}`);
   }
   return todo.length;
 }
@@ -634,10 +643,10 @@ Deno.serve(async (req) => {
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { hour, weekday, today } = parisNow();
     // Invités des titres des albums récents, à toute heure : prêts pour la notification du vendredi matin
-    const checked = await collectTrackFeats(today).catch((err) => (console.warn('Invités des titres :', err), 0));
+    const checked = await collectTrackFeats(today).catch((err) => `erreur : ${err instanceof Error ? err.message : String(err)}`);
     // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi, la notification de 9h annonce d'abord les sorties de la nuit
     if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit', checked });
-    if (weekday === 'Fri' && hour < 10) return reply({ skipped: 'vendredi matin' });
+    if (weekday === 'Fri' && hour < 10) return reply({ skipped: 'vendredi matin', checked });
     // Tous les membres qui suivent des artistes : la cloche pour tous, le téléphone pour ceux qui l'ont activé
     const [{ data }, { data: followers }] = await Promise.all([
       admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),
@@ -645,13 +654,13 @@ Deno.serve(async (req) => {
     ]);
     const subs = (data ?? []) as Sub[];
     const userIds = [...new Set((followers ?? []).map((f) => f.user_id as string))];
-    if (!userIds.length) return reply({ sent: 0 });
+    if (!userIds.length) return reply({ sent: 0, checked });
     const { messages, announced } = await releaseMessages(userIds, today);
-    if (!announced.length) return reply({ sent: 0 });
+    if (!announced.length) return reply({ sent: 0, checked });
     await markNotified(announced); // avant l'envoi : deux passages rapprochés n'enverront pas deux fois
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
     await toInbox('release', [...messages]);
-    return reply({ sent, releases: announced.length });
+    return reply({ sent, releases: announced.length, checked });
   }
 
   if (body.action === 'test') {
