@@ -3,13 +3,41 @@
 // dans #annonces. L'id est sa date (« 2026-11-03 ») ; une deuxième le même jour prend « 2026-11-03-2 ».
 // Textes adressés aux membres : ce qui change pour eux, pas comment c'est fait.
 
-export type ChangeItem = { title: string; text: string; href?: string; link?: string };
+// tuto : 'lastfm' ajoute les boutons « Tuto Android » et « Tuto iPhone », qui ouvrent le tuto (src/components/LastfmTuto.astro)
+export type ChangeItem = { title: string; text: string; href?: string; link?: string; tuto?: 'lastfm' };
 export type ChangeEntry = { id: string; title: string; items: ChangeItem[] };
 
 // Serveur Discord de BARZ¡ : les Nouveautés y sont publiées automatiquement à chaque mise à jour (scripts/news-discord.mjs)
 export const DISCORD_URL = 'https://discord.gg/jjY2ptZdAv';
 
 export const CHANGELOG: ChangeEntry[] = [
+  {
+    id: '2026-11-06',
+    title: 'Relie Last.fm à ta musique, en 3 minutes',
+    items: [
+      {
+        title: 'Le tuto Last.fm, pour Android et iPhone',
+        text: 'Tu écoutes sur Spotify, Deezer, Apple Music ou YouTube Music ? Le tuto t’explique, étape par étape, comment faire enregistrer tes écoutes par Last.fm. Ensuite, tes recos se basent sur ce que tu écoutes vraiment.',
+        tuto: 'lastfm',
+      },
+      {
+        title: 'Tes titres notés comptent',
+        text: 'Ton profil affiche le nombre de titres que tu as notés, et ton bilan du mois a son « titre du mois ». Nouveau badge : Oreille fine, à 10 titres notés.',
+      },
+      {
+        title: 'Le fil du vendredi te prévient',
+        text: 'Quelqu’un aime ton message ou y répond ? Tu reçois une notif. Si tu as répondu sous un message, tu es aussi prévenu·e des réponses suivantes.',
+      },
+      {
+        title: 'La recherche va plus loin',
+        text: 'Un vieil album ou un son pas encore chez nous ? La barre de recherche va maintenant le chercher sur Deezer.',
+      },
+      {
+        title: 'Moins de bruit dans Sorties',
+        text: 'Les artistes qui sortent des singles à la chaîne sont regroupés dans une section « En rafale », en bas de la semaine. Et les artistes générés par IA sont retirés de l’appli.',
+      },
+    ],
+  },
   {
     id: '2026-11-05',
     title: 'Nouveaux menus : noter en un geste, les Barz et les jeux à portée de main',

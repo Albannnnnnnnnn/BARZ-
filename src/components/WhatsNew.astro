@@ -18,6 +18,12 @@ const more = LATEST_CHANGE.items.length - items.length;
           <li>
             <b>{item.title}</b>
             <span>{item.text}</span>
+            {item.tuto === 'lastfm' && (
+              <span class="wn-tuto">
+                <button type="button" class="bz-btn bz-btn--small bz-btn--lime" data-lastfm-tuto="android">Tuto Android</button>
+                <button type="button" class="bz-btn bz-btn--small bz-btn--outline" data-lastfm-tuto="ios">Tuto iPhone</button>
+              </span>
+            )}
           </li>
         ))
       }
@@ -106,6 +112,13 @@ const more = LATEST_CHANGE.items.length - items.length;
     color: var(--color-text-muted);
     font-size: 14px;
     line-height: 1.45;
+  }
+
+  .wn-items .wn-tuto {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
   }
 
   .wn-actions {

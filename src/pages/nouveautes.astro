@@ -25,6 +25,12 @@ import { CHANGELOG, DISCORD_URL, changeDate } from '../lib/changelog';
                 <h3>{item.title}</h3>
                 <p>{item.text}</p>
                 {item.href && <a class="bz-link" href={item.href}>{item.link ?? 'Voir'} →</a>}
+                {item.tuto === 'lastfm' && (
+                  <span class="tuto">
+                    <button type="button" class="bz-btn bz-btn--small bz-btn--lime" data-lastfm-tuto="android">Tuto Android</button>
+                    <button type="button" class="bz-btn bz-btn--small bz-btn--outline" data-lastfm-tuto="ios">Tuto iPhone</button>
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -119,6 +125,13 @@ import { CHANGELOG, DISCORD_URL, changeDate } from '../lib/changelog';
     margin: 6px 0 0;
     line-height: 1.5;
     color: var(--color-text-muted);
+  }
+
+  .item .tuto {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
   }
 
   .item .bz-link {

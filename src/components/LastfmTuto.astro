@@ -1,7 +1,7 @@
 ---
 // Tuto « Relier Last.fm à ta musique » : une version Android et une version iPhone (choisie selon l'appareil,
-// changeable). Montré une fois à l'ouverture de l'appli aux membres qui n'ont pas encore donné leur pseudo Last.fm,
-// et à la demande par tout bouton [data-lastfm-tuto] (Paramètres, Bienvenue).
+// changeable). Ouvert par tout bouton [data-lastfm-tuto] : Paramètres, Bienvenue, et l'entrée du 06/11 de
+// « Quoi de neuf ? » (c'est elle qui le présente à l'ouverture de l'appli).
 // Étapes tirées de l'aide officielle de Last.fm (support.last.fm : Spotify, Deezer, YouTube, « More ways to scrobble »).
 type Service = { name: string; text: string; href?: string; link?: string };
 
@@ -116,12 +116,7 @@ const versions = [
 </dialog>
 
 <script>
-  import { BASE, getMyProfile } from '../scripts/social';
-
-  const dialog = document.getElementById('lastfm-tuto') as HTMLDialogElement;
-  const SEEN = 'barz-lastfm-tuto-seen';
-  // Pages où il gênerait au démarrage : connexion, accueil des nouveaux (qui propose déjà Last.fm), retour de Spotify…
-  const SKIP = ['connexion', 'bienvenue', 'spotify', 'hors-ligne', 'guide', 'parametres'];
+    const dialog = document.getElementById('lastfm-tuto') as HTMLDialogElement;
 
   function pickOs(id: string) {
     dialog.querySelectorAll<HTMLButtonElement>('[data-lf-os]').forEach((b) => {
@@ -134,14 +129,6 @@ const versions = [
   const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || /Macintosh/.test(navigator.userAgent);
   pickOs(isApple ? 'ios' : 'android');
 
-  function markSeen() {
-    try {
-      localStorage.setItem(SEEN, '1');
-    } catch {
-      /* stockage bloqué : il reviendra au prochain démarrage */
-    }
-  }
-
   function open() {
     if (dialog.open) return;
     dialog.showModal();
@@ -153,7 +140,6 @@ const versions = [
     const os = target.closest<HTMLButtonElement>('[data-lf-os]');
     if (os) pickOs(os.dataset.lfOs!);
   });
-  dialog.addEventListener('close', markSeen);
   // Déjà sur les Paramètres : fermer et aller au champ, sans recharger la page
   document.getElementById('lf-to-settings')!.addEventListener('click', (event) => {
     const field = document.getElementById('p-lastfm');
@@ -165,30 +151,18 @@ const versions = [
     document.getElementById('lastfm-input')?.focus();
   });
 
-  // Les boutons « Tuto » à côté des champs Last.fm
+  // Les boutons « Tuto » (champs Last.fm, Quoi de neuf, Nouveautés) ; data-lastfm-tuto="android" ou "ios" choisit la version.
+  // Depuis la fenêtre « Quoi de neuf ? », elle se ferme d'abord : une seule fenêtre à la fois
   document.addEventListener('click', (event) => {
-    if ((event.target as HTMLElement).closest('[data-lastfm-tuto]')) {
-      event.preventDefault();
-      open();
-    }
+    const button = (event.target as HTMLElement).closest<HTMLElement>('[data-lastfm-tuto]');
+    if (!button) return;
+    event.preventDefault();
+    const os = button.dataset.lastfmTuto;
+    if (os === 'android' || os === 'ios') pickOs(os);
+    const other = button.closest('dialog');
+    if (other instanceof HTMLDialogElement && other !== dialog) other.close();
+    open();
   });
-
-  // Au démarrage : une fois, pour un membre connecté sans pseudo Last.fm, après la fenêtre « Quoi de neuf ? » si elle s'ouvre
-  async function maybeShowAtStart() {
-    try {
-      if (localStorage.getItem(SEEN)) return;
-    } catch {
-      return;
-    }
-    const page = location.pathname.slice(BASE.length).split('/')[0] ?? '';
-    if (SKIP.includes(page)) return;
-    const profile = await getMyProfile().catch(() => null);
-    if (!profile || profile.lastfm_username) return;
-    const other = document.querySelector<HTMLDialogElement>('dialog[open]');
-    if (other) other.addEventListener('close', () => setTimeout(open, 400), { once: true });
-    else open();
-  }
-  setTimeout(() => maybeShowAtStart().catch(() => {}), 2500);
 </script>
 
 <style>
