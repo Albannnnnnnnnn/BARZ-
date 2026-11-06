@@ -277,7 +277,7 @@ export async function toggleLike(barzId: string, liked: boolean) {
 }
 
 // Carte d'un Barz, partagée par la Communauté, les fiches et les profils
-export function barzCardHtml(b: Barz, myId: string | null, options: { showRelease?: boolean } = {}): string {
+export function barzCardHtml(b: Barz, myId: string | null, options: { showRelease?: boolean; onTrackPage?: boolean } = {}): string {
   const liked = !!myId && b.likes.some((l) => l.user_id === myId);
   const name = b.profile?.display_name ?? 'Membre';
   const handle = b.profile ? `@${b.profile.username}` : '';
@@ -315,7 +315,7 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
       }
     </div>`;
   // Sur la fiche du disque, un Barz de titre dit sur quel titre il porte
-  const scoreInline = options.showRelease === false ? ` · <b class="barz-score-inline">${formatScore(b.score)}</b>${b.track ? ` · <a class="barz-on-track" href="${target}">sur « ${escapeHtml(b.track.title)} »</a>` : ''}` : '';
+  const scoreInline = options.showRelease === false ? ` · <b class="barz-score-inline">${formatScore(b.score)}</b>${b.track && !options.onTrackPage ? ` · <a class="barz-on-track" href="${target}">sur « ${escapeHtml(b.track.title)} »</a>` : ''}` : '';
   return `<article class="barz-card${release ? '' : ' barz-card--solo'}" data-barz-id="${escapeHtml(b.id)}">
     <div class="barz-body">
       <header>
