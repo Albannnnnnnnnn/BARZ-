@@ -302,14 +302,16 @@ const jsonLd = {
       // Les Barz de tes amis d'abord
       const friendIds = new Set(friends.map((f) => f.id));
       const barz = [...all.filter((b) => friendIds.has(b.user_id)), ...all.filter((b) => !friendIds.has(b.user_id))];
-      renderFriends(all).catch((err) => console.warn('Amis indisponibles :', err));
+      // Moyenne, « ta note » et amis : les Barz du disque entier (ceux d'un titre s'affichent avec le nom du titre)
+      const onRelease = all.filter((b) => !b.track);
+      renderFriends(onRelease).catch((err) => console.warn('Amis indisponibles :', err));
       list.innerHTML = barz.length
         ? barz.map((b) => barzCardHtml(b, myId, { showRelease: false })).join('')
         : '<p class="bz-empty">Aucun Barz pour l’instant. Donne le premier avis.</p>';
-      avg.textContent = barz.length
-        ? `${formatScore(barz.reduce((sum, b) => sum + Number(b.score), 0) / barz.length)} / 10 · ${barz.length} avis`
+      avg.textContent = onRelease.length
+        ? `${formatScore(onRelease.reduce((sum, b) => sum + Number(b.score), 0) / onRelease.length)} / 10 · ${onRelease.length} avis`
         : '';
-      const mine = barz.find((b) => b.user_id === myId);
+      const mine = onRelease.find((b) => b.user_id === myId);
       if (mine) {
         (form.elements.namedItem('score') as HTMLInputElement).value = String(mine.score);
         (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);

@@ -171,12 +171,19 @@ import FilTabs from '../components/FilTabs.astro';
     if (!supabase) return;
     const from = `${week}T00:00:00`;
     const to = `${addDays(week, 7)}T00:00:00`;
-    const { data } = await supabase
-      .from('barz')
-      .select('score, user_id, release:releases(id, title, slug, cover_url, release_type, artist:artists!artist_id(name))')
-      .gte('created_at', from)
-      .lt('created_at', to)
-      .limit(3000);
+    // Top des disques : sans les Barz d'un titre (sauf si la colonne track_id n'existe pas encore)
+    const query = (onlyReleases: boolean) => {
+      const q = supabase!
+        .from('barz')
+        .select('score, user_id, release:releases(id, title, slug, cover_url, release_type, artist:artists!artist_id(name))')
+        .gte('created_at', from)
+        .lt('created_at', to)
+        .limit(3000);
+      return onlyReleases ? q.is('track_id', null) : q;
+    };
+    let res = await query(true);
+    if (res.error) res = await query(false);
+    const { data } = res;
     weekBarz = (data ?? []) as unknown as BarzRow[];
     $('fr-top-block').hidden = false;
     paintTop('all');

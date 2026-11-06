@@ -441,6 +441,18 @@
   font-size: 15px;
 }
 
+.barz-album-track {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.barz-on-track {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
 .barz-album-row b {
   overflow: hidden;
   text-overflow: ellipsis;

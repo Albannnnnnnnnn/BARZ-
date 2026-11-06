@@ -24,7 +24,10 @@ async function scan() {
   for (let i = 0; i < missing.length; i += 80) {
     const part = missing.slice(i, i + 80);
     part.forEach((s) => averages.set(s, null));
-    const { data } = await supabase.from('barz').select('score, release:releases!inner(slug)').in('release.slug', part).limit(5000);
+    // Moyenne du disque : sans les Barz d'un titre (track_id), sauf si la colonne n'existe pas encore
+    let res = await supabase.from('barz').select('score, release:releases!inner(slug)').in('release.slug', part).is('track_id', null).limit(5000);
+    if (res.error) res = await supabase.from('barz').select('score, release:releases!inner(slug)').in('release.slug', part).limit(5000);
+    const { data } = res;
     const sums = new Map<string, { sum: number; count: number }>();
     for (const b of (data ?? []) as unknown as { score: number; release: { slug: string } }[]) {
       const cur = sums.get(b.release.slug) ?? { sum: 0, count: 0 };

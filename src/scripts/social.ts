@@ -50,6 +50,7 @@ export type Barz = {
   user_id: string;
   profile: Pick<Profile, 'username' | 'display_name' | 'avatar_path'> | null;
   release: ReleaseLite | null;
+  track?: { id: string; title: string; deezer_id: number } | null; // Barz sur un titre du disque (supabase/track-barz.sql)
   likes: { user_id: string }[];
   replies: BarzReply[];
 };
@@ -64,6 +65,9 @@ export type BarzReply = {
 
 const RELEASE_LITE = 'id, title, slug, cover_url, genres, release_type, artist:artists!artist_id(name)';
 const BARZ_FIELDS = `id, score, body, created_at, user_id, profile:profiles!barz_user_id_fkey(username, display_name, avatar_path), release:releases(${RELEASE_LITE}), likes:barz_likes(user_id)`;
+const BARZ_FIELDS_TRACK = `${BARZ_FIELDS}, track:tracks(id, title, deezer_id)`;
+// Colonne track_id présente (supabase/track-barz.sql lancé) : sinon on lit et écrit les Barz comme avant
+let barzTracks: boolean | null = null;
 
 function must<T>(res: { data: T; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -195,16 +199,28 @@ export async function shelfOf(shelf: Shelf, userId: string): Promise<{ created_a
 // BARZ
 // ============================================================
 // Publier un Barz range aussi le disque dans « Écouté » (sans toucher à la date s'il y était déjà)
-export async function saveBarz(releaseId: string, score: number, body: string) {
+// trackId : Barz sur un titre du disque (un par membre et par titre) ; il ne range pas le disque dans « Écouté »
+export async function saveBarz(releaseId: string, score: number, body: string, trackId?: string | null) {
   const session = await requireSession();
   if (!session || !supabase) return;
-  const result = await supabase
-    .from('barz')
-    .upsert({ user_id: session.user.id, release_id: releaseId, score, body: body.trim(), created_at: new Date().toISOString() }, { onConflict: 'user_id,release_id' });
+  const row = { user_id: session.user.id, release_id: releaseId, score, body: body.trim(), created_at: new Date().toISOString() };
+  let mine = supabase.from('barz').select('id').eq('user_id', session.user.id).eq('release_id', releaseId);
+  mine = trackId ? mine.eq('track_id', trackId) : mine.is('track_id', null);
+  const existing = await mine.maybeSingle();
+  let result: { error: { message: string } | null; data: unknown };
+  if (existing.error) {
+    // Colonne track_id absente (SQL pas encore lancé) : l'ancien enregistrement, un Barz par disque
+    if (trackId) throw new Error('Les Barz de titres ne sont pas encore activés.');
+    result = await supabase.from('barz').upsert(row, { onConflict: 'user_id,release_id' });
+  } else if (existing.data) {
+    result = await supabase.from('barz').update(row).eq('id', (existing.data as { id: string }).id);
+  } else {
+    result = await supabase.from('barz').insert({ ...row, track_id: trackId ?? null } as never);
+  }
   // Note sans texte avant supabase/barz-score-only.sql : la base refuse encore un texte vide
   if (result.error && !body.trim() && /barz_body_check/.test(result.error.message)) throw new Error('Pour l’instant, il faut écrire quelques mots avec ta note.');
   must(result);
-  await supabase.from('listened').upsert({ user_id: session.user.id, release_id: releaseId }, { ignoreDuplicates: true });
+  if (!trackId) await supabase.from('listened').upsert({ user_id: session.user.id, release_id: releaseId }, { ignoreDuplicates: true });
 }
 
 export async function deleteBarz(id: string) {
@@ -212,12 +228,21 @@ export async function deleteBarz(id: string) {
   must(await supabase.from('barz').delete().eq('id', id));
 }
 
-export async function barzFeed(options: { releaseId?: string; userId?: string; limit?: number; replies?: boolean } = {}): Promise<Barz[]> {
+export async function barzFeed(options: { releaseId?: string; userId?: string; trackId?: string; limit?: number; replies?: boolean } = {}): Promise<Barz[]> {
   if (!supabase) return [];
-  let query = supabase.from('barz').select(BARZ_FIELDS).order('created_at', { ascending: false }).limit(options.limit ?? 30);
-  if (options.releaseId) query = query.eq('release_id', options.releaseId);
-  if (options.userId) query = query.eq('user_id', options.userId);
-  const barz = ((must(await query) ?? []) as unknown as Barz[]).map((b) => ({ ...b, replies: [] as BarzReply[] }));
+  const run = (fields: string) => {
+    let query = supabase!.from('barz').select(fields).order('created_at', { ascending: false }).limit(options.limit ?? 30);
+    if (options.releaseId) query = query.eq('release_id', options.releaseId);
+    if (options.userId) query = query.eq('user_id', options.userId);
+    if (options.trackId) query = query.eq('track_id', options.trackId);
+    return query;
+  };
+  let res = await run(barzTracks === false ? BARZ_FIELDS : BARZ_FIELDS_TRACK);
+  if (res.error && barzTracks !== false && !options.trackId) {
+    barzTracks = false; // pas encore de titres sur les Barz
+    res = await run(BARZ_FIELDS);
+  } else if (!res.error) barzTracks ??= true;
+  const barz = ((must(res) ?? []) as unknown as Barz[]).map((b) => ({ ...b, replies: [] as BarzReply[] }));
   if (options.replies === false || !barz.length) return barz;
   // Réponses lues à part : sans la table (supabase/barz-replies.sql), les Barz s'affichent quand même
   const { data } = await supabase
@@ -258,10 +283,13 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
   const handle = b.profile ? `@${b.profile.username}` : '';
   const initial = escapeHtml(name.slice(0, 1).toUpperCase());
   const profileHref = b.profile ? `${BASE}profil?u=${encodeURIComponent(b.profile.username)}` : '#';
+  // Barz sur un titre : le titre en gras, le disque en dessous, et le lien vers la page du titre
+  const target = b.track ? `${BASE}son?id=${b.track.deezer_id}` : b.release ? `${BASE}releases/${encodeURIComponent(b.release.slug)}` : '#';
   const release = options.showRelease !== false && b.release
-    ? `<a class="barz-album" href="${BASE}releases/${encodeURIComponent(b.release.slug)}">
+    ? `<a class="barz-album" href="${target}">
         ${coverHtml(b.release.title, b.release.cover_url)}
-        <span class="barz-album-row"><b>${escapeHtml(b.release.title)}</b><span class="bz-score">${formatScore(b.score)}</span></span>
+        <span class="barz-album-row"><b>${escapeHtml(b.track?.title ?? b.release.title)}</b><span class="bz-score">${formatScore(b.score)}</span></span>
+        ${b.track ? `<span class="barz-album-track">Titre de « ${escapeHtml(b.release.title)} »</span>` : ''}
       </a>`
     : '';
   const replies = b.replies ?? [];
@@ -286,7 +314,8 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
           : `<a class="barz-reply-login" href="${loginUrl()}">Connecte-toi pour répondre</a>`
       }
     </div>`;
-  const scoreInline = options.showRelease === false ? ` · <b class="barz-score-inline">${formatScore(b.score)}</b>` : '';
+  // Sur la fiche du disque, un Barz de titre dit sur quel titre il porte
+  const scoreInline = options.showRelease === false ? ` · <b class="barz-score-inline">${formatScore(b.score)}</b>${b.track ? ` · <a class="barz-on-track" href="${target}">sur « ${escapeHtml(b.track.title)} »</a>` : ''}` : '';
   return `<article class="barz-card${release ? '' : ' barz-card--solo'}" data-barz-id="${escapeHtml(b.id)}">
     <div class="barz-body">
       <header>
@@ -301,7 +330,7 @@ export function barzCardHtml(b: Barz, myId: string | null, options: { showReleas
         ${
           b.release
             ? `<button type="button" class="barz-like" data-share-barz="${escapeHtml(
-                JSON.stringify({ name, username: b.profile?.username ?? '', title: b.release.title, artist: b.release.artist?.name ?? '', cover: b.release.cover_url, score: Number(b.score), body: b.body })
+                JSON.stringify({ name, username: b.profile?.username ?? '', title: b.track?.title ?? b.release.title, artist: b.release.artist?.name ?? '', cover: b.release.cover_url, score: Number(b.score), body: b.body })
               )}" aria-label="Partager ce Barz en image">↗ <span>Partager</span></button>`
             : ''
         }

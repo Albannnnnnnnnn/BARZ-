@@ -1,6 +1,7 @@
 ---
-// PAGE D'UN TITRE (son?id=<id Deezer du titre>) : l'extrait, les invités, et la note des membres pour ce seul morceau.
-// Tout est lu dans le navigateur : le titre chez Deezer (JSONP), les notes dans Supabase (supabase/track-ratings.sql).
+// PAGE D'UN TITRE (son?id=<id Deezer du titre>) : l'extrait, les invités, et les Barz des membres sur ce seul morceau.
+// Tout est lu dans le navigateur : le titre chez Deezer (JSONP), les Barz dans Supabase (barz.track_id,
+// supabase/track-barz.sql) : ils s'affichent aussi dans le fil, le profil et la fiche du disque, avec le nom du titre.
 // Le premier membre qui le note l'ajoute au catalogue avec son disque (fonction deezer, action import-track).
 import Layout from '../layouts/Layout.astro';
 ---
@@ -26,7 +27,7 @@ import Layout from '../layouts/Layout.astro';
 
     <section class="ratings" id="tr-ratings" hidden aria-labelledby="ratings-title">
       <div class="bz-section-head">
-        <h2 id="ratings-title" class="bz-h2">Les <em>notes</em></h2>
+        <h2 id="ratings-title" class="bz-h2">Les <em>Barz</em></h2>
         <span class="avg" id="tr-avg"></span>
       </div>
       <form class="rate-form" id="tr-form" hidden>
@@ -38,24 +39,23 @@ import Layout from '../layouts/Layout.astro';
           </span>
         </label>
         <label class="bz-field">
-          <span>Un mot <span class="optional">(facultatif)</span></span>
-          <input class="bz-input" name="body" maxlength="280" placeholder="Le refrain, le couplet du feat, la prod…" autocomplete="off" />
+          <span>Ton Barz <span class="optional">(facultatif)</span></span>
+          <textarea class="bz-input" name="body" maxlength="1000" rows="3" placeholder="Le refrain, le couplet du feat, la prod… ou juste ta note"></textarea>
         </label>
         <p class="bz-notice" id="tr-message" hidden></p>
         <div class="form-actions">
           <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" id="tr-submit">Publier ma note</button>
-          <button type="button" class="bz-link" id="tr-delete" hidden>Retirer ma note</button>
         </div>
       </form>
       <a class="bz-notice login-hint" id="tr-login" href="/BARZ-/connexion" hidden>Connecte-toi pour noter ce titre →</a>
-      <ul class="rating-list" id="tr-list"></ul>
+      <div class="barz-list" id="tr-list"></div>
     </section>
   </div>
 </Layout>
 
 <script>
   import { deezerJsonp } from '../scripts/deezer-jsonp';
-  import { BASE, avatarUrl, coverHtml, errorText, escapeHtml, formatScore, getSession, loginUrl, supabase, timeAgo } from '../scripts/social';
+  import { BASE, barzCardHtml, barzFeed, coverHtml, errorText, escapeHtml, formatScore, getSession, loginUrl, saveBarz, supabase, wireBarzActions } from '../scripts/social';
 
   type DeezerTrack = {
     id: number;
@@ -71,7 +71,6 @@ import Layout from '../layouts/Layout.astro';
     album?: { id: number; title: string; cover_xl?: string; cover_big?: string };
     error?: unknown;
   };
-  type Rating = { user_id: string; score: number; body: string; created_at: string; profile: { username: string; display_name: string; avatar_path: string | null } | null };
 
   const $ = (id: string) => document.getElementById(id)!;
   const status = $('tr-status');
@@ -79,6 +78,7 @@ import Layout from '../layouts/Layout.astro';
   const message = $('tr-message');
   const trackDeezerId = Number(new URLSearchParams(location.search).get('id'));
   let trackId: string | null = null; // ligne de tracks (null tant que personne ne l'a noté)
+  let releaseId: string | null = null; // son disque au catalogue
   let myId: string | null = null;
 
   const fail = (text: string) => {
@@ -91,48 +91,31 @@ import Layout from '../layouts/Layout.astro';
     message.hidden = false;
   };
   const scoreInput = () => form.elements.namedItem('score') as HTMLInputElement;
-  const bodyInput = () => form.elements.namedItem('body') as HTMLInputElement;
+  const bodyInput = () => form.elements.namedItem('body') as HTMLTextAreaElement;
 
+  // Les Barz sur ce titre : mêmes cartes que partout (♥, réponses, partage, supprimer)
   async function renderRatings() {
     const list = $('tr-list');
-    if (!trackId || !supabase) {
-      list.innerHTML = '<li class="bz-empty">Personne n’a encore noté ce titre. Donne la première note.</li>';
+    const empty = '<p class="bz-empty">Personne n’a encore noté ce titre. Donne la première note.</p>';
+    if (!trackId) {
+      list.innerHTML = empty;
       $('tr-avg').textContent = '';
       return;
     }
-    const { data } = await supabase
-      .from('track_ratings' as never)
-      .select('user_id, score, body, created_at, profile:profiles!track_ratings_user_id_fkey(username, display_name, avatar_path)')
-      .eq('track_id', trackId)
-      .order('created_at', { ascending: false })
-      .limit(200);
-    const rows = (data ?? []) as unknown as Rating[];
-    $('tr-avg').textContent = rows.length ? `${formatScore(rows.reduce((s, r) => s + Number(r.score), 0) / rows.length)} / 10 · ${rows.length} note${rows.length > 1 ? 's' : ''}` : '';
-    list.innerHTML = rows.length
-      ? rows
-          .map((r) => {
-            const name = r.profile?.display_name ?? 'Membre';
-            const href = r.profile ? `${BASE}profil?u=${encodeURIComponent(r.profile.username)}` : '#';
-            const avatar = r.profile?.avatar_path ? `<img src="${escapeHtml(avatarUrl(r.profile.avatar_path))}" alt="" loading="lazy" />` : escapeHtml(name[0] ?? '?');
-            return `<li class="rating">
-              <a class="barz-avatar" href="${href}">${avatar}</a>
-              <div class="rating-main">
-                <div class="rating-head"><a href="${href}"><b>${escapeHtml(name)}</b></a><span>${escapeHtml(timeAgo(r.created_at))}</span><span class="bz-score">★ ${formatScore(r.score)}</span></div>
-                ${r.body.trim() ? `<p>${escapeHtml(r.body)}</p>` : ''}
-              </div>
-            </li>`;
-          })
-          .join('')
-      : '<li class="bz-empty">Personne n’a encore noté ce titre. Donne la première note.</li>';
-    const mine = rows.find((r) => r.user_id === myId);
+    const barz = await barzFeed({ trackId, limit: 100 }).catch(() => []);
+    $('tr-avg').textContent = barz.length ? `${formatScore(barz.reduce((sum, b) => sum + Number(b.score), 0) / barz.length)} / 10 · ${barz.length} note${barz.length > 1 ? 's' : ''}` : '';
+    list.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, myId, { showRelease: false })).join('') : empty;
+    const mine = barz.find((b) => b.user_id === myId);
     if (mine) {
       scoreInput().value = String(mine.score);
       (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);
       bodyInput().value = mine.body;
-      $('tr-submit').textContent = 'Modifier ma note';
     }
-    $('tr-delete').hidden = !mine;
+    syncSubmit(!!mine);
   }
+
+  const syncSubmit = (edit = false) => ($('tr-submit').textContent = edit ? 'Modifier mon Barz' : bodyInput().value.trim() ? 'Publier mon Barz' : 'Publier ma note');
+  wireBarzActions($('tr-list'), () => renderRatings());
 
   async function load() {
     if (!Number.isInteger(trackDeezerId) || trackDeezerId <= 0 || !supabase) return fail('Titre inconnu.');
@@ -141,11 +124,12 @@ import Layout from '../layouts/Layout.astro';
 
     // Déjà noté : sa ligne au catalogue ; le disque : sa fiche si elle existe, sinon la page album
     const [{ data: known }, { data: release }, { data: artist }] = await Promise.all([
-      supabase.from('tracks' as never).select('id').eq('deezer_id', trackDeezerId).maybeSingle(),
+      supabase.from('tracks' as never).select('id, release_id').eq('deezer_id', trackDeezerId).maybeSingle(),
       track.album ? supabase.from('releases').select('slug, metadata').eq('deezer_url', `https://www.deezer.com/album/${track.album.id}`).maybeSingle() : Promise.resolve({ data: null }),
       supabase.from('artists').select('slug').eq('deezer_id', track.artist?.id ?? 0).maybeSingle(),
     ]);
     trackId = (known as { id: string } | null)?.id ?? null;
+    releaseId = (known as { release_id: string | null } | null)?.release_id ?? null;
     let rel = release as { slug: string; metadata: { archive?: boolean } | null } | null;
     // Disque venu d'Apple ou de MusicBrainz (sans lien Deezer) : même artiste et même titre
     if (!rel && track.album && track.artist) {
@@ -213,6 +197,7 @@ import Layout from '../layouts/Layout.astro';
 
   form.addEventListener('input', () => {
     (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(Number(scoreInput().value));
+    if ($('tr-submit').textContent !== 'Modifier mon Barz') syncSubmit();
   });
 
   form.addEventListener('submit', async (event) => {
@@ -230,28 +215,17 @@ import Layout from '../layouts/Layout.astro';
           throw new Error(detail?.error ?? 'Impossible d’ajouter ce titre pour l’instant.');
         }
         trackId = data.id as string;
+        releaseId = data.releaseId as string;
       }
-      const { error } = await supabase
-        .from('track_ratings' as never)
-        .upsert({ user_id: session.user.id, track_id: trackId, score: Number(scoreInput().value), body: bodyInput().value.trim().slice(0, 280), created_at: new Date().toISOString() } as never, { onConflict: 'user_id,track_id' });
-      if (error) throw error;
-      showMessage('Note publiée !', 'ok');
+      if (!releaseId) throw new Error('Le disque de ce titre est introuvable.');
+      await saveBarz(releaseId, Number(scoreInput().value), bodyInput().value, trackId);
+      showMessage(bodyInput().value.trim() ? 'Barz publié !' : 'Note publiée !', 'ok');
       await renderRatings();
     } catch (err) {
       showMessage(errorText(err), 'error');
     } finally {
       button.disabled = false;
     }
-  });
-
-  $('tr-delete').addEventListener('click', async () => {
-    if (!trackId || !myId || !supabase || !confirm('Retirer ta note ?')) return;
-    const { error } = await supabase.from('track_ratings' as never).delete().eq('track_id', trackId).eq('user_id', myId);
-    if (error) return showMessage(errorText(error), 'error');
-    bodyInput().value = '';
-    $('tr-submit').textContent = 'Publier ma note';
-    message.hidden = true;
-    await renderRatings();
   });
 
   load().catch((err) => fail(errorText(err)));
@@ -387,49 +361,6 @@ import Layout from '../layouts/Layout.astro';
     margin-bottom: 20px;
     color: var(--color-accent) !important;
     font-weight: 600;
-  }
-
-  .rating-list {
-    display: grid;
-    gap: 10px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .rating-list :global(.rating) {
-    display: flex;
-    gap: 12px;
-    padding: 12px 14px;
-    border: var(--line);
-    border-radius: 12px;
-    background: var(--color-paper);
-  }
-
-  .rating-list :global(.rating-main) {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .rating-list :global(.rating-head) {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 10px;
-    font-size: 14px;
-  }
-
-  .rating-list :global(.rating-head span:not(.bz-score)) {
-    color: var(--color-text-muted);
-  }
-
-  .rating-list :global(.rating-head .bz-score) {
-    margin-left: auto;
-  }
-
-  .rating-list :global(p) {
-    margin: 6px 0 0;
-    overflow-wrap: anywhere;
   }
 
   .hero[hidden],

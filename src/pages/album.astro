@@ -114,8 +114,10 @@ import Player from '../components/Player.astro';
     }
     const barz = await barzFeed({ releaseId, limit: 50 });
     list.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, myId, { showRelease: false })).join('') : '<p class="bz-empty">Aucun Barz pour l’instant. Donne le premier avis.</p>';
-    avg.textContent = barz.length ? `${formatScore(barz.reduce((sum, b) => sum + Number(b.score), 0) / barz.length)} / 10 · ${barz.length} avis` : '';
-    const mine = barz.find((b) => b.user_id === myId);
+    // Moyenne et « ta note » : les Barz du disque entier, pas ceux d'un titre
+    const onRelease = barz.filter((b) => !b.track);
+    avg.textContent = onRelease.length ? `${formatScore(onRelease.reduce((sum, b) => sum + Number(b.score), 0) / onRelease.length)} / 10 · ${onRelease.length} avis` : '';
+    const mine = onRelease.find((b) => b.user_id === myId);
     if (mine) {
       (form.elements.namedItem('score') as HTMLInputElement).value = String(mine.score);
       (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);

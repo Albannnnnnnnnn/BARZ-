@@ -410,12 +410,14 @@ Deno.serve(async (req) => {
   if (body.action === 'barz') {
     // Déclencheur de la table barz : prévient les amis de l'auteur
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
-    const { data: b } = await admin
-      .from('barz')
-      .select('user_id, score, body, author:profiles!barz_user_id_fkey(username, display_name), release:releases(slug, title)')
-      .eq('id', String(body.barz))
-      .maybeSingle();
-    const barz = b as unknown as { user_id: string; score: number; body: string; author: { username: string; display_name: string } | null; release: { slug: string; title: string } | null } | null;
+    const BARZ_COLS = 'user_id, score, body, author:profiles!barz_user_id_fkey(username, display_name), release:releases(slug, title)';
+    let read = await admin.from('barz').select(`${BARZ_COLS}, track_id`).eq('id', String(body.barz)).maybeSingle();
+    if (read.error) read = await admin.from('barz').select(BARZ_COLS).eq('id', String(body.barz)).maybeSingle(); // pas encore de track_id
+    const b = read.data;
+    const barz = b as unknown as { user_id: string; score: number; body: string; track_id?: string | null; author: { username: string; display_name: string } | null; release: { slug: string; title: string } | null } | null;
+    // Barz sur un titre : le nom du titre et sa page
+    const track = barz?.track_id ? ((await admin.from('tracks').select('title, deezer_id').eq('id', barz.track_id).maybeSingle()).data as { title: string; deezer_id: number } | null) : null;
+    if (barz?.release && track) barz.release = { slug: barz.release.slug, title: `${track.title} (${barz.release.title})` };
     if (!barz?.author || !barz.release) return reply({ sent: 0 });
     const { data: links } = await admin
       .from('friendships')
@@ -446,8 +448,8 @@ Deno.serve(async (req) => {
           }
         : {
             title: `${name} a publié un Barz`,
-            body: `${barz.release.title} · ${score} — « ${text} »`,
-            url: `${SITE}releases/${barz.release.slug}`,
+            body: `${barz.release.title} · ${score}${text ? ` — « ${text} »` : ''}`,
+            url: track ? `${SITE}son?id=${track.deezer_id}` : `${SITE}releases/${barz.release.slug}`,
             tag: `barz-author-${barz.user_id}`,
           };
     const sent = await send(await subsOf(friends.filter((f) => !pushedRecently.has(f))), () => message);
@@ -519,7 +521,8 @@ Deno.serve(async (req) => {
     if (typeof body.hour === 'number' && (weekday !== 'Sun' || hour !== body.hour)) return reply({ skipped: `${weekday} ${hour}h à Paris` });
     const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
     const [{ data: barzRows }, { data: links }, { data: subs }, { data: followers }] = await Promise.all([
-      admin.from('barz').select('user_id, score, release:releases(id, title, artist:artists!artist_id(name))').gte('created_at', since).limit(5000),
+      // Disque de la semaine : sans les Barz d'un titre (sauf si la colonne track_id n'existe pas encore)
+      admin.from('barz').select('user_id, score, release:releases(id, title, artist:artists!artist_id(name))').gte('created_at', since).is('track_id', null).limit(5000).then(async (r) => (r.error ? await admin.from('barz').select('user_id, score, release:releases(id, title, artist:artists!artist_id(name))').gte('created_at', since).limit(5000) : r)),
       admin.from('friendships').select('requester_id, addressee_id').eq('status', 'accepted'),
       admin.from('push_subscriptions').select('user_id'),
       admin.from('follows').select('user_id').limit(20000),
