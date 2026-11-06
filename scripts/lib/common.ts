@@ -167,8 +167,19 @@ export type ArtistInput = {
 // replaceGenres : le catalogue fait autorité sur les genres (le sync des sorties, lui, les cumule)
 export async function saveArtists(inputs: ArtistInput[], options: { replaceGenres?: boolean } = {}): Promise<Map<string, string>> {
   const bySlug = new Map<string, ArtistInput & { slug: string }>();
-  for (const a of inputs) {
-    const slug = stableSlug(a.name);
+  // Homonymes dans le même lot (même nom, artistes Deezer différents) : le plus suivi garde le slug du nom,
+  // l'autre prend « nom-numéro » pour ne pas lui voler sa fiche et ses sorties
+  const homonymSlug = (slug: string, deezerId: number) => `${slug}-${deezerId}`;
+  for (const input of inputs) {
+    let a = input;
+    let slug = stableSlug(a.name);
+    const first = bySlug.get(slug);
+    if (first?.deezer_id && a.deezer_id && first.deezer_id !== a.deezer_id) {
+      if ((a.popularity ?? 0) > (first.popularity ?? 0)) {
+        bySlug.delete(slug);
+        bySlug.set(homonymSlug(slug, first.deezer_id), { ...first, slug: homonymSlug(slug, first.deezer_id) });
+      } else slug = homonymSlug(slug, a.deezer_id);
+    }
     const prev = bySlug.get(slug);
     bySlug.set(slug, {
       slug,
@@ -207,6 +218,21 @@ export async function saveArtists(inputs: ArtistInput[], options: { replaceGenre
     }
   }
 
+  // Homonyme face au catalogue : la ligne du nom a déjà un autre artiste Deezer. On ne remplace jamais son numéro
+  // (ses membres le suivent, ses sorties y sont rattachées) ; l'arrivant prend « nom-numéro ». Exception : l'arrivant
+  // est dix fois plus suivi, la ligne avait alors été prise par un homonyme et revient au vrai artiste.
+  for (const part of chunk([...bySlug.values()].filter((a) => a.deezer_id), 200)) {
+    const existing = must(await supabase.from('artists').select('slug, deezer_id, popularity').in('slug', part.map((p) => p.slug)), 'Lecture homonymes') as any[];
+    for (const e of existing) {
+      const a = bySlug.get(e.slug);
+      if (!a?.deezer_id || !e.deezer_id || e.deezer_id === a.deezer_id) continue;
+      if ((a.popularity ?? 0) > 10 * Math.max(1, e.popularity ?? 0)) continue;
+      const slug = homonymSlug(e.slug, a.deezer_id);
+      bySlug.delete(e.slug);
+      bySlug.set(slug, { ...a, slug });
+    }
+  }
+
   const ids = new Map<string, string>();
   for (const part of chunk([...bySlug.values()], 200)) {
     const existing = must(
@@ -234,8 +260,12 @@ export async function saveArtists(inputs: ArtistInput[], options: { replaceGenre
         updated_at: new Date().toISOString(),
       };
     });
-    const saved = must(await supabase.from('artists').upsert(rows, { onConflict: 'slug' }).select('id, slug'), 'Enregistrement artists');
-    for (const s of saved ?? []) ids.set(s.slug, s.id);
+    const saved = must(await supabase.from('artists').upsert(rows, { onConflict: 'slug' }).select('id, slug, deezer_id'), 'Enregistrement artists');
+    for (const s of saved ?? []) {
+      ids.set(s.slug, s.id);
+      // Clé par numéro Deezer : à préférer au nom pour rattacher une sortie (deux homonymes ont le même nom)
+      if (s.deezer_id) ids.set(`deezer:${s.deezer_id}`, s.id);
+    }
   }
   for (const [from, to] of aliases) if (ids.has(to)) ids.set(from, ids.get(to)!);
   return ids;

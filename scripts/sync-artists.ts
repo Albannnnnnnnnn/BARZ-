@@ -157,10 +157,10 @@ async function main() {
   }
   // 1d. Import Last.fm des membres
   const imports: LastfmImport[] = [];
+  const resolved = new Map<string, any | null>(); // nom Last.fm (minuscules) → artiste Deezer retenu
   const profiles = await supabase.from('profiles').select('id, lastfm_username').not('lastfm_username', 'is', null);
   if (!profiles.error && profiles.data?.length) {
     console.log(`🎧 Last.fm : ${profiles.data.length} membre(s)...`);
-    const resolved = new Map<string, any | null>();
     try {
       for (const p of profiles.data as any[]) {
         const top = await lastfmTopArtists(p.lastfm_username);
@@ -204,7 +204,7 @@ async function main() {
   console.log(`💾 Enregistrement de ${nodes.size} artistes...`);
   for (const node of nodes.values()) node.genres = finalGenres(node);
   const ids = await saveArtists([...nodes.values()], { replaceGenres: true });
-  const idOf = (deezerId: number) => ids.get(stableSlug(nodes.get(deezerId)!.name));
+  const idOf = (deezerId: number) => ids.get(`deezer:${deezerId}`) ?? ids.get(stableSlug(nodes.get(deezerId)!.name));
 
   // Enregistrement des liens (on remplace ceux des graines, les autres restent)
   const relations: { artist_id: string; related_id: string; rank: number }[] = [];
@@ -221,9 +221,13 @@ async function main() {
     must(await supabase.from('artist_relations').upsert(part, { onConflict: 'artist_id,related_id' }), 'Enregistrement artist_relations');
   }
 
-  // Import Last.fm : on remplace l'import précédent de chaque membre
+  // Import Last.fm : on remplace l'import précédent de chaque membre (rattaché à l'artiste Deezer retenu, pas à un homonyme)
+  const idOfName = (name: string) => {
+    const deezerId = resolved.get(name.toLowerCase())?.id;
+    return (deezerId ? ids.get(`deezer:${deezerId}`) : undefined) ?? ids.get(stableSlug(name)) ?? null;
+  };
   for (const imp of imports) {
-    const rows = imp.artists.map((a) => ({ user_id: imp.userId, artist_name: a.name, playcount: a.playcount, artist_id: ids.get(stableSlug(a.name)) ?? null }));
+    const rows = imp.artists.map((a) => ({ user_id: imp.userId, artist_name: a.name, playcount: a.playcount, artist_id: idOfName(a.name) }));
     const unique = [...new Map(rows.map((r) => [r.artist_name, r])).values()];
     must(await supabase.from('lastfm_artists').delete().eq('user_id', imp.userId), 'Nettoyage lastfm_artists');
     if (unique.length) must(await supabase.from('lastfm_artists').insert(unique), 'Enregistrement lastfm_artists');

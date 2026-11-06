@@ -584,7 +584,7 @@ async function main() {
   const releaseRows = releases.map((r) => ({
     title: r.title,
     slug: stableSlug(`${r.artistName} ${r.title}`, r.date.slice(0, 4)),
-    artist_id: artistIds.get(stableSlug(r.artistName)) ?? null,
+    artist_id: (r.artistDeezerId ? artistIds.get(`deezer:${r.artistDeezerId}`) : undefined) ?? artistIds.get(stableSlug(r.artistName)) ?? null,
     release_date: r.date,
     release_type: r.type,
     cover_url: r.cover,

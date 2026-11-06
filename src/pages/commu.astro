@@ -172,6 +172,7 @@ const choices = recent.map((r) => ({ id: r.id, label: `${r.title} — ${r.artist
   form.addEventListener('reset', () => setTimeout(grow, 0));
 
   wireBarzActions(live, render);
+  wireBarzActions(document.getElementById('feed-friends')!, render); // les Barz des amis, au-dessus
 </script>
 
 <style>
