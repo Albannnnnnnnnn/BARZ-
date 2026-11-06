@@ -18,6 +18,7 @@ import Layout from '../layouts/Layout.astro';
         <p class="meta" id="a-meta"></p>
         <div class="actions" id="a-actions"></div>
         <p class="ai-report" id="a-ai" hidden></p>
+        <button type="button" class="bz-link homonym-open" id="a-homonym-open" hidden>Pas le bon artiste ?</button>
       </div>
     </section>
 
@@ -30,6 +31,19 @@ import Layout from '../layouts/Layout.astro';
       <div class="bz-tiles bz-rail" id="a-announce"></div>
       <p class="announce-empty" id="a-announce-empty" hidden>Rien d’annoncé pour l’instant. Tu as vu passer une annonce ? Signale-la.</p>
     </section>
+
+    <!-- Homonymes : plusieurs artistes Deezer portent ce nom ; on passe au bon (et le suivi suit) -->
+    <dialog class="announce-dialog" id="homonym-dialog" aria-labelledby="homonym-title">
+      <form method="dialog" class="announce-box">
+        <h2 class="bz-h2" id="homonym-title">Le bon <em>artiste</em></h2>
+        <p class="announce-hint">Plusieurs artistes portent ce nom. Choisis celui que tu écoutes : si tu suivais celui-ci, tu suivras l’autre à la place.</p>
+        <ul class="homonyms" id="homonym-list"></ul>
+        <p class="bz-notice" id="homonym-message" hidden></p>
+        <div class="announce-actions">
+          <button type="submit" class="bz-btn bz-btn--outline bz-btn--small" value="cancel">Fermer</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog class="announce-dialog" id="announce-dialog" aria-labelledby="announce-title">
       <form method="dialog" class="announce-box" id="announce-form">
@@ -75,7 +89,7 @@ import Layout from '../layouts/Layout.astro';
   import { formatAudience } from '../lib/audience';
   import { listenMenuHtml } from '../lib/listen';
   import { initListen } from '../scripts/listen';
-  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, getSession, loginUrl, myFollows, releaseTileHtml, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, getSession, loginUrl, myFollows, releaseTileHtml, setFollow, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
   import { PRECISIONS, announcementCardHtml, publishedAnnouncements, suggestAnnouncement, type Precision } from '../scripts/announcements';
 
@@ -225,6 +239,7 @@ import Layout from '../layouts/Layout.astro';
     initListen();
     $('artist-hero').hidden = false;
     renderAiReport(a).catch(() => {}); // script ai-flags.sql pas encore lancé : pas de bouton
+    wireHomonyms(a as ArtistLite & { deezer_id: number | null });
 
     renderAnnouncements(a).catch((err) => console.warn('Annonces indisponibles :', err));
     renderDiscography(a, (releases.data ?? []) as any[]).catch((err) => console.warn('Discographie indisponible :', err));
@@ -238,6 +253,54 @@ import Layout from '../layouts/Layout.astro';
       $('a-related').innerHTML = similar.map((s) => artistCardHtml(s, followed.has(s.id))).join('');
       $('a-related-block').hidden = false;
     }
+  }
+
+  // Homonymes Deezer : le lien n'apparaît que s'il en existe d'autres que celui-ci
+  async function wireHomonyms(a: ArtistLite & { deezer_id: number | null }) {
+    if (!supabase || !a.deezer_id) return;
+    const { data } = await supabase.functions.invoke('deezer', { body: { action: 'homonyms', name: a.name } });
+    const others = ((data?.artists ?? []) as { deezerId: number; name: string; fans: number; albums: number; image: string | null }[]).filter((h) => h.deezerId !== a.deezer_id);
+    if (!others.length) return;
+    const open = $('a-homonym-open');
+    open.hidden = false;
+    const dialog = $('homonym-dialog') as HTMLDialogElement;
+    const message = $('homonym-message');
+    const fans = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)} k fans` : `${n} fan${n > 1 ? 's' : ''}`);
+    $('homonym-list').innerHTML = others
+      .map(
+        (h) => `<li><button type="button" data-deezer="${h.deezerId}">
+          ${h.image ? `<img src="${escapeHtml(h.image)}" alt="" loading="lazy" />` : '<span class="homonym-empty"></span>'}
+          <span><b>${escapeHtml(h.name)}</b><small>${fans(h.fans)} sur Deezer · ${h.albums} disque${h.albums > 1 ? 's' : ''}</small></span>
+        </button></li>`
+      )
+      .join('');
+    open.onclick = () => {
+      message.hidden = true;
+      dialog.showModal();
+    };
+    $('homonym-list').onclick = async (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-deezer]');
+      if (!button) return;
+      button.disabled = true;
+      const { data: added, error } = await supabase!.functions.invoke('deezer', { body: { action: 'artist', name: a.name, deezerId: Number(button.dataset.deezer) } });
+      if (error || !added?.slug) {
+        message.textContent = 'Impossible d’ouvrir cet artiste pour le moment.';
+        message.className = 'bz-notice bz-notice--error';
+        message.hidden = false;
+        button.disabled = false;
+        return;
+      }
+      // Le suivi passe au bon artiste (état du bouton Suivre au moment du choix)
+      const following = document.querySelector(`[data-follow="${a.id}"]`)?.getAttribute('aria-pressed') === 'true';
+      if (following) {
+        const { data: other } = await supabase!.from('artists').select('id').eq('slug', added.slug).maybeSingle();
+        if (other?.id) {
+          await setFollow(a.id, false);
+          await setFollow(other.id, true);
+        }
+      }
+      location.href = `${BASE}artiste?a=${encodeURIComponent(added.slug)}`;
+    };
   }
 
   // Artiste IA : un membre le signale (masqué à partir de 3 signalements), Alban tranche (supabase/ai-flags.sql)
@@ -334,6 +397,58 @@ import Layout from '../layouts/Layout.astro';
 </script>
 
 <style>
+  .homonym-open {
+    margin-top: 10px;
+    font-size: 13px;
+  }
+
+  .homonyms {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+
+  .homonyms :global(button) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px;
+    border: var(--line);
+    border-radius: 10px;
+    background: var(--color-paper);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .homonyms :global(button:hover) {
+    background: var(--color-bg-hover);
+  }
+
+  .homonyms :global(img),
+  .homonyms :global(.homonym-empty) {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 2px solid var(--color-ink);
+    object-fit: cover;
+    background: var(--color-bg-surface);
+  }
+
+  .homonyms :global(span) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .homonyms :global(small) {
+    color: var(--color-text-muted);
+  }
+
   .ai-report {
     display: flex;
     flex-wrap: wrap;

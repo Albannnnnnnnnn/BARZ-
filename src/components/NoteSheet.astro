@@ -41,7 +41,8 @@
 <script>
   import { BASE, coverHtml, errorText, escapeHtml, formatScore, getSession, loginUrl, saveBarz, searchArtists, supabase } from '../scripts/social';
 
-  type Pick = { id: string; title: string; artist: string; cover: string | null; slug?: string };
+  // id : sortie du catalogue ; deezerAlbumId seul : disque trouvé sur Deezer, ajouté au catalogue à la publication
+  type Pick = { id: string | null; title: string; artist: string; cover: string | null; slug?: string; deezerAlbumId?: number; track?: string };
   const $ = (id: string) => document.getElementById(id)!;
   const dialog = $('note-sheet') as HTMLDialogElement;
   const q = $('note-q') as HTMLInputElement;
@@ -68,11 +69,11 @@
     if (!p) return void setTimeout(() => q.focus(), 0);
     $('note-cover').innerHTML = coverHtml(p.title, p.cover, '56px');
     $('note-rtitle').textContent = p.title;
-    $('note-rartist').textContent = p.artist;
+    $('note-rartist').textContent = p.track && p.track !== p.title ? `${p.artist} · le disque de « ${p.track} »` : p.artist;
   }
 
   // Titre qui contient la recherche, plus les dernières sorties des artistes qui correspondent
-  async function search(text: string) {
+  async function searchCatalog(text: string): Promise<Pick[]> {
     if (!supabase) return [];
     const clean = text.replace(/[%_,()]/g, '');
     const cols = 'id, title, slug, cover_url, artist:artists!artist_id(name)';
@@ -90,6 +91,19 @@
       .map((r) => ({ id: r.id, title: r.title, slug: r.slug, artist: r.artist?.name ?? '', cover: r.cover_url }));
   }
 
+  // Le catalogue ne garde surtout que les sorties récentes : Deezer complète (anciens albums, sons pas encore synchronisés)
+  async function searchDeezer(text: string): Promise<Pick[]> {
+    if (!supabase) return [];
+    const { data } = await supabase.functions.invoke('deezer', { body: { action: 'search', q: text } });
+    return ((data?.items ?? []) as any[]).map((i) => ({ id: i.releaseId, slug: i.slug ?? undefined, deezerAlbumId: i.deezerAlbumId, title: i.title, artist: i.artist, cover: i.cover, track: i.track }));
+  }
+
+  async function search(text: string): Promise<Pick[]> {
+    const [local, remote] = await Promise.all([searchCatalog(text), searchDeezer(text).catch(() => [])]);
+    const known = new Set(local.map((p) => p.id));
+    return [...local, ...remote.filter((p) => !p.id || !known.has(p.id))].slice(0, 16);
+  }
+
   q.addEventListener('input', () => {
     clearTimeout(timer);
     const text = q.value.trim();
@@ -99,9 +113,9 @@
       if (q.value.trim() !== text) return;
       results.innerHTML = found.length
         ? found
-            .map((p, i) => `<li><button type="button" data-i="${i}">${coverHtml(p.title, p.cover, '44px')}<span><b>${escapeHtml(p.title)}</b><small>${escapeHtml(p.artist)}</small></span></button></li>`)
+            .map((p, i) => `<li><button type="button" data-i="${i}">${coverHtml(p.title, p.cover, '44px')}<span><b>${escapeHtml(p.track && p.track !== p.title ? p.track : p.title)}</b><small>${escapeHtml(p.artist)}${p.track && p.track !== p.title ? ` · ${escapeHtml(p.title)}` : ''}</small></span></button></li>`)
             .join('')
-        : '<li class="note-none">Rien trouvé dans le catalogue.</li>';
+        : '<li class="note-none">Rien trouvé, ni dans le catalogue ni sur Deezer.</li>';
     }, 220);
   });
   results.addEventListener('click', (event) => {
@@ -116,7 +130,16 @@
     if (!chosen) return showMessage('Choisis d’abord une sortie.', 'error');
     send.disabled = true;
     try {
-      await saveBarz(chosen.id, Number(score.value), body.value);
+      // Disque trouvé sur Deezer : ajouté au catalogue d'abord (même chemin que la page album)
+      if (!chosen.id && chosen.deezerAlbumId) {
+        const { data, error } = await supabase!.functions.invoke('deezer', { body: { action: 'import-album', deezerAlbumId: chosen.deezerAlbumId } });
+        if (error || !data?.id) {
+          const detail = await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+          throw new Error(detail?.error ?? 'Impossible d’ajouter ce disque pour l’instant.');
+        }
+        chosen = { ...chosen, id: data.id, slug: data.slug };
+      }
+      await saveBarz(chosen.id!, Number(score.value), body.value);
       const text = body.value.trim() ? 'Barz publié !' : 'Note publiée !';
       const link = chosen.slug ? ` <a href="${BASE}releases/${encodeURIComponent(chosen.slug)}">Voir la sortie</a>` : '';
       showMessage(text, 'ok');

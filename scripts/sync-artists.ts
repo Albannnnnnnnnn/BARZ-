@@ -22,6 +22,7 @@ import {
   deezerFetch,
   deezerStats,
   deezerResolveArtist,
+  normalizeName,
   deezerAppGenres,
   saveArtists,
   type ArtistInput,
@@ -47,6 +48,41 @@ async function lastfmTopArtists(username: string): Promise<{ name: string; playc
     return [];
   }
   return (json?.topartists?.artist ?? []).map((a: any) => ({ name: a.name, playcount: Number(a.playcount) || 0 }));
+}
+
+// Artistes similaires selon Last.fm (noms comparables), pour départager des homonymes Deezer
+async function lastfmSimilar(name: string): Promise<Set<string>> {
+  const key = process.env.LASTFM_API_KEY;
+  if (!key) return new Set();
+  const params = new URLSearchParams({ method: 'artist.getsimilar', artist: name, limit: '40', autocorrect: '0', api_key: key, format: 'json' });
+  await sleep(250);
+  const res = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`, { headers: { 'User-Agent': 'BARZ/1.0' } });
+  const json = await res.json().catch(() => null);
+  return new Set(((json?.similarartists?.artist ?? []) as any[]).map((a) => normalizeName(a.name)));
+}
+
+// Nom Last.fm → artiste Deezer. Plusieurs artistes Deezer portent souvent ce nom (« Dylan », « Juice », « LinLin ») :
+// le plus suivi gagne seulement s'il écrase les autres ; sinon, celui dont les artistes proches sur Deezer
+// recoupent le plus les artistes similaires sur Last.fm (sans recoupement, le plus suivi).
+async function resolveLastfmArtist(name: string): Promise<any | null> {
+  const json = await deezerFetch(`/search/artist?limit=25&q=${encodeURIComponent(name)}`);
+  const exact = ((json?.data || []) as any[]).filter((a) => normalizeName(a.name) === normalizeName(name)).sort((a, b) => b.nb_fan - a.nb_fan);
+  if (exact.length <= 1) return exact[0] ?? (await deezerResolveArtist(name));
+  if (exact[0].nb_fan >= 20 * Math.max(1, exact[1].nb_fan)) return exact[0];
+  const similar = await lastfmSimilar(name);
+  if (!similar.size) return exact[0];
+  let best = exact[0];
+  let bestOverlap = 0;
+  for (const candidate of exact.slice(0, 4)) {
+    const related = await deezerFetch(`/artist/${candidate.id}/related?limit=40`);
+    const overlap = ((related?.data || []) as any[]).filter((r) => similar.has(normalizeName(r.name))).length;
+    if (overlap > bestOverlap) {
+      best = candidate;
+      bestOverlap = overlap;
+    }
+  }
+  if (best !== exact[0]) console.log(`   🔀 « ${name} » : homonyme choisi ${best.id} (${best.nb_fan} fans) plutôt que ${exact[0].id} (${exact[0].nb_fan} fans)`);
+  return best;
 }
 
 // direct : genres certains (classement du genre, watchlist) ; votes : genres des graines qui citent l'artiste
@@ -135,7 +171,7 @@ async function main() {
         imports.push({ userId: p.id, artists: top });
         for (const a of top) {
           const key = a.name.toLowerCase();
-          if (!resolved.has(key)) resolved.set(key, await deezerResolveArtist(a.name));
+          if (!resolved.has(key)) resolved.set(key, await resolveLastfmArtist(a.name));
           const artist = resolved.get(key);
           if (artist) {
             addNode(artist);

@@ -162,29 +162,81 @@ async function importFavorites(me: string, id: number): Promise<{ favorites: num
   return { favorites: ids.length, matched: matched.length };
 }
 
+// Recherche Deezer d'albums et de titres (un titre mène à son disque) : pour noter ce qui n'est pas encore au catalogue.
+// Les disques déjà au catalogue sont signalés (releaseId, slug) pour ne pas être importés une deuxième fois.
+async function searchDeezer(q: string) {
+  const [albums, tracks] = await Promise.all([
+    deezerJson(`/search/album?q=${encodeURIComponent(q)}&limit=8`),
+    deezerJson(`/search/track?q=${encodeURIComponent(q)}&limit=12`),
+  ]);
+  const seen = new Set<number>();
+  const items: { deezerAlbumId: number; title: string; artist: string; cover: string | null; type: string; track?: string }[] = [];
+  for (const t of (tracks?.data ?? []) as any[]) {
+    if (!t.album?.id || seen.has(t.album.id)) continue;
+    seen.add(t.album.id);
+    items.push({ deezerAlbumId: t.album.id, title: t.album.title, artist: t.artist?.name ?? '', cover: t.album.cover_medium ?? null, type: t.album.type ?? 'album', track: t.title });
+  }
+  for (const a of (albums?.data ?? []) as any[]) {
+    if (!a.id || seen.has(a.id)) continue;
+    seen.add(a.id);
+    items.push({ deezerAlbumId: a.id, title: a.title, artist: a.artist?.name ?? '', cover: a.cover_medium ?? null, type: RECORD_TYPES[a.record_type] ?? 'album' });
+  }
+  const links = items.map((i) => `https://www.deezer.com/album/${i.deezerAlbumId}`);
+  const { data: known } = links.length ? await admin.from('releases').select('id, slug, deezer_url').in('deezer_url', links) : { data: [] };
+  const byLink = new Map(((known ?? []) as any[]).map((r) => [r.deezer_url, r]));
+  return items.slice(0, 14).map((i) => {
+    const hit = byLink.get(`https://www.deezer.com/album/${i.deezerAlbumId}`);
+    return { ...i, releaseId: hit?.id ?? null, slug: hit?.slug ?? null };
+  });
+}
+
+// Artistes Deezer qui portent exactement ce nom : pour corriger un homonyme suivi par erreur
+async function homonyms(name: string) {
+  const wanted = compact(name);
+  const found = await deezerJson(`/search/artist?q=${encodeURIComponent(name)}&limit=25`);
+  return ((found?.data ?? []) as any[])
+    .filter((a) => compact(a.name) === wanted)
+    .sort((a, b) => (b.nb_fan ?? 0) - (a.nb_fan ?? 0))
+    .slice(0, 8)
+    .map((a) => ({ deezerId: a.id, name: a.name, fans: a.nb_fan ?? 0, albums: a.nb_album ?? 0, image: a.picture_medium ?? null }));
+}
+
 // Mêmes règles que slugify / stableSlug de scripts/lib/common.ts : le même artiste garde la même ligne
 const slugify = (text: string) =>
   text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 const compact = (text: string) => slugify(text).replace(/-/g, '');
 
 // Artiste Deezer portant exactement ce nom (aux accents et à la ponctuation près), le plus suivi s'il y en a plusieurs
-async function addArtist(name: string): Promise<{ slug: string } | { error: string }> {
-  const wanted = compact(name);
-  if (!wanted) return { error: 'Nom d’artiste invalide.' };
-  const known = await admin.from('artists').select('slug').eq('search_name', wanted).order('audience', { ascending: false }).limit(1).maybeSingle();
-  if (known.data) return { slug: known.data.slug };
-  const found = await deezerJson(`/search/artist?q=${encodeURIComponent(name)}&limit=10`);
-  const match = ((found?.data ?? []) as any[]).filter((a) => compact(a.name) === wanted).sort((a, b) => (b.nb_fan ?? 0) - (a.nb_fan ?? 0))[0];
-  if (!match) return { error: `« ${name} » est introuvable sur Deezer.` };
+async function addArtist(name: string, deezerId?: number): Promise<{ slug: string } | { error: string }> {
+  let match: any = null;
+  if (deezerId) {
+    match = await deezerJson(`/artist/${deezerId}`);
+    if (!match?.id || match.error) return { error: 'Artiste introuvable sur Deezer.' };
+  } else {
+    const wanted = compact(name);
+    if (!wanted) return { error: 'Nom d’artiste invalide.' };
+    const known = await admin.from('artists').select('slug').eq('search_name', wanted).order('audience', { ascending: false }).limit(1).maybeSingle();
+    if (known.data) return { slug: known.data.slug };
+    const found = await deezerJson(`/search/artist?q=${encodeURIComponent(name)}&limit=10`);
+    match = ((found?.data ?? []) as any[]).filter((a) => compact(a.name) === wanted).sort((a, b) => (b.nb_fan ?? 0) - (a.nb_fan ?? 0))[0];
+    if (!match) return { error: `« ${name} » est introuvable sur Deezer.` };
+  }
   // Déjà au catalogue sous une autre graphie
   const same = await admin.from('artists').select('slug').eq('deezer_id', match.id).maybeSingle();
   if (same.data) return { slug: same.data.slug };
-  const slug = slugify(match.name) || `artiste-${match.id}`;
-  const { error } = await admin
-    .from('artists')
-    .upsert({ slug, name: match.name, deezer_id: match.id, image_url: match.picture_xl ?? match.picture_big ?? null, popularity: match.nb_fan ?? null, genres: [], updated_at: new Date().toISOString() }, { onConflict: 'slug', ignoreDuplicates: true });
-  if (error) return { error: error.message };
-  return { slug };
+  // Un homonyme déjà au catalogue occupe le slug du nom : celui-ci prend « nom-numéro »
+  const base = slugify(match.name) || `artiste-${match.id}`;
+  for (const slug of [base, `${base}-${match.id}`]) {
+    const { data, error } = await admin
+      .from('artists')
+      .upsert({ slug, name: match.name, deezer_id: match.id, image_url: match.picture_xl ?? match.picture_big ?? null, popularity: match.nb_fan ?? null, genres: [], updated_at: new Date().toISOString() }, { onConflict: 'slug', ignoreDuplicates: true })
+      .select('slug, deezer_id');
+    if (error) return { error: error.message };
+    if (data?.length) return { slug };
+    const taken = await admin.from('artists').select('deezer_id').eq('slug', slug).maybeSingle();
+    if (taken.data?.deezer_id === match.id) return { slug };
+  }
+  return { error: 'Impossible d’ajouter cet artiste.' };
 }
 
 Deno.serve(async (req) => {
@@ -200,8 +252,18 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'artist') {
-    const result = await addArtist(String(body.name ?? '').slice(0, 120));
+    const deezerId = Number(body.deezerId);
+    const result = await addArtist(String(body.name ?? '').slice(0, 120), Number.isInteger(deezerId) && deezerId > 0 ? deezerId : undefined);
     return 'error' in result ? reply(result, 404) : reply(result);
+  }
+
+  if (body.action === 'search') {
+    const q = String(body.q ?? '').trim().slice(0, 100);
+    return reply({ items: q.length < 2 ? [] : await searchDeezer(q) });
+  }
+
+  if (body.action === 'homonyms') {
+    return reply({ artists: await homonyms(String(body.name ?? '').slice(0, 120)) });
   }
 
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
