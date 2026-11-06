@@ -71,7 +71,9 @@ import { DISCORD_URL } from '../lib/changelog';
               <label class="sr-only" for="lastfm-input">Pseudo Last.fm</label>
               <input id="lastfm-input" class="bz-input" name="lastfm" maxlength="40" placeholder="Ton pseudo Last.fm" autocomplete="off" />
               <button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Enregistrer</button>
+              <button type="button" class="bz-btn bz-btn--outline bz-btn--small" data-lastfm-tuto>Tuto</button>
             </form>
+            <p class="lastfm-help">Pas encore de compte, ou Last.fm pas relié à ton appli de musique ? <button type="button" class="bz-link" data-lastfm-tuto>Suis le tuto Android ou iPhone</button></p>
             <label class="share-toggle" id="lastfm-share-toggle">
               <input type="checkbox" id="lastfm-share" />
               <span>Montrer à mes amis ce que j’écoute en ce moment (via Last.fm)</span>
@@ -463,8 +465,26 @@ import { DISCORD_URL } from '../lib/changelog';
 
   .lastfm-form {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin: 18px 0 14px;
+  }
+  .lastfm-form .bz-input {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+  .lastfm-help {
+    margin: -4px 0 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+  }
+  .lastfm-help .bz-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
   }
   .accounts[hidden] {
     display: none;
