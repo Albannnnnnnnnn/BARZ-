@@ -338,7 +338,7 @@ async function collectTrackFeats(today: string): Promise<number> {
       const disco = await deezer(`/artist/${r.artist.deezer_id}/albums?limit=100`);
       albumId = ((disco?.data ?? []) as any[]).find((a) => squash(a.title) === squash(r.title))?.id ?? null;
     }
-    const feats: { name: string; track: string }[] = [];
+    const feats: { name: string; track: string; key: string }[] = [];
     if (albumId) {
       const tracks = (((await deezer(`/album/${albumId}/tracks?limit=100`))?.data ?? []) as any[]).slice(0, 40);
       const queue = [...tracks];
@@ -347,7 +347,7 @@ async function collectTrackFeats(today: string): Promise<number> {
           const detail = await deezer(`/track/${t.id}`);
           for (const c of (detail?.contributors ?? []) as { id: number; name: string }[]) {
             if (c.id === r.artist?.deezer_id || c.id === t.artist?.id || squash(c.name) === squash(r.artist?.name ?? '')) continue;
-            if (!feats.some((f) => squash(f.name) === squash(c.name))) feats.push({ name: c.name, track: t.title });
+            if (!feats.some((f) => squash(f.name) === squash(c.name))) feats.push({ name: c.name, track: t.title, key: normName(c.name) });
           }
         }
       };

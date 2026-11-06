@@ -214,13 +214,18 @@ import Layout from '../layouts/Layout.astro';
     if (!artist) return fail('Cet artiste n’est pas (encore) dans le catalogue.');
     const a = artist as ArtistLite & { deezer_id: number | null };
 
-    const [releases, feats, related, followers, follows] = await Promise.all([
+    // Invité sur un titre d'album (supabase/release-track-feats.sql) : nom tel qu'écrit chez Deezer, ou nom réduit
+    const featKey = a.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+    const trackFeatCols = 'feats, release:releases(id, title, slug, cover_url, release_date, artist:artists!artist_id(id, name))';
+    const [releases, feats, related, followers, follows, trackByName, trackByKey] = await Promise.all([
       supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, deezer_url, metadata').eq('artist_id', a.id).order('release_date', { ascending: false }).limit(300),
       // Sorties où il est invité (le nom figure dans metadata.featuring)
       supabase.from('releases').select('id, title, slug, cover_url, release_type, release_date, artist:artists!artist_id(name)').filter('metadata->featuring', 'cs', JSON.stringify([a.name])).order('release_date', { ascending: false }).limit(24),
       supabase.from('artist_relations').select(`rank, related:artists!artist_relations_related_id_fkey(${ARTIST_LITE})`).eq('artist_id', a.id).order('rank').limit(12),
       supabase.from('follows').select('*', { count: 'exact', head: true }).eq('artist_id', a.id),
       myFollows().catch(() => [] as ArtistLite[]),
+      supabase.from('release_track_feats' as never).select(trackFeatCols).filter('feats', 'cs', JSON.stringify([{ name: a.name }])).limit(24),
+      supabase.from('release_track_feats' as never).select(trackFeatCols).filter('feats', 'cs', JSON.stringify([{ key: featKey }])).limit(24),
     ]);
     const followed = new Set(follows.map((f) => f.id));
     const isFollowing = followed.has(a.id);
@@ -244,8 +249,23 @@ import Layout from '../layouts/Layout.astro';
     renderAnnouncements(a).catch((err) => console.warn('Annonces indisponibles :', err));
     renderDiscography(a, (releases.data ?? []) as any[]).catch((err) => console.warn('Discographie indisponible :', err));
     const featRows = (feats.data ?? []) as any[];
-    if (featRows.length) {
-      $('a-feats').innerHTML = featRows.map((r) => releaseTileHtml(r, { badge: r.release_date?.slice(0, 4) })).join('');
+    // Titres d'album où il est invité : une tuile par titre, qui ouvre la fiche du disque sur ce titre
+    const seenRelease = new Set(featRows.map((r) => r.id));
+    const trackTiles = [...((trackByName.data ?? []) as any[]), ...((trackByKey.data ?? []) as any[])]
+      .filter((t) => t.release && t.release.artist?.id !== a.id && !seenRelease.has(t.release.id) && !!seenRelease.add(t.release.id))
+      .map((t) => {
+        const hit = (t.feats as { name: string; track: string; key?: string }[]).find((f) => f.name === a.name || f.key === featKey || f.name.toLowerCase() === a.name.toLowerCase());
+        return { t, track: hit?.track ?? t.release.title };
+      })
+      .sort((x, y) => String(y.t.release.release_date).localeCompare(String(x.t.release.release_date)))
+      .map(({ t, track }) =>
+        releaseTileHtml(
+          { title: track, slug: t.release.slug, cover_url: t.release.cover_url, release_type: '', artist: { name: `${t.release.artist?.name ?? ''} · dans « ${t.release.title} »` } },
+          { badge: t.release.release_date?.slice(0, 4), track }
+        )
+      );
+    if (featRows.length || trackTiles.length) {
+      $('a-feats').innerHTML = [...trackTiles, ...featRows.map((r) => releaseTileHtml(r, { badge: r.release_date?.slice(0, 4) }))].join('');
       $('a-feats-block').hidden = false;
     }
     const similar = ((related.data ?? []) as any[]).map((r) => r.related).filter(Boolean) as ArtistLite[];
