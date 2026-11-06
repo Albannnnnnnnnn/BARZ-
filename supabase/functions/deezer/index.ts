@@ -190,6 +190,28 @@ async function searchDeezer(q: string) {
   });
 }
 
+// Titre noté pour la première fois : son disque est ajouté au catalogue (importAlbum), puis le titre (supabase/track-ratings.sql)
+async function importTrack(trackId: number): Promise<{ id: string; releaseId: string; slug: string } | { error: string }> {
+  const known = await admin.from('tracks').select('id, release:releases(id, slug)').eq('deezer_id', trackId).maybeSingle();
+  if (known.error) return { error: 'Les notes de titres ne sont pas encore activées.' };
+  if (known.data) return { id: known.data.id, releaseId: (known.data as any).release?.id, slug: (known.data as any).release?.slug };
+  const track = await deezerJson(`/track/${trackId}`);
+  if (!track?.id || track.error || !track.album?.id) return { error: 'Titre introuvable sur Deezer.' };
+  const release = await importAlbum(track.album.id);
+  if ('error' in release) return release;
+  const feats = ((track.contributors ?? []) as any[]).filter((c) => c.id !== track.artist?.id).map((c) => c.name);
+  const { data, error } = await admin
+    .from('tracks')
+    .upsert(
+      { deezer_id: track.id, release_id: release.id, title: track.title, position: track.track_position ?? null, duration: track.duration ?? null, artist_name: track.artist?.name ?? null, feats },
+      { onConflict: 'deezer_id' }
+    )
+    .select('id')
+    .single();
+  if (error || !data) return { error: error?.message ?? 'Impossible d’ajouter ce titre.' };
+  return { id: data.id, releaseId: release.id, slug: release.slug };
+}
+
 // Artistes Deezer qui portent exactement ce nom : pour corriger un homonyme suivi par erreur
 async function homonyms(name: string) {
   const wanted = compact(name);
@@ -269,7 +291,14 @@ Deno.serve(async (req) => {
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
   const { data: auth } = await admin.auth.getUser(jwt);
   const me = auth?.user?.id;
-  if (!me) return reply({ error: body.action === 'import-album' ? 'Connecte-toi pour noter ce disque.' : 'Connecte-toi pour relier Deezer.' }, 401);
+  if (!me) return reply({ error: body.action === 'import-album' ? 'Connecte-toi pour noter ce disque.' : body.action === 'import-track' ? 'Connecte-toi pour noter ce titre.' : 'Connecte-toi pour relier Deezer.' }, 401);
+
+  if (body.action === 'import-track') {
+    const id = Number(body.deezerTrackId);
+    if (!Number.isInteger(id) || id <= 0) return reply({ error: 'Titre Deezer inconnu.' }, 400);
+    const result = await importTrack(id);
+    return 'error' in result ? reply(result, 400) : reply(result);
+  }
 
   if (body.action === 'import-album') {
     const id = Number(body.deezerAlbumId);

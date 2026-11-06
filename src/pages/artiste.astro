@@ -254,14 +254,14 @@ import Layout from '../layouts/Layout.astro';
     const trackTiles = [...((trackByName.data ?? []) as any[]), ...((trackByKey.data ?? []) as any[])]
       .filter((t) => t.release && t.release.artist?.id !== a.id && !seenRelease.has(t.release.id) && !!seenRelease.add(t.release.id))
       .map((t) => {
-        const hit = (t.feats as { name: string; track: string; key?: string }[]).find((f) => f.name === a.name || f.key === featKey || f.name.toLowerCase() === a.name.toLowerCase());
-        return { t, track: hit?.track ?? t.release.title };
+        const hit = (t.feats as { name: string; track: string; key?: string; trackId?: number }[]).find((f) => f.name === a.name || f.key === featKey || f.name.toLowerCase() === a.name.toLowerCase());
+        return { t, track: hit?.track ?? t.release.title, trackId: hit?.trackId ?? null };
       })
       .sort((x, y) => String(y.t.release.release_date).localeCompare(String(x.t.release.release_date)))
-      .map(({ t, track }) =>
+      .map(({ t, track, trackId }) =>
         releaseTileHtml(
           { title: track, slug: t.release.slug, cover_url: t.release.cover_url, release_type: '', artist: { name: `${t.release.artist?.name ?? ''} · dans « ${t.release.title} »` } },
-          { badge: t.release.release_date?.slice(0, 4), track }
+          { badge: t.release.release_date?.slice(0, 4), track, trackId }
         )
       );
     if (featRows.length || trackTiles.length) {

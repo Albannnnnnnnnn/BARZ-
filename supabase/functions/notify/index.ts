@@ -130,7 +130,7 @@ type ReleaseRow = {
   artist_id: string | null;
   metadata: { featuring?: string[] } | null;
   artist: { name: string } | null;
-  trackFeats?: { name: string; track: string }[]; // invités sur un titre de l'album (release_track_feats)
+  trackFeats?: { name: string; track: string; trackId?: number }[]; // invités sur un titre de l'album (release_track_feats)
 };
 
 // Tous les invités d'une sortie : ceux de la sortie, puis ceux des titres de l'album
@@ -138,11 +138,11 @@ const featsOf = (r: ReleaseRow) => [...(r.metadata?.featuring ?? []), ...(r.trac
 
 // Invités titre par titre (supabase/release-track-feats.sql), ajoutés aux sorties lues
 async function withTrackFeats(rows: ReleaseRow[]): Promise<ReleaseRow[]> {
-  const byId = new Map<string, { name: string; track: string }[]>();
+  const byId = new Map<string, { name: string; track: string; trackId?: number }[]>();
   for (let i = 0; i < rows.length; i += 100) {
     const { data, error } = await admin.from('release_track_feats').select('release_id, feats').in('release_id', rows.slice(i, i + 100).map((r) => r.id));
     if (error) return rows; // table absente : seulement les invités de la sortie
-    for (const d of (data ?? []) as { release_id: string; feats: { name: string; track: string }[] }[]) byId.set(d.release_id, d.feats ?? []);
+    for (const d of (data ?? []) as { release_id: string; feats: { name: string; track: string; trackId?: number }[] }[]) byId.set(d.release_id, d.feats ?? []);
   }
   return rows.map((r) => ({ ...r, trackFeats: byId.get(r.id) }));
 }
@@ -171,10 +171,10 @@ function matchFollowed(all: ReleaseRow[], u: { ids: Set<string>; names: Map<stri
 
 // Plusieurs sorties : la page qui n'affiche qu'elles (src/pages/selection.astro) ; onTrack : pour une sortie où l'artiste
 // suivi est invité sur un titre de l'album, ce titre et son nom (la tuile le dit et ouvre la fiche sur ce titre)
-function selectionUrl(rows: ReleaseRow[], onTrack?: (r: ReleaseRow) => { name: string; track: string } | undefined): string {
+function selectionUrl(rows: ReleaseRow[], onTrack?: (r: ReleaseRow) => { name: string; track: string; trackId?: number } | undefined): string {
   const list = rows.slice(0, 100);
   const clean = (t: string) => t.replace(/[|;]/g, ' ').slice(0, 120);
-  const hints = onTrack ? list.map((r) => [r, onTrack(r)] as const).filter(([, h]) => h).map(([r, h]) => `${r.id}|${clean(h!.track)}|${clean(h!.name)}`) : [];
+  const hints = onTrack ? list.map((r) => [r, onTrack(r)] as const).filter(([, h]) => h).map(([r, h]) => `${r.id}|${clean(h!.track)}|${clean(h!.name)}|${h!.trackId ?? ''}`) : [];
   return `${SITE}selection?ids=${list.map((r) => r.id).join(',')}${hints.length ? `&t=${encodeURIComponent(hints.join(';'))}` : ''}`;
 }
 
@@ -183,7 +183,7 @@ function trackFeatFor(r: ReleaseRow, u: { ids: Set<string>; names: Map<string, s
   if (!u || (r.artist_id && u.ids.has(r.artist_id))) return undefined;
   if ((r.metadata?.featuring ?? []).some((n) => u.names.has(normName(n)))) return undefined;
   const hit = (r.trackFeats ?? []).find((f) => u.names.has(normName(f.name)));
-  return hit ? { name: u.names.get(normName(hit.name)) ?? hit.name, track: hit.track } : undefined;
+  return hit ? { name: u.names.get(normName(hit.name)) ?? hit.name, track: hit.track, trackId: hit.trackId } : undefined;
 }
 
 // Sorties déjà annoncées, pour ne jamais notifier deux fois
@@ -217,7 +217,7 @@ async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string
           const u = byUser.get(userId);
           if (mine.length > 1) return selectionUrl(mine, (r) => trackFeatFor(r, u));
           const hit = trackFeatFor(mine[0], u);
-          return `${SITE}releases/${mine[0].slug}/${hit ? `?titre=${encodeURIComponent(hit.track)}` : ''}`;
+          return hit?.trackId ? `${SITE}son?id=${hit.trackId}` : `${SITE}releases/${mine[0].slug}/${hit ? `?titre=${encodeURIComponent(hit.track)}` : ''}`;
         })(),
         tag: `friday-${today}`,
       });
@@ -270,7 +270,7 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
         body: onTrack
           ? `Sur « ${onTrack.track} », dans « ${r.title ?? 'le nouvel album'} »${r.artist?.name ? ` de ${r.artist.name}` : ''}. À écouter sur BARZ¡.`
           : `« ${r.title ?? 'Nouvelle sortie'} »${feat && r.artist?.name ? ` de ${r.artist.name}` : ''} vient de sortir. À écouter sur BARZ¡.`,
-        url: `${SITE}releases/${r.slug}/${onTrack ? `?titre=${encodeURIComponent(onTrack.track)}` : ''}`,
+        url: onTrack?.trackId ? `${SITE}son?id=${onTrack.trackId}` : `${SITE}releases/${r.slug}/${onTrack ? `?titre=${encodeURIComponent(onTrack.track)}` : ''}`,
         tag: `release-${r.id}`,
       });
     } else {
@@ -338,7 +338,7 @@ async function collectTrackFeats(today: string): Promise<number> {
       const disco = await deezer(`/artist/${r.artist.deezer_id}/albums?limit=100`);
       albumId = ((disco?.data ?? []) as any[]).find((a) => squash(a.title) === squash(r.title))?.id ?? null;
     }
-    const feats: { name: string; track: string; key: string }[] = [];
+    const feats: { name: string; track: string; key: string; trackId: number }[] = [];
     if (albumId) {
       const tracks = (((await deezer(`/album/${albumId}/tracks?limit=100`))?.data ?? []) as any[]).slice(0, 40);
       const queue = [...tracks];
@@ -347,7 +347,7 @@ async function collectTrackFeats(today: string): Promise<number> {
           const detail = await deezer(`/track/${t.id}`);
           for (const c of (detail?.contributors ?? []) as { id: number; name: string }[]) {
             if (c.id === r.artist?.deezer_id || c.id === t.artist?.id || squash(c.name) === squash(r.artist?.name ?? '')) continue;
-            if (!feats.some((f) => squash(f.name) === squash(c.name))) feats.push({ name: c.name, track: t.title, key: normName(c.name) });
+            if (!feats.some((f) => squash(f.name) === squash(c.name))) feats.push({ name: c.name, track: t.title, key: normName(c.name), trackId: t.id });
           }
         }
       };

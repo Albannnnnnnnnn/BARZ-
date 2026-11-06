@@ -29,7 +29,7 @@ const findOnDeezer = !deezerId && !dynamic && !!artist;
 )}
 
 <script>
-  import { escapeHtml } from '../scripts/social';
+  import { BASE, escapeHtml } from '../scripts/social';
 
   type Track = { id: number; title: string; duration: number; preview: string; readable: boolean; artist?: { id: number }; feats?: string[] };
 
@@ -97,6 +97,7 @@ const findOnDeezer = !deezerId && !dynamic && !!artist;
               <span class="track-title">${escapeHtml(t.title)}${t.feats?.length ? ` <small class="track-feat">feat. ${escapeHtml(t.feats.join(', '))}</small>` : ''}</span>
               <span class="track-time">${playable ? duration(t.duration) : 'Pas d’extrait'}</span>
             </button>
+            <a class="track-rate" href="${BASE}son?id=${t.id}" aria-label="${escapeHtml(`Noter ${t.title}`)}">Noter</a>
             <span class="track-bar" aria-hidden="true"><i></i></span>
           </li>`;
         })
@@ -243,7 +244,31 @@ const findOnDeezer = !deezerId && !dynamic && !!artist;
 
   .previews :global(.track) {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     border-bottom: 1px solid var(--color-border);
+  }
+
+  .previews :global(.track-button) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Page du titre (src/pages/son.astro) : le noter à part */
+  .previews :global(.track-rate) {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border: 2px solid var(--color-ink);
+    border-radius: 8px;
+    font: 800 11px/1 var(--font-display);
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .previews :global(.track-rate:hover) {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
   }
 
   .previews :global(.track-button) {

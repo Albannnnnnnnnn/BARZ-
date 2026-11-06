@@ -1,0 +1,444 @@
+---
+// PAGE D'UN TITRE (son?id=<id Deezer du titre>) : l'extrait, les invités, et la note des membres pour ce seul morceau.
+// Tout est lu dans le navigateur : le titre chez Deezer (JSONP), les notes dans Supabase (supabase/track-ratings.sql).
+// Le premier membre qui le note l'ajoute au catalogue avec son disque (fonction deezer, action import-track).
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Titre" description="Un titre : son extrait, ses invités et les notes des membres.">
+  <div class="bz-page">
+    <a class="back" id="tr-back" href="/BARZ-/">← Sorties</a>
+    <p class="bz-notice" id="tr-status">Chargement…</p>
+
+    <section class="hero" id="tr-hero" hidden>
+      <div class="hero-art" id="tr-art"></div>
+      <div class="info">
+        <span class="bz-eyebrow" id="tr-eyebrow"></span>
+        <h1 class="bz-display" id="tr-title"></h1>
+        <p class="who"><a class="artist" id="tr-artist"></a><span class="feats" id="tr-feats"></span></p>
+        <dl class="facts" id="tr-facts"></dl>
+        <div class="actions">
+          <button type="button" class="bz-btn bz-btn--lime play" id="tr-play" hidden>▶ Écouter l’extrait</button>
+          <a class="bz-btn bz-btn--outline" id="tr-album">Voir le disque</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="ratings" id="tr-ratings" hidden aria-labelledby="ratings-title">
+      <div class="bz-section-head">
+        <h2 id="ratings-title" class="bz-h2">Les <em>notes</em></h2>
+        <span class="avg" id="tr-avg"></span>
+      </div>
+      <form class="rate-form" id="tr-form" hidden>
+        <label class="bz-field">
+          Ta note
+          <span class="score-row">
+            <input type="range" name="score" min="0" max="10" step="0.5" value="7" aria-label="Ta note sur 10" />
+            <output name="score-out">7.0</output>
+          </span>
+        </label>
+        <label class="bz-field">
+          <span>Un mot <span class="optional">(facultatif)</span></span>
+          <input class="bz-input" name="body" maxlength="280" placeholder="Le refrain, le couplet du feat, la prod…" autocomplete="off" />
+        </label>
+        <p class="bz-notice" id="tr-message" hidden></p>
+        <div class="form-actions">
+          <button type="submit" class="bz-btn bz-btn--lime bz-btn--small" id="tr-submit">Publier ma note</button>
+          <button type="button" class="bz-link" id="tr-delete" hidden>Retirer ma note</button>
+        </div>
+      </form>
+      <a class="bz-notice login-hint" id="tr-login" href="/BARZ-/connexion" hidden>Connecte-toi pour noter ce titre →</a>
+      <ul class="rating-list" id="tr-list"></ul>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { deezerJsonp } from '../scripts/deezer-jsonp';
+  import { BASE, avatarUrl, coverHtml, errorText, escapeHtml, formatScore, getSession, loginUrl, supabase, timeAgo } from '../scripts/social';
+
+  type DeezerTrack = {
+    id: number;
+    title: string;
+    duration: number;
+    preview: string;
+    readable: boolean;
+    track_position?: number;
+    release_date?: string;
+    link?: string;
+    artist?: { id: number; name: string };
+    contributors?: { id: number; name: string }[];
+    album?: { id: number; title: string; cover_xl?: string; cover_big?: string };
+    error?: unknown;
+  };
+  type Rating = { user_id: string; score: number; body: string; created_at: string; profile: { username: string; display_name: string; avatar_path: string | null } | null };
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const status = $('tr-status');
+  const form = $('tr-form') as HTMLFormElement;
+  const message = $('tr-message');
+  const trackDeezerId = Number(new URLSearchParams(location.search).get('id'));
+  let trackId: string | null = null; // ligne de tracks (null tant que personne ne l'a noté)
+  let myId: string | null = null;
+
+  const fail = (text: string) => {
+    status.textContent = text;
+    status.className = 'bz-notice bz-notice--error';
+  };
+  const showMessage = (text: string, kind: 'ok' | 'error') => {
+    message.textContent = text;
+    message.className = `bz-notice bz-notice--${kind}`;
+    message.hidden = false;
+  };
+  const scoreInput = () => form.elements.namedItem('score') as HTMLInputElement;
+  const bodyInput = () => form.elements.namedItem('body') as HTMLInputElement;
+
+  async function renderRatings() {
+    const list = $('tr-list');
+    if (!trackId || !supabase) {
+      list.innerHTML = '<li class="bz-empty">Personne n’a encore noté ce titre. Donne la première note.</li>';
+      $('tr-avg').textContent = '';
+      return;
+    }
+    const { data } = await supabase
+      .from('track_ratings' as never)
+      .select('user_id, score, body, created_at, profile:profiles!track_ratings_user_id_fkey(username, display_name, avatar_path)')
+      .eq('track_id', trackId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    const rows = (data ?? []) as unknown as Rating[];
+    $('tr-avg').textContent = rows.length ? `${formatScore(rows.reduce((s, r) => s + Number(r.score), 0) / rows.length)} / 10 · ${rows.length} note${rows.length > 1 ? 's' : ''}` : '';
+    list.innerHTML = rows.length
+      ? rows
+          .map((r) => {
+            const name = r.profile?.display_name ?? 'Membre';
+            const href = r.profile ? `${BASE}profil?u=${encodeURIComponent(r.profile.username)}` : '#';
+            const avatar = r.profile?.avatar_path ? `<img src="${escapeHtml(avatarUrl(r.profile.avatar_path))}" alt="" loading="lazy" />` : escapeHtml(name[0] ?? '?');
+            return `<li class="rating">
+              <a class="barz-avatar" href="${href}">${avatar}</a>
+              <div class="rating-main">
+                <div class="rating-head"><a href="${href}"><b>${escapeHtml(name)}</b></a><span>${escapeHtml(timeAgo(r.created_at))}</span><span class="bz-score">★ ${formatScore(r.score)}</span></div>
+                ${r.body.trim() ? `<p>${escapeHtml(r.body)}</p>` : ''}
+              </div>
+            </li>`;
+          })
+          .join('')
+      : '<li class="bz-empty">Personne n’a encore noté ce titre. Donne la première note.</li>';
+    const mine = rows.find((r) => r.user_id === myId);
+    if (mine) {
+      scoreInput().value = String(mine.score);
+      (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(mine.score);
+      bodyInput().value = mine.body;
+      $('tr-submit').textContent = 'Modifier ma note';
+    }
+    $('tr-delete').hidden = !mine;
+  }
+
+  async function load() {
+    if (!Number.isInteger(trackDeezerId) || trackDeezerId <= 0 || !supabase) return fail('Titre inconnu.');
+    const track = await deezerJsonp<DeezerTrack>(`/track/${trackDeezerId}`).catch(() => null);
+    if (!track || track.error || !track.title) return fail('Titre introuvable sur Deezer.');
+
+    // Déjà noté : sa ligne au catalogue ; le disque : sa fiche si elle existe, sinon la page album
+    const [{ data: known }, { data: release }, { data: artist }] = await Promise.all([
+      supabase.from('tracks' as never).select('id').eq('deezer_id', trackDeezerId).maybeSingle(),
+      track.album ? supabase.from('releases').select('slug, metadata').eq('deezer_url', `https://www.deezer.com/album/${track.album.id}`).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from('artists').select('slug').eq('deezer_id', track.artist?.id ?? 0).maybeSingle(),
+    ]);
+    trackId = (known as { id: string } | null)?.id ?? null;
+    const rel = release as { slug: string; metadata: { archive?: boolean } | null } | null;
+    const albumHref = rel && !rel.metadata?.archive
+      ? `${BASE}releases/${encodeURIComponent(rel.slug)}/?titre=${encodeURIComponent(track.title)}`
+      : track.album ? `${BASE}album?d=${track.album.id}` : null;
+
+    const artistName = track.artist?.name ?? '';
+    const artistHref = artist ? `${BASE}artiste?a=${encodeURIComponent((artist as any).slug)}` : `${BASE}artiste?nom=${encodeURIComponent(artistName)}`;
+    document.title = `${track.title} — ${artistName} | BARZ¡`;
+    const back = $('tr-back') as HTMLAnchorElement;
+    if (albumHref && track.album) {
+      back.href = albumHref;
+      back.textContent = `← ${track.album.title}`;
+    }
+    $('tr-art').innerHTML = coverHtml(track.album?.title ?? track.title, track.album?.cover_xl ?? track.album?.cover_big ?? null);
+    $('tr-eyebrow').textContent = track.album ? `Titre${track.track_position ? ` ${track.track_position}` : ''} · ${track.album.title}` : 'Titre';
+    $('tr-title').textContent = track.title;
+    $('tr-title').style.setProperty('--mot', String(Math.max(7, ...track.title.split(/\s+/).map((w) => w.length))));
+    const artistLink = $('tr-artist') as HTMLAnchorElement;
+    artistLink.textContent = artistName;
+    artistLink.href = artistHref;
+    const feats = (track.contributors ?? []).filter((c) => c.id !== track.artist?.id).map((c) => c.name);
+    $('tr-feats').innerHTML = feats.length
+      ? ` feat. ${feats.map((n) => `<a href="${BASE}artiste?nom=${encodeURIComponent(n)}">${escapeHtml(n)}</a>`).join(', ')}`
+      : '';
+    const facts = [
+      track.duration ? ['Durée', `${Math.floor(track.duration / 60)}:${String(track.duration % 60).padStart(2, '0')}`] : null,
+      track.release_date ? ['Sorti le', new Date(`${track.release_date}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })] : null,
+    ].filter(Boolean) as [string, string][];
+    $('tr-facts').innerHTML = facts.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('');
+    const albumLink = $('tr-album') as HTMLAnchorElement;
+    if (albumHref) albumLink.href = albumHref;
+    else albumLink.hidden = true;
+
+    // Extrait de 30 secondes
+    if (track.readable && track.preview) {
+      const audio = new Audio(track.preview);
+      const play = $('tr-play') as HTMLButtonElement;
+      play.hidden = false;
+      play.onclick = () => (audio.paused ? audio.play().catch(() => {}) : audio.pause());
+      audio.onplay = () => (play.textContent = '❚❚ Pause');
+      audio.onpause = audio.onended = () => (play.textContent = '▶ Écouter l’extrait');
+    }
+
+    status.hidden = true;
+    $('tr-hero').hidden = false;
+    const session = await getSession();
+    myId = session?.user.id ?? null;
+    form.hidden = !session;
+    const hint = $('tr-login') as HTMLAnchorElement;
+    hint.hidden = !!session;
+    hint.href = loginUrl();
+    $('tr-ratings').hidden = false;
+    await renderRatings();
+  }
+
+  form.addEventListener('input', () => {
+    (form.elements.namedItem('score-out') as HTMLOutputElement).value = formatScore(Number(scoreInput().value));
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const session = await getSession();
+    if (!session || !supabase) return void (location.href = loginUrl());
+    const button = $('tr-submit') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      // Premier à noter : le titre (et son disque) entrent au catalogue
+      if (!trackId) {
+        const { data, error } = await supabase.functions.invoke('deezer', { body: { action: 'import-track', deezerTrackId: trackDeezerId } });
+        if (error || !data?.id) {
+          const detail = await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+          throw new Error(detail?.error ?? 'Impossible d’ajouter ce titre pour l’instant.');
+        }
+        trackId = data.id as string;
+      }
+      const { error } = await supabase
+        .from('track_ratings' as never)
+        .upsert({ user_id: session.user.id, track_id: trackId, score: Number(scoreInput().value), body: bodyInput().value.trim().slice(0, 280), created_at: new Date().toISOString() } as never, { onConflict: 'user_id,track_id' });
+      if (error) throw error;
+      showMessage('Note publiée !', 'ok');
+      await renderRatings();
+    } catch (err) {
+      showMessage(errorText(err), 'error');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('tr-delete').addEventListener('click', async () => {
+    if (!trackId || !myId || !supabase || !confirm('Retirer ta note ?')) return;
+    const { error } = await supabase.from('track_ratings' as never).delete().eq('track_id', trackId).eq('user_id', myId);
+    if (error) return showMessage(errorText(error), 'error');
+    bodyInput().value = '';
+    $('tr-submit').textContent = 'Publier ma note';
+    message.hidden = true;
+    await renderRatings();
+  });
+
+  load().catch((err) => fail(errorText(err)));
+</script>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 48px;
+    align-items: center;
+  }
+
+  .hero-art {
+    padding: 22px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-accent);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .info {
+    min-width: 0;
+    container-type: inline-size;
+    width: 100%;
+  }
+
+  .info .bz-display {
+    font-size: clamp(26px, calc(100cqi / (var(--mot, 8) * 0.9)), 72px);
+    overflow-wrap: break-word;
+  }
+
+  .who {
+    margin: 14px 0 6px;
+    font: 700 18px/1.4 var(--font-sans);
+  }
+
+  .artist {
+    color: var(--color-text);
+  }
+
+  .feats {
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .feats :global(a) {
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    margin: 20px 0;
+    padding: 16px 0;
+    border-top: var(--line);
+  }
+
+  .facts :global(dt) {
+    font: 700 11px/1 var(--font-sans);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .facts :global(dd) {
+    margin-top: 6px;
+    font: 800 16px/1.2 var(--font-display);
+    text-transform: uppercase;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .ratings {
+    margin-top: 56px;
+    max-width: 760px;
+  }
+
+  .avg {
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+
+  .rate-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .score-row input {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+
+  .score-row output {
+    font: 800 18px/1 var(--font-display);
+    color: var(--color-accent);
+  }
+
+  .form-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .login-hint {
+    display: block;
+    margin-bottom: 20px;
+    color: var(--color-accent) !important;
+    font-weight: 600;
+  }
+
+  .rating-list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rating-list :global(.rating) {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+  }
+
+  .rating-list :global(.rating-main) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rating-list :global(.rating-head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 14px;
+  }
+
+  .rating-list :global(.rating-head span:not(.bz-score)) {
+    color: var(--color-text-muted);
+  }
+
+  .rating-list :global(.rating-head .bz-score) {
+    margin-left: auto;
+  }
+
+  .rating-list :global(p) {
+    margin: 6px 0 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hero[hidden],
+  .ratings[hidden],
+  .rate-form[hidden],
+  .login-hint[hidden],
+  .bz-notice[hidden],
+  .play[hidden] {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+    }
+    .hero-art {
+      max-width: 260px;
+      padding: 16px;
+    }
+  }
+</style>

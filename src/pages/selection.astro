@@ -1,7 +1,7 @@
 ---
 // SÉLECTION : seulement les sorties d'une notification (« 3 sorties de tes artistes »)
 // Le lien porte leurs identifiants : selection?ids=uuid,uuid,… (écrit par supabase/functions/notify)
-// t=uuid|titre|invité;… : l'artiste suivi est invité sur un titre de ce disque ; la tuile le dit et ouvre la fiche sur ce titre
+// t=uuid|titre|invité|numéro Deezer du titre;… : l'artiste suivi est invité sur un titre de ce disque ; la tuile le dit et ouvre la fiche sur ce titre
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -22,10 +22,10 @@ import Layout from '../layouts/Layout.astro';
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const ids = [...new Set((new URLSearchParams(location.search).get('ids') ?? '').split(',').filter((id) => UUID.test(id)))].slice(0, 100);
   // Invités sur un titre d'album : identifiant de la sortie → titre et nom de l'invité
-  const onTrack = new Map<string, { track: string; name: string }>();
+  const onTrack = new Map<string, { track: string; name: string; trackId?: number }>();
   for (const part of (new URLSearchParams(location.search).get('t') ?? '').split(';')) {
-    const [id, track, name] = part.split('|');
-    if (UUID.test(id ?? '') && track) onTrack.set(id, { track: track.slice(0, 200), name: (name ?? '').slice(0, 100) });
+    const [id, track, name, trackId] = part.split('|');
+    if (UUID.test(id ?? '') && track) onTrack.set(id, { track: track.slice(0, 200), name: (name ?? '').slice(0, 100), trackId: Number(trackId) || undefined });
   }
   const status = document.getElementById('sel-status')!;
   const tiles = document.getElementById('sel-tiles')!;
@@ -56,12 +56,12 @@ import Layout from '../layouts/Layout.astro';
           const followedIds = new Set(follows.map((a) => a.id));
           const names = new Map(follows.map((a) => [normName(a.name), a.name]));
           const { data: feats } = await supabase!.from('release_track_feats' as never).select('release_id, feats').in('release_id', rows.map((r) => r.id));
-          for (const f of (feats ?? []) as { release_id: string; feats: { name: string; track: string }[] }[]) {
+          for (const f of (feats ?? []) as { release_id: string; feats: { name: string; track: string; trackId?: number }[] }[]) {
             const row = rows.find((r) => r.id === f.release_id);
             if (!row || (row.artist_id && followedIds.has(row.artist_id))) continue;
             if ((row.metadata?.featuring ?? []).some((n) => names.has(normName(n)))) continue;
             const hit = (f.feats ?? []).find((x) => names.has(normName(x.name)));
-            if (hit) onTrack.set(row.id, { track: hit.track, name: names.get(normName(hit.name)) ?? hit.name });
+            if (hit) onTrack.set(row.id, { track: hit.track, name: names.get(normName(hit.name)) ?? hit.name, trackId: hit.trackId });
           }
         }
         document.getElementById('sel-title')!.innerHTML = `${rows.length} sortie${rows.length > 1 ? 's' : ''} de <em>tes artistes.</em>`;
@@ -69,7 +69,7 @@ import Layout from '../layouts/Layout.astro';
         tiles.innerHTML = rows
           .map((r) => {
             const hint = onTrack.get(r.id);
-            return releaseTileHtml({ ...r, featuring: r.metadata?.featuring }, hint ? { track: hint.track, reason: `${hint.name ? `${hint.name} sur` : 'Sur'} « ${hint.track} »` } : {});
+            return releaseTileHtml({ ...r, featuring: r.metadata?.featuring }, hint ? { track: hint.track, trackId: hint.trackId, reason: `${hint.name ? `${hint.name} sur` : 'Sur'} « ${hint.track} »` } : {});
           })
           .join('');
       });

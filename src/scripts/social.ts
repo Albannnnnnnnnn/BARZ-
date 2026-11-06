@@ -469,11 +469,13 @@ export function wireFollowButtons(container: HTMLElement, onChange?: (artistId: 
 const TYPE_LABELS: Record<string, string> = { album: 'Album', ep: 'EP', compilation: 'Compilation', single: 'Single', live: 'Live', remix: 'Remix', soundtrack: 'B.O.' };
 
 // Vignette album (même rendu que AlbumTile.astro), avec une raison de reco facultative
-export function releaseTileHtml(r: { title: string; slug: string; cover_url: string | null; release_type: string; artist?: { name: string } | null; featuring?: string[] }, options: { badge?: string; reason?: string; track?: string } = {}): string {
+export function releaseTileHtml(r: { title: string; slug: string; cover_url: string | null; release_type: string; artist?: { name: string } | null; featuring?: string[] }, options: { badge?: string; reason?: string; track?: string; trackId?: number | null } = {}): string {
   const feat = featLabel(r.featuring);
-  // track : la fiche s'ouvre sur ce titre du disque, mis en évidence dans le lecteur
-  const query = options.track ? `?titre=${encodeURIComponent(options.track)}` : '';
-  return `<a class="bz-ctile" href="${BASE}releases/${encodeURIComponent(r.slug)}/${query}">
+  // trackId : la page du titre (son?id=) ; track seul : la fiche du disque ouverte sur ce titre, mis en évidence
+  const href = options.trackId
+    ? `${BASE}son?id=${options.trackId}`
+    : `${BASE}releases/${encodeURIComponent(r.slug)}/${options.track ? `?titre=${encodeURIComponent(options.track)}` : ''}`;
+  return `<a class="bz-ctile" href="${href}">
     ${coverHtml(r.title, r.cover_url)}
     <span class="bz-ctile-row"><b>${escapeHtml(r.title)}</b>${options.badge ? `<span class="bz-score">${escapeHtml(options.badge)}</span>` : ''}</span>
     <span class="bz-ctile-sub">${escapeHtml(r.artist?.name ?? '')}${feat ? ` ${escapeHtml(feat)}` : ''}${TYPE_LABELS[r.release_type] ? ` · ${TYPE_LABELS[r.release_type]}` : ''}</span>
