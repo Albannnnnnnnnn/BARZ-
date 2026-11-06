@@ -1,0 +1,251 @@
+---
+// TRI DES ARTISTES IA (admin) : aucune source ne dit qu'un artiste est généré par IA, Alban tranche à la main.
+// En tête, les artistes signalés par les membres ; puis ceux qui sortent en rafale (4 sorties ou plus sur 14 jours),
+// des indices seulement : beaucoup sont de vrais artistes (funk brésilien notamment). « IA » retire l'artiste et ses
+// sorties de l'appli pour tout le monde (supabase/ai-hide.sql) ; « Pas IA » le sort de la liste ; « Annuler » revient en arrière.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Tri des artistes IA" description="Page d'administration : trier les artistes générés par IA.">
+  <div class="bz-page tri">
+    <span class="bz-eyebrow">Admin</span>
+    <h1 class="bz-display">Artistes <em>IA</em></h1>
+    <p class="intro">
+      « IA » retire l’artiste et toutes ses sorties de l’appli, pour tout le monde (rien n’est effacé : « Annuler » le fait revenir). « Pas IA » le sort de cette
+      liste. Les rafales ne sont qu’un indice : vérifie sur Deezer avant de trancher.
+    </p>
+    <p class="bz-notice" id="tri-status">Chargement…</p>
+
+    <section id="tri-reported" hidden>
+      <h2 class="bz-h2">Signalés par les membres</h2>
+      <ul class="rows" id="tri-reported-list"></ul>
+    </section>
+
+    <section id="tri-burst" hidden>
+      <h2 class="bz-h2">Sorties en rafale <small>14 derniers jours</small></h2>
+      <ul class="rows" id="tri-burst-list"></ul>
+    </section>
+
+    <section id="tri-done" hidden>
+      <h2 class="bz-h2">Retirés de l’appli</h2>
+      <ul class="rows" id="tri-done-list"></ul>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { BASE, escapeHtml, getSession, supabase } from '../scripts/social';
+  import { formatAudience } from '../lib/audience';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  type Artist = { id: string; name: string; slug: string; image_url: string | null; popularity: number | null; lastfm_listeners: number | null; deezer_id: number | null; ai_flag: string | null };
+  type Row = Artist & { reports: number; releases: number; labels: number; last: string | null };
+  const BURST_MIN = 4;
+  const VARIOUS = /^(various artists|multi-interprètes|artistes divers|varios artistas|verschiedene interpreten|various)$/i;
+
+  function rowHtml(r: Row) {
+    const img = r.image_url ? `<img src="${escapeHtml(r.image_url)}" alt="" loading="lazy" />` : `<span class="ph">${escapeHtml(r.name.slice(0, 1))}</span>`;
+    const facts = [
+      r.reports ? `${r.reports} signalement${r.reports > 1 ? 's' : ''}` : '',
+      r.releases ? `${r.releases} sortie${r.releases > 1 ? 's' : ''} en 14 jours${r.labels > 1 ? ` sur ${r.labels} labels` : ''}` : '',
+      formatAudience(r),
+    ].filter(Boolean);
+    const buttons =
+      r.ai_flag === 'ia'
+        ? '<button type="button" class="bz-btn bz-btn--small" data-flag="">Annuler</button>'
+        : '<button type="button" class="bz-btn bz-btn--small bz-btn--lime" data-flag="ia">IA</button><button type="button" class="bz-btn bz-btn--small" data-flag="pas_ia">Pas IA</button>';
+    return `<li class="row" data-id="${r.id}">
+      ${img}
+      <div class="who">
+        <a href="${BASE}artiste?a=${encodeURIComponent(r.slug)}"><b>${escapeHtml(r.name)}</b></a>
+        <span>${escapeHtml(facts.join(' · '))}</span>
+        ${r.deezer_id ? `<a class="bz-link" href="https://www.deezer.com/artist/${r.deezer_id}" target="_blank" rel="noopener">Voir sur Deezer ↗</a>` : ''}
+      </div>
+      <div class="actions">${buttons}</div>
+    </li>`;
+  }
+
+  // Sorties des 14 derniers jours, par pages de 1 000 (l'admin voit aussi celles des artistes déjà retirés)
+  async function recentReleases() {
+    const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
+    const rows: { artist_id: string | null; label: string | null; release_date: string }[] = [];
+    for (let offset = 0; offset < 20_000; offset += 1000) {
+      const { data, error } = await supabase!
+        .from('releases')
+        .select('artist_id, label:metadata->>label, release_date')
+        .gte('release_date', since)
+        .order('id')
+        .range(offset, offset + 999);
+      if (error) throw error;
+      rows.push(...((data ?? []) as unknown as typeof rows));
+      if (!data || data.length < 1000) break;
+    }
+    return rows;
+  }
+
+  async function load() {
+    const [reports, releases, flagged] = await Promise.all([
+      supabase!.rpc('ai_report_counts' as never),
+      recentReleases(),
+      supabase!.from('artists').select('id').eq('ai_flag', 'ia'),
+    ]);
+    if (reports.error) throw new Error('Il manque le script supabase/ai-hide.sql dans Supabase.');
+    const reportsBy = new Map(((reports.data ?? []) as { artist_id: string; reports: number }[]).map((r) => [r.artist_id, r.reports]));
+    const burst = new Map<string, { n: number; labels: Set<string>; last: string }>();
+    for (const r of releases) {
+      if (!r.artist_id) continue;
+      const b = burst.get(r.artist_id) ?? { n: 0, labels: new Set(), last: '' };
+      b.n++;
+      if (r.label) b.labels.add(r.label.toLowerCase());
+      if (r.release_date > b.last) b.last = r.release_date;
+      burst.set(r.artist_id, b);
+    }
+    const ids = new Set([
+      ...reportsBy.keys(),
+      ...[...burst].filter(([, b]) => b.n >= BURST_MIN).map(([id]) => id),
+      ...((flagged.data ?? []) as { id: string }[]).map((a) => a.id),
+    ]);
+    const artists: Artist[] = [];
+    const list = [...ids];
+    for (let i = 0; i < list.length; i += 150) {
+      const { data } = await supabase!.from('artists').select('id, name, slug, image_url, popularity, lastfm_listeners, deezer_id, ai_flag').in('id', list.slice(i, i + 150));
+      artists.push(...((data ?? []) as Artist[]));
+    }
+    const rows: Row[] = artists
+      .filter((a) => !VARIOUS.test(a.name.trim()))
+      .map((a) => {
+        const b = burst.get(a.id);
+        return { ...a, reports: reportsBy.get(a.id) ?? 0, releases: b?.n ?? 0, labels: b?.labels.size ?? 0, last: b?.last ?? null };
+      });
+    const open = rows.filter((r) => !r.ai_flag);
+    const reported = open.filter((r) => r.reports > 0).sort((a, b) => b.reports - a.reports || b.releases - a.releases);
+    const bursts = open.filter((r) => !r.reports && r.releases >= BURST_MIN).sort((a, b) => b.releases - a.releases || b.labels - a.labels);
+    const done = rows.filter((r) => r.ai_flag === 'ia').sort((a, b) => a.name.localeCompare(b.name));
+    $('tri-reported-list').innerHTML = reported.map(rowHtml).join('');
+    $('tri-burst-list').innerHTML = bursts.map(rowHtml).join('');
+    $('tri-done-list').innerHTML = done.map(rowHtml).join('');
+    $('tri-reported').hidden = !reported.length;
+    $('tri-burst').hidden = !bursts.length;
+    $('tri-done').hidden = !done.length;
+    $('tri-status').textContent = `${reported.length + bursts.length} artiste${reported.length + bursts.length > 1 ? 's' : ''} à trier, ${done.length} retiré${done.length > 1 ? 's' : ''}.`;
+  }
+
+  document.querySelector('.tri')!.addEventListener('click', async (event) => {
+    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-flag]');
+    const row = btn?.closest<HTMLElement>('[data-id]');
+    if (!btn || !row || !supabase) return;
+    row.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    const { error } = await supabase.rpc('set_ai_flag' as never, { artist: row.dataset.id, flag: btn.dataset.flag || null } as never);
+    if (error) {
+      alert(error.message);
+      row.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      return;
+    }
+    // Trié : la ligne quitte la liste (un artiste retiré passe dans « Retirés », un annulé revient au prochain chargement)
+    if (btn.dataset.flag === 'ia') {
+      row.querySelector('.actions')!.innerHTML = '<button type="button" class="bz-btn bz-btn--small" data-flag="">Annuler</button>';
+      $('tri-done-list').prepend(row);
+      $('tri-done').hidden = false;
+    } else row.remove();
+  });
+
+  getSession().then(async (session) => {
+    const status = $('tri-status');
+    if (!session || !supabase) return void (status.textContent = 'Connecte-toi avec le compte admin.');
+    const { data: isAdmin } = await supabase.rpc('is_barz_admin' as never);
+    if (!isAdmin) return void (status.textContent = 'Page réservée à l’admin.');
+    load().catch((err) => {
+      status.textContent = err instanceof Error ? err.message : String(err);
+      status.className = 'bz-notice bz-notice--error';
+    });
+  });
+</script>
+
+<style>
+  .tri {
+    max-width: 820px;
+  }
+
+  .intro {
+    margin: 18px 0 20px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+
+  section {
+    margin-top: 40px;
+  }
+
+  h2 small {
+    font: 600 13px/1 var(--font-sans);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rows :global(.row) {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+  }
+
+  .rows :global(.row img),
+  .rows :global(.row .ph) {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: grid;
+    place-items: center;
+    background: var(--color-bg-elevated);
+    font-weight: 800;
+  }
+
+  .rows :global(.who) {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .rows :global(.who span) {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .rows :global(.who .bz-link) {
+    font-size: 13px;
+  }
+
+  .rows :global(.actions) {
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+
+  @media (max-width: 560px) {
+    .rows :global(.row) {
+      flex-wrap: wrap;
+    }
+    .rows :global(.actions) {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+</style>

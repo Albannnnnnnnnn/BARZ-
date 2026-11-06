@@ -136,8 +136,18 @@ type ReleaseRow = {
 // Tous les invités d'une sortie : ceux de la sortie, puis ceux des titres de l'album
 const featsOf = (r: ReleaseRow) => [...(r.metadata?.featuring ?? []), ...(r.trackFeats ?? []).map((f) => f.name)];
 
-// Invités titre par titre (supabase/release-track-feats.sql), ajoutés aux sorties lues
-async function withTrackFeats(rows: ReleaseRow[]): Promise<ReleaseRow[]> {
+// Artistes marqués IA par l'admin (supabase/ai-hide.sql) : masqués partout, jamais annoncés. La clé service_role
+// passe outre les règles RLS qui les cachent, d'où ce filtre ici
+async function withoutAi(rows: ReleaseRow[]): Promise<ReleaseRow[]> {
+  const { data, error } = await admin.from('artists').select('id').eq('ai_flag', 'ia').limit(5000);
+  if (error || !data?.length) return rows;
+  const ai = new Set(data.map((a) => a.id as string));
+  return rows.filter((r) => !r.artist_id || !ai.has(r.artist_id));
+}
+
+// Invités titre par titre (supabase/release-track-feats.sql), ajoutés aux sorties lues (sans les artistes IA)
+async function withTrackFeats(input: ReleaseRow[]): Promise<ReleaseRow[]> {
+  const rows = await withoutAi(input);
   const byId = new Map<string, { name: string; track: string; trackId?: number }[]>();
   for (let i = 0; i < rows.length; i += 100) {
     const { data, error } = await admin.from('release_track_feats').select('release_id, feats').in('release_id', rows.slice(i, i + 100).map((r) => r.id));

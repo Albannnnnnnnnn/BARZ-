@@ -323,7 +323,8 @@ import Layout from '../layouts/Layout.astro';
     };
   }
 
-  // Artiste IA : un membre le signale (masqué à partir de 3 signalements), Alban tranche (supabase/ai-flags.sql)
+  // Artiste IA : un membre le signale (masqué à partir de 3 signalements pour qui coche la case), Alban tranche ;
+  // marqué IA, il disparaît de l'appli pour tout le monde (supabase/ai-hide.sql), sauf pour l'admin
   async function renderAiReport(a: ArtistLite) {
     const session = await getSession();
     if (!session || !supabase) return;
@@ -336,11 +337,11 @@ import Layout from '../layouts/Layout.astro';
       ]);
       if (error) return;
       const flag = (row as { ai_flag?: string | null } | null)?.ai_flag ?? null;
-      const state = flag === 'ia' ? 'marqué IA' : flag === 'pas_ia' ? 'marqué pas IA' : 'pas tranché';
+      const state = flag === 'ia' ? 'marqué IA, retiré de l’appli' : flag === 'pas_ia' ? 'marqué pas IA' : 'pas tranché';
       box.innerHTML = `<span>IA : ${count ?? 0} signalement${Number(count) > 1 ? 's' : ''}, ${state}.</span>
-        <button type="button" class="bz-link" data-ai-flag="ia">Marquer IA</button>
+        <button type="button" class="bz-link" data-ai-flag="ia">Marquer IA (le retire de l’appli)</button>
         <button type="button" class="bz-link" data-ai-flag="pas_ia">Pas IA</button>
-        ${flag ? '<button type="button" class="bz-link" data-ai-flag="">Annuler</button>' : ''}`;
+        ${flag ? '<button type="button" class="bz-link" data-ai-flag="">Annuler</button>' : ''} <a class="bz-link" href="${BASE}tri-ia">Tri des artistes IA</a>`;
       box.onclick = async (event) => {
         const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-ai-flag]');
         if (!btn) return;

@@ -33,7 +33,27 @@ const weekLabel = (d: Date) => `Semaine ${getISOWeek(d)}`;
 
 // Ordre par défaut (« Populaires ») : les artistes de la sélection d'abord, puis le score de chaque sortie
 // (auditeurs Last.fm de l'artiste × fans de l'album, rééditions et compilations en retrait : src/lib/audience.ts)
-const sorted = [...releases].sort((a, b) => Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || releaseScore(b) - releaseScore(a));
+// Sorties en rafale : un artiste qui enchaîne les singles sur plein de labels (4 sorties ou plus dans la semaine sur
+// 3 labels ou plus, ou 8 sorties et plus) noierait les sections ; ses singles passent en fin de page dans « En rafale ».
+// Ses albums et EP restent à leur place. Pas les artistes de la sélection, ni « Various Artists » (compilations, déjà en
+// retrait). Rien à voir avec l'IA : beaucoup sont de vrais artistes (funk brésilien surtout).
+const VARIOUS = /^(various artists|multi-interprètes|artistes divers|varios artistas|verschiedene interpreten|various)$/i;
+const perArtist = new Map<string, { n: number; labels: Set<string> }>();
+for (const r of releases) {
+  if (!r.artist || r.metadata?.watched || VARIOUS.test(r.artist.name.trim())) continue;
+  const e = perArtist.get(r.artist.id) ?? { n: 0, labels: new Set<string>() };
+  e.n++;
+  e.labels.add((r.metadata?.label ?? '').toLowerCase());
+  perArtist.set(r.artist.id, e);
+}
+const burstArtist = (id: string) => {
+  const e = perArtist.get(id);
+  return !!e && ((e.n >= 4 && e.labels.size >= 3) || e.n >= 8);
+};
+const inBurst = (r: ReleaseRow) => !!r.artist && !['album', 'ep'].includes(r.release_type) && burstArtist(r.artist.id);
+const sorted = [...releases].sort(
+  (a, b) => Number(inBurst(a)) - Number(inBurst(b)) || Number(!!b.metadata?.watched) - Number(!!a.metadata?.watched) || releaseScore(b) - releaseScore(a)
+);
 const count = sorted.length;
 
 // Rangée d'artistes affichée sans compte : ceux de la sélection BARZ¡ qui ont sorti quelque chose
@@ -50,12 +70,13 @@ const subtitleOf = (r: ReleaseRow) => releaseSubtitle(r);
 // Ordre « Populaires » rangé en sections : « À la une » (les plus attendues), puis albums et EP, singles, le reste
 const TOP_SIZE = count > 16 ? 8 : 0;
 const groupOf = (r: ReleaseRow, i: number) =>
-  i < TOP_SIZE ? 'top' : ['album', 'ep'].includes(r.release_type) ? 'albums' : r.release_type === 'single' ? 'singles' : 'others';
+  inBurst(r) ? 'burst' : i < TOP_SIZE ? 'top' : ['album', 'ep'].includes(r.release_type) ? 'albums' : r.release_type === 'single' ? 'singles' : 'others';
 const GROUPS = [
   { id: 'top', title: 'À la une', unit: '' },
   { id: 'albums', title: 'Albums et EP', unit: 'albums et EP' },
   { id: 'singles', title: 'Singles', unit: 'singles' },
   { id: 'others', title: 'Live, compils et BO', unit: 'sorties' },
+  { id: 'burst', title: 'En rafale', unit: 'sorties en rafale' },
 ];
 const GROUP_CAP = 12;
 const byGroup = Object.fromEntries(GROUPS.map((g) => [g.id, sorted.filter((r, i) => groupOf(r, i) === g.id)]));
@@ -186,6 +207,7 @@ const builtAt = new Date().toISOString();
           {GROUPS.map((g) => (
             <section class="group" data-group={g.id} data-unit={g.unit} hidden={!byGroup[g.id].length} aria-labelledby={`group-${g.id}`}>
               <h2 class="group-title" id={`group-${g.id}`}>{g.title}</h2>
+              {g.id === 'burst' && <p class="group-note">Les singles des artistes qui en sortent à la chaîne cette semaine, souvent sur plein de labels, regroupés ici pour ne pas noyer le reste.</p>}
               <div class:list={['bz-tiles', 'bz-rail', 'grid', { 'is-capped': g.id !== 'top' }]}>
                 {byGroup[g.id].map((r) => (
                   <AlbumTile
@@ -604,6 +626,13 @@ const builtAt = new Date().toISOString();
     font: 800 22px/1 var(--font-display);
     text-transform: uppercase;
     color: var(--color-text);
+  }
+
+  .group-note {
+    margin: -8px 0 16px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--color-text-muted);
   }
 
   .grid > :global(.is-out) {

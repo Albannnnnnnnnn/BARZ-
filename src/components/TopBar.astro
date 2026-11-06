@@ -44,6 +44,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
         <a href="/BARZ-/nouveautes">Quoi de neuf ?</a>
         <a href="/BARZ-/guide">Comment ça marche ?</a>
         <a href="/BARZ-/retours" id="account-feedback">Un bug, une idée ?</a>
+        <a href="/BARZ-/tri-ia" id="account-ai" hidden>Tri des artistes IA</a>
         <button type="button" id="account-invite">Inviter un ami</button>
         <button type="button" id="account-logout">Déconnexion</button>
       </nav>
@@ -240,6 +241,12 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     const menu = document.getElementById('account-menu')!;
     const wrap = document.getElementById('account-wrap')!;
     (document.getElementById('account-feedback') as HTMLAnchorElement).href = `${BASE}retours?depuis=${encodeURIComponent(location.pathname)}`;
+    // Admin : la page de tri des artistes IA (supabase/ai-hide.sql)
+    supabase
+      ?.rpc('is_barz_admin' as never)
+      .then(({ data }) => {
+        if (data) document.getElementById('account-ai')!.hidden = false;
+      });
     const show = (open: boolean) => {
       menu.hidden = !open;
       link.setAttribute('aria-expanded', String(open));
@@ -678,6 +685,10 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     font: 700 15px/1.2 var(--font-sans);
     color: var(--color-text) !important;
     cursor: pointer;
+  }
+
+  .account-menu a[hidden] {
+    display: none;
   }
 
   .account-menu a:hover,
