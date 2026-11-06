@@ -16,7 +16,8 @@
 //              qui suivent l'artiste sont prévenus, une seule fois (déclencheur, supabase/announcements.sql).
 // - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
 //              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
-// - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h).
+// - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h),
+//              invités des titres compris (« Jorja Smith en feat » sur un titre d'album, supabase/release-track-feats.sql).
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
 // Secrets : VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY (dans .env) ; SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis
@@ -122,7 +123,29 @@ const BARZ_PUSH_GAP_MS = 3 * 3600_000;
 const normName = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
 const listNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0] ?? '');
 
-type ReleaseRow = { id: string; slug: string; title?: string; artist_id: string | null; metadata: { featuring?: string[] } | null; artist: { name: string } | null };
+type ReleaseRow = {
+  id: string;
+  slug: string;
+  title?: string;
+  artist_id: string | null;
+  metadata: { featuring?: string[] } | null;
+  artist: { name: string } | null;
+  trackFeats?: { name: string; track: string }[]; // invités sur un titre de l'album (release_track_feats)
+};
+
+// Tous les invités d'une sortie : ceux de la sortie, puis ceux des titres de l'album
+const featsOf = (r: ReleaseRow) => [...(r.metadata?.featuring ?? []), ...(r.trackFeats ?? []).map((f) => f.name)];
+
+// Invités titre par titre (supabase/release-track-feats.sql), ajoutés aux sorties lues
+async function withTrackFeats(rows: ReleaseRow[]): Promise<ReleaseRow[]> {
+  const byId = new Map<string, { name: string; track: string }[]>();
+  for (let i = 0; i < rows.length; i += 300) {
+    const { data, error } = await admin.from('release_track_feats').select('release_id, feats').in('release_id', rows.slice(i, i + 300).map((r) => r.id));
+    if (error) return rows; // table absente : seulement les invités de la sortie
+    for (const d of (data ?? []) as { release_id: string; feats: { name: string; track: string }[] }[]) byId.set(d.release_id, d.feats ?? []);
+  }
+  return rows.map((r) => ({ ...r, trackFeats: byId.get(r.id) }));
+}
 
 // Artistes suivis par membre : identifiants et noms comparables (pour les feats)
 async function followsOf(userIds: string[]) {
@@ -140,9 +163,9 @@ async function followsOf(userIds: string[]) {
 // Sorties d'un membre : à son artiste suivi, ou avec un artiste suivi en feat ; et le nom suivi à afficher
 function matchFollowed(all: ReleaseRow[], u: { ids: Set<string>; names: Map<string, string> } | undefined) {
   if (!u) return { mine: [] as ReleaseRow[], shownName: (_: ReleaseRow) => undefined as string | undefined };
-  const mine = all.filter((r) => (r.artist_id && u.ids.has(r.artist_id)) || (r.metadata?.featuring ?? []).some((n) => u.names.has(normName(n))));
+  const mine = all.filter((r) => (r.artist_id && u.ids.has(r.artist_id)) || featsOf(r).some((n) => u.names.has(normName(n))));
   const shownName = (r: ReleaseRow) =>
-    r.artist_id && u.ids.has(r.artist_id) ? r.artist?.name : (r.metadata?.featuring ?? []).map((n) => u.names.get(normName(n))).find(Boolean);
+    r.artist_id && u.ids.has(r.artist_id) ? r.artist?.name : featsOf(r).map((n) => u.names.get(normName(n))).find(Boolean);
   return { mine, shownName };
 }
 
@@ -163,7 +186,7 @@ async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string
     admin.from('releases').select('id, slug, artist_id, metadata, artist:artists!artist_id(name)').eq('release_date', today).limit(3000),
     followsOf(userIds),
   ]);
-  const all = (releases ?? []) as unknown as ReleaseRow[];
+  const all = await withTrackFeats((releases ?? []) as unknown as ReleaseRow[]);
   const announced: { user_id: string; release_id: string }[] = [];
 
   const messages = new Map<string, Message>();
@@ -207,7 +230,7 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
       .limit(5000),
     followsOf(userIds),
   ]);
-  const all = (releases ?? []) as unknown as ReleaseRow[];
+  const all = await withTrackFeats((releases ?? []) as unknown as ReleaseRow[]);
   const messages = new Map<string, Message>();
   const announced: { user_id: string; release_id: string }[] = [];
   if (!all.length) return { messages, announced };
@@ -222,9 +245,14 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
     if (fresh.length === 1) {
       const r = fresh[0];
       const feat = !(r.artist_id && byUser.get(userId)?.ids.has(r.artist_id));
+      const shown = shownName(r);
+      // Invité sur un titre de l'album plutôt que sur la sortie : on nomme le titre
+      const onTrack = feat && !(r.metadata?.featuring ?? []).some((n) => normName(n) === normName(shown ?? '')) ? r.trackFeats?.find((f) => normName(f.name) === normName(shown ?? '')) : undefined;
       messages.set(userId, {
-        title: feat ? `${shownName(r)} en feat` : `Nouveau : ${shownName(r) ?? r.artist?.name}`,
-        body: `« ${r.title ?? 'Nouvelle sortie'} »${feat && r.artist?.name ? ` de ${r.artist.name}` : ''} vient de sortir. À écouter sur BARZ¡.`,
+        title: feat ? `${shown} en feat` : `Nouveau : ${shown ?? r.artist?.name}`,
+        body: onTrack
+          ? `Sur « ${onTrack.track} », dans « ${r.title ?? 'le nouvel album'} »${r.artist?.name ? ` de ${r.artist.name}` : ''}. À écouter sur BARZ¡.`
+          : `« ${r.title ?? 'Nouvelle sortie'} »${feat && r.artist?.name ? ` de ${r.artist.name}` : ''} vient de sortir. À écouter sur BARZ¡.`,
         url: `${SITE}releases/${r.slug}`,
         tag: `release-${r.id}`,
       });
@@ -241,6 +269,68 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
     }
   }
   return { messages, announced };
+}
+
+// ============================================================
+// INVITÉS TITRE PAR TITRE des albums et EP récents (supabase/release-track-feats.sql)
+// ============================================================
+// À chaque passage, au plus 8 disques pas encore vus, des plus suivis aux moins suivis. Le disque Deezer vient de son
+// lien, sinon de la discographie de l'artiste (même titre) ; pas trouvé : réessayé pendant 3 jours (sortie Apple
+// en avance sur Deezer). Invités : les contributeurs de chaque titre, sauf l'artiste du disque.
+const TRACK_FEATS_PER_RUN = 8;
+const TRACK_FEATS_MIN_AUDIENCE = 30000;
+const squash = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+const deezer = async (path: string) => (await fetch(`https://api.deezer.com${path}`).then((r) => r.json()).catch(() => null)) as any;
+
+async function collectTrackFeats(today: string): Promise<number> {
+  const since = new Date(Date.now() - 3 * 86400_000).toISOString();
+  const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
+  const { data: recent } = await admin
+    .from('releases')
+    .select('id, title, deezer_url, artist:artists!artist_id(name, deezer_id, audience)')
+    .in('release_type', ['album', 'ep'])
+    .gte('created_at', since)
+    .gte('release_date', weekAgo)
+    .lte('release_date', today)
+    .limit(1000);
+  const rows = ((recent ?? []) as any[]).filter((r) => (r.artist?.audience ?? 0) >= TRACK_FEATS_MIN_AUDIENCE);
+  if (!rows.length) return 0;
+  const { data: seen, error } = await admin.from('release_track_feats').select('release_id, deezer_album_id, checked_at').in('release_id', rows.map((r) => r.id));
+  if (error) return 0; // table absente
+  const known = new Map(((seen ?? []) as any[]).map((s) => [s.release_id, s]));
+  // Pas encore vus, ou pas trouvés sur Deezer il y a plus d'une heure
+  const todo = rows
+    .filter((r) => {
+      const k = known.get(r.id);
+      return !k || (!k.deezer_album_id && Date.now() - Date.parse(k.checked_at) > 3600_000);
+    })
+    .sort((a, b) => (b.artist?.audience ?? 0) - (a.artist?.audience ?? 0))
+    .slice(0, TRACK_FEATS_PER_RUN);
+
+  for (const r of todo) {
+    let albumId = Number(String(r.deezer_url ?? '').match(/album\/(\d+)/)?.[1]) || null;
+    if (!albumId && r.artist?.deezer_id) {
+      const disco = await deezer(`/artist/${r.artist.deezer_id}/albums?limit=100`);
+      albumId = ((disco?.data ?? []) as any[]).find((a) => squash(a.title) === squash(r.title))?.id ?? null;
+    }
+    const feats: { name: string; track: string }[] = [];
+    if (albumId) {
+      const tracks = (((await deezer(`/album/${albumId}/tracks?limit=100`))?.data ?? []) as any[]).slice(0, 40);
+      const queue = [...tracks];
+      const worker = async () => {
+        for (let t = queue.shift(); t; t = queue.shift()) {
+          const detail = await deezer(`/track/${t.id}`);
+          for (const c of (detail?.contributors ?? []) as { id: number; name: string }[]) {
+            if (c.id === r.artist?.deezer_id || c.id === t.artist?.id || squash(c.name) === squash(r.artist?.name ?? '')) continue;
+            if (!feats.some((f) => squash(f.name) === squash(c.name))) feats.push({ name: c.name, track: t.title });
+          }
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
+    }
+    await admin.from('release_track_feats').upsert({ release_id: r.id, feats, deezer_album_id: albumId, checked_at: new Date().toISOString() });
+  }
+  return todo.length;
 }
 
 Deno.serve(async (req) => {
@@ -543,8 +633,10 @@ Deno.serve(async (req) => {
     // pg_cron toutes les 15 minutes (supabase/notifications.sql)
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { hour, weekday, today } = parisNow();
+    // Invités des titres des albums récents, à toute heure : prêts pour la notification du vendredi matin
+    const checked = await collectTrackFeats(today).catch((err) => (console.warn('Invités des titres :', err), 0));
     // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi, la notification de 9h annonce d'abord les sorties de la nuit
-    if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit' });
+    if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit', checked });
     if (weekday === 'Fri' && hour < 10) return reply({ skipped: 'vendredi matin' });
     // Tous les membres qui suivent des artistes : la cloche pour tous, le téléphone pour ceux qui l'ont activé
     const [{ data }, { data: followers }] = await Promise.all([
