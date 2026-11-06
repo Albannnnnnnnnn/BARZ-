@@ -68,6 +68,44 @@ import FilTabs from '../components/FilTabs.astro';
   let myId: string | null = null;
 
   type Post = { id: string; body: string; created_at: string; user_id: string; profile: { username: string; display_name: string; avatar_path: string | null } | null };
+  type Reply = { id: string; post_id: string; user_id: string; body: string; created_at: string; profile: { username: string; display_name: string } | null };
+  // ♥ et réponses (supabase/friday-reactions.sql) ; sans les tables, les messages s'affichent sans les boutons
+  let reactions = false;
+  const openThreads = new Set<string>();
+
+  async function loadReactions(ids: string[]) {
+    const likes = new Map<string, string[]>();
+    const replies = new Map<string, Reply[]>();
+    if (!supabase || !ids.length) return { likes, replies, ok: false };
+    const [l, r] = await Promise.all([
+      supabase.from('friday_post_likes' as never).select('post_id, user_id').in('post_id', ids),
+      supabase.from('friday_post_replies' as never).select('id, post_id, user_id, body, created_at, profile:profiles!friday_post_replies_user_id_fkey(username, display_name)').in('post_id', ids).order('created_at'),
+    ]);
+    if (l.error || r.error) return { likes, replies, ok: false };
+    for (const row of (l.data ?? []) as { post_id: string; user_id: string }[]) likes.set(row.post_id, [...(likes.get(row.post_id) ?? []), row.user_id]);
+    for (const row of (r.data ?? []) as unknown as Reply[]) replies.set(row.post_id, [...(replies.get(row.post_id) ?? []), row]);
+    return { likes, replies, ok: true };
+  }
+
+  function reactionsHtml(p: Post, likes: string[], replies: Reply[]) {
+    const liked = !!myId && likes.includes(myId);
+    const open = openThreads.has(p.id);
+    const list = replies
+      .map((r) => {
+        const who = r.profile ? `<a href="${BASE}profil?u=${encodeURIComponent(r.profile.username)}"><b>${escapeHtml(r.profile.display_name)}</b></a>` : '<b>Membre</b>';
+        const canDelete = !!myId && (myId === r.user_id || myId === p.user_id);
+        return `<li>${who} <span class="barz-handle">${escapeHtml(timeAgo(r.created_at))}</span><p>${escapeHtml(r.body)}</p>${canDelete ? `<button type="button" class="barz-delete" data-delete-reply="${r.id}">Supprimer</button>` : ''}</li>`;
+      })
+      .join('');
+    const form = myId
+      ? `<form class="barz-reply-form" data-reply-form="${p.id}"><input class="bz-input" name="reply" maxlength="280" placeholder="Ta réponse…" autocomplete="off" aria-label="Ta réponse" required /><button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Répondre</button></form>`
+      : `<a class="barz-reply-login" href="${loginUrl()}">Connecte-toi pour répondre</a>`;
+    return `<div class="post-actions">
+        <button type="button" class="barz-like${liked ? ' is-liked' : ''}" data-like="${p.id}" aria-pressed="${liked}">♥ <span>${likes.length}</span></button>
+        <button type="button" class="barz-like" data-replies="${p.id}" aria-expanded="${open}">💬 <span>${replies.length || 'Répondre'}</span></button>
+      </div>
+      <div class="barz-thread" data-thread="${p.id}"${open ? '' : ' hidden'}>${list ? `<ul class="barz-replies">${list}</ul>` : ''}${form}</div>`;
+  }
 
   async function renderPosts() {
     if (!supabase) return;
@@ -83,6 +121,8 @@ import FilTabs from '../components/FilTabs.astro';
       return;
     }
     const posts = (data ?? []) as unknown as Post[];
+    const { likes, replies, ok } = await loadReactions(posts.map((p) => p.id));
+    reactions = ok;
     $('fr-count').textContent = posts.length ? `${posts.length} message${posts.length > 1 ? 's' : ''}` : '';
     $('fr-empty').hidden = posts.length > 0 || !open;
     $('fr-posts').innerHTML = posts
@@ -96,6 +136,7 @@ import FilTabs from '../components/FilTabs.astro';
             <div class="post-head"><a href="${href}"><b>${escapeHtml(name)}</b></a><span>${escapeHtml(timeAgo(p.created_at))}</span>
               ${myId === p.user_id ? `<button type="button" class="barz-delete" data-delete="${p.id}">Supprimer</button>` : ''}</div>
             <p>${escapeHtml(p.body)}</p>
+            ${reactions ? reactionsHtml(p, likes.get(p.id) ?? [], replies.get(p.id) ?? []) : ''}
           </div>
         </li>`;
       })
@@ -167,10 +208,62 @@ import FilTabs from '../components/FilTabs.astro';
   });
 
   $('fr-posts').addEventListener('click', async (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-delete]');
-    if (!button || !supabase || !confirm('Supprimer ce message ?')) return;
+    const target = event.target as HTMLElement;
+    const toggle = target.closest<HTMLButtonElement>('[data-replies]');
+    if (toggle) {
+      const id = toggle.dataset.replies!;
+      const thread = $('fr-posts').querySelector<HTMLElement>(`[data-thread="${CSS.escape(id)}"]`);
+      if (!thread) return;
+      thread.hidden = !thread.hidden;
+      toggle.setAttribute('aria-expanded', String(!thread.hidden));
+      if (thread.hidden) openThreads.delete(id);
+      else {
+        openThreads.add(id);
+        thread.querySelector<HTMLInputElement>('input')?.focus();
+      }
+      return;
+    }
+    if (!supabase) return;
+    const like = target.closest<HTMLButtonElement>('[data-like]');
+    if (like) {
+      if (!myId) return void (location.href = loginUrl());
+      like.disabled = true;
+      const liked = like.getAttribute('aria-pressed') === 'true';
+      const { error } = liked
+        ? await supabase.from('friday_post_likes' as never).delete().eq('post_id', like.dataset.like!).eq('user_id', myId)
+        : await supabase.from('friday_post_likes' as never).insert({ post_id: like.dataset.like! } as never);
+      if (error) alert(errorText(error));
+      return renderPosts();
+    }
+    const delReply = target.closest<HTMLButtonElement>('[data-delete-reply]');
+    if (delReply) {
+      if (!confirm('Supprimer cette réponse ?')) return;
+      const { error } = await supabase.from('friday_post_replies' as never).delete().eq('id', delReply.dataset.deleteReply!);
+      if (error) alert(errorText(error));
+      return renderPosts();
+    }
+    const button = target.closest<HTMLButtonElement>('[data-delete]');
+    if (!button || !confirm('Supprimer ce message ?')) return;
     const { error } = await supabase.from('friday_posts').delete().eq('id', button.dataset.delete!);
     if (error) return alert(errorText(error));
+    renderPosts();
+  });
+
+  $('fr-posts').addEventListener('submit', async (event) => {
+    const form = (event.target as HTMLElement).closest<HTMLFormElement>('[data-reply-form]');
+    if (!form || !supabase) return;
+    event.preventDefault();
+    const input = form.elements.namedItem('reply') as HTMLInputElement;
+    const body = input.value.trim();
+    if (!body) return;
+    const button = form.querySelector('button')!;
+    button.disabled = true;
+    const { error } = await supabase.from('friday_post_replies' as never).insert({ post_id: form.dataset.replyForm!, body: body.slice(0, 280) } as never);
+    if (error) {
+      button.disabled = false;
+      return alert(errorText(error));
+    }
+    openThreads.add(form.dataset.replyForm!);
     renderPosts();
   });
 
@@ -241,7 +334,7 @@ import FilTabs from '../components/FilTabs.astro';
     list-style: none;
   }
 
-  .post {
+  .posts :global(.post) {
     display: flex;
     gap: 12px;
     padding: 14px 16px;
@@ -250,12 +343,12 @@ import FilTabs from '../components/FilTabs.astro';
     background: var(--color-paper);
   }
 
-  .post-main {
+  .posts :global(.post-main) {
     flex: 1;
     min-width: 0;
   }
 
-  .post-head {
+  .posts :global(.post-head) {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -263,19 +356,25 @@ import FilTabs from '../components/FilTabs.astro';
     font-size: 14px;
   }
 
-  .post-head span {
+  .posts :global(.post-head span) {
     color: var(--color-text-muted);
   }
 
-  .post-head .barz-delete {
+  .posts :global(.post-head .barz-delete) {
     margin-left: auto;
   }
 
-  .post p {
+  .posts :global(.post p) {
     margin: 6px 0 0;
     white-space: pre-line;
     overflow-wrap: anywhere;
     line-height: 1.5;
+  }
+
+  .posts :global(.post-actions) {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
   }
 
   .weeks {
