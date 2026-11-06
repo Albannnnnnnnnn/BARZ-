@@ -1,6 +1,7 @@
 ---
 // SÉLECTION : seulement les sorties d'une notification (« 3 sorties de tes artistes »)
 // Le lien porte leurs identifiants : selection?ids=uuid,uuid,… (écrit par supabase/functions/notify)
+// t=uuid|titre|invité;… : l'artiste suivi est invité sur un titre de ce disque ; la tuile le dit et ouvre la fiche sur ce titre
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -15,23 +16,30 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-  import { errorText, releaseTileHtml, supabase } from '../scripts/social';
+  import { errorText, getSession, myFollows, releaseTileHtml, supabase } from '../scripts/social';
+  import { normName } from '../lib/feat';
 
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const ids = [...new Set((new URLSearchParams(location.search).get('ids') ?? '').split(',').filter((id) => UUID.test(id)))].slice(0, 100);
+  // Invités sur un titre d'album : identifiant de la sortie → titre et nom de l'invité
+  const onTrack = new Map<string, { track: string; name: string }>();
+  for (const part of (new URLSearchParams(location.search).get('t') ?? '').split(';')) {
+    const [id, track, name] = part.split('|');
+    if (UUID.test(id ?? '') && track) onTrack.set(id, { track: track.slice(0, 200), name: (name ?? '').slice(0, 100) });
+  }
   const status = document.getElementById('sel-status')!;
   const tiles = document.getElementById('sel-tiles')!;
 
-  type Row = { id: string; title: string; slug: string; cover_url: string | null; release_type: string; metadata: { featuring?: string[] } | null; artist: { name: string } | null };
+  type Row = { id: string; title: string; slug: string; cover_url: string | null; release_type: string; metadata: { featuring?: string[] } | null; artist_id: string | null; artist: { name: string } | null };
 
   if (!ids.length || !supabase) {
     status.textContent = 'Cette sélection est vide.';
   } else {
     supabase
       .from('releases')
-      .select('id, title, slug, cover_url, release_type, metadata, artist:artists!artist_id(name)')
+      .select('id, title, slug, cover_url, release_type, metadata, artist_id, artist:artists!artist_id(name)')
       .in('id', ids)
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) {
           status.textContent = errorText(error);
           return;
@@ -42,9 +50,28 @@ import Layout from '../layouts/Layout.astro';
           status.textContent = 'Ces sorties ne sont plus au catalogue.';
           return;
         }
+        // Lien sans « t » (notifs plus anciennes) : les invités des titres et les artistes suivis, lus ici
+        if (!onTrack.size && (await getSession())) {
+          const follows = await myFollows().catch(() => []);
+          const followedIds = new Set(follows.map((a) => a.id));
+          const names = new Map(follows.map((a) => [normName(a.name), a.name]));
+          const { data: feats } = await supabase!.from('release_track_feats' as never).select('release_id, feats').in('release_id', rows.map((r) => r.id));
+          for (const f of (feats ?? []) as { release_id: string; feats: { name: string; track: string }[] }[]) {
+            const row = rows.find((r) => r.id === f.release_id);
+            if (!row || (row.artist_id && followedIds.has(row.artist_id))) continue;
+            if ((row.metadata?.featuring ?? []).some((n) => names.has(normName(n)))) continue;
+            const hit = (f.feats ?? []).find((x) => names.has(normName(x.name)));
+            if (hit) onTrack.set(row.id, { track: hit.track, name: names.get(normName(hit.name)) ?? hit.name });
+          }
+        }
         document.getElementById('sel-title')!.innerHTML = `${rows.length} sortie${rows.length > 1 ? 's' : ''} de <em>tes artistes.</em>`;
         status.hidden = true;
-        tiles.innerHTML = rows.map((r) => releaseTileHtml({ ...r, featuring: r.metadata?.featuring })).join('');
+        tiles.innerHTML = rows
+          .map((r) => {
+            const hint = onTrack.get(r.id);
+            return releaseTileHtml({ ...r, featuring: r.metadata?.featuring }, hint ? { track: hint.track, reason: `${hint.name ? `${hint.name} sur` : 'Sur'} « ${hint.track} »` } : {});
+          })
+          .join('');
       });
   }
 </script>

@@ -103,6 +103,19 @@ const findOnDeezer = !deezerId && !dynamic && !!artist;
         .join('');
     }
 
+    // Fiche ouverte depuis une notif « X en feat » sur un titre de l'album (?titre=) : ce titre est mis en évidence
+    function highlightAsked() {
+      const asked = squash(new URLSearchParams(location.search).get('titre') ?? '');
+      if (!asked) return;
+      const i = tracks.findIndex((t) => squash(t.title) === asked) >= 0 ? tracks.findIndex((t) => squash(t.title) === asked) : tracks.findIndex((t) => squash(t.title).startsWith(asked));
+      const row = list.querySelector<HTMLElement>(`.track[data-i="${i}"]`);
+      if (i < 0 || !row) return;
+      row.classList.add('is-asked');
+      if (!scrolled) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrolled = true;
+    }
+    let scrolled = false;
+
     function paint() {
       list.querySelectorAll<HTMLElement>('.track').forEach((row) => {
         const on = Number(row.dataset.i) === current;
@@ -158,10 +171,12 @@ const findOnDeezer = !deezerId && !dynamic && !!artist;
       if (!tracks.some((t) => t.readable && t.preview)) return;
       render();
       section.hidden = false;
+      highlightAsked();
       // Les invités arrivent ensuite ; on redessine en gardant le titre en cours de lecture
       loadFeats(tracks, () => {
         render();
         paint();
+        highlightAsked();
       });
     } catch {
       // Deezer indisponible : pas d'extraits, le bouton « Écouter » reste
@@ -211,6 +226,13 @@ const findOnDeezer = !deezerId && !dynamic && !!artist;
   .hint {
     font-size: 14px;
     color: var(--color-text-muted);
+  }
+
+  .tracks :global(.track.is-asked) {
+    border-radius: 10px;
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+    background: var(--color-accent-soft);
   }
 
   .tracks {
