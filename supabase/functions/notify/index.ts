@@ -359,6 +359,39 @@ async function collectTrackFeats(today: string): Promise<number> {
   return todo.length;
 }
 
+// ♥ regroupés : la notification non lue du même Barz ou message est remplacée ; si elle a moins d'une heure,
+// pas de nouvelle alerte sur le téléphone
+async function sendGroupedLike(to: string, message: Message) {
+  const { data: previous } = await admin
+    .from('notifications')
+    .delete()
+    .eq('user_id', to)
+    .eq('kind', 'like')
+    .eq('url', message.url)
+    .is('read_at', null)
+    .select('created_at');
+  const recent = (previous ?? []).some((n) => Date.now() - Date.parse(n.created_at) < 3600_000);
+  const sent = recent ? 0 : await send(await subsOf([to]), () => message);
+  await toInbox('like', [[to, message]]);
+  return { sent, grouped: recent };
+}
+
+// Où mène un Barz dans une notif : le disque, ou la page du titre pour un Barz sur un titre (supabase/track-barz.sql)
+async function barzPlace(barzId: string): Promise<{ user_id: string; body: string; title: string; url: string } | null> {
+  const COLS = 'user_id, body, release:releases(slug, title)';
+  let read = await admin.from('barz').select(`${COLS}, track_id`).eq('id', barzId).maybeSingle();
+  if (read.error) read = await admin.from('barz').select(COLS).eq('id', barzId).maybeSingle(); // pas encore de track_id
+  const b = read.data as unknown as { user_id: string; body: string | null; track_id?: string | null; release: { slug: string; title: string } | null } | null;
+  if (!b?.release) return null;
+  const track = b.track_id ? ((await admin.from('tracks').select('title, deezer_id').eq('id', b.track_id).maybeSingle()).data as { title: string; deezer_id: number } | null) : null;
+  return track
+    ? { user_id: b.user_id, body: b.body ?? '', title: `${track.title} (${b.release.title})`, url: `${SITE}son?id=${track.deezer_id}` }
+    : { user_id: b.user_id, body: b.body ?? '', title: b.release.title, url: `${SITE}releases/${b.release.slug}` };
+}
+
+// Texte raccourci entre guillemets, ou rien (Barz sans texte)
+const quoted = (text: string, max: number) => (text.trim() ? ` — « ${text.length > max ? `${text.slice(0, max - 1)}…` : text} »` : '');
+
 Deno.serve(async (req) => {
   const headers = { ...cors(req), 'Content-Type': 'application/json' };
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
@@ -462,20 +495,20 @@ Deno.serve(async (req) => {
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const { data } = await admin
       .from('barz_replies')
-      .select('user_id, body, author:profiles!barz_replies_user_id_fkey(display_name), barz:barz(user_id, release:releases(slug, title))')
+      .select('user_id, body, barz_id, author:profiles!barz_replies_user_id_fkey(display_name)')
       .eq('id', String(body.reply))
       .maybeSingle();
-    const r = data as unknown as { user_id: string; body: string; author: { display_name: string } | null; barz: { user_id: string; release: { slug: string; title: string } | null } | null } | null;
-    if (!r?.author || !r.barz?.release || r.barz.user_id === r.user_id) return reply({ sent: 0 });
-    const text = r.body.length > 110 ? `${r.body.slice(0, 109)}…` : r.body;
+    const r = data as unknown as { user_id: string; body: string; barz_id: string; author: { display_name: string } | null } | null;
+    const place = r ? await barzPlace(r.barz_id) : null;
+    if (!r?.author || !place || place.user_id === r.user_id) return reply({ sent: 0 });
     const message: Message = {
       title: `${r.author.display_name} a répondu à ton Barz`,
-      body: `${r.barz.release.title} — « ${text} »`,
-      url: `${SITE}releases/${r.barz.release.slug}`,
+      body: `${place.title}${quoted(r.body, 110)}`,
+      url: place.url,
       tag: `reply-${String(body.reply)}`,
     };
-    const sent = await send(await subsOf([r.barz.user_id]), () => message);
-    await toInbox('reply', [[r.barz.user_id, message]]);
+    const sent = await send(await subsOf([place.user_id]), () => message);
+    await toInbox('reply', [[place.user_id, message]]);
     return reply({ sent });
   }
 
@@ -484,35 +517,70 @@ Deno.serve(async (req) => {
     // (« Léa et 2 autres… ») ; sur le téléphone, au plus une par heure et par Barz
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
     const barzId = String(body.barz);
-    const [{ data: b }, { data: liker }, { data: likes }] = await Promise.all([
-      admin.from('barz').select('user_id, body, release:releases(slug, title)').eq('id', barzId).maybeSingle(),
+    const [place, { data: liker }, { data: likes }] = await Promise.all([
+      barzPlace(barzId),
       admin.from('profiles').select('display_name').eq('id', String(body.user)).maybeSingle(),
       admin.from('barz_likes').select('user_id').eq('barz_id', barzId),
     ]);
-    const barz = b as unknown as { user_id: string; body: string; release: { slug: string; title: string } | null } | null;
-    if (!barz?.release || !liker || barz.user_id === String(body.user)) return reply({ sent: 0 });
-    const others = (likes ?? []).filter((l) => l.user_id !== barz.user_id && l.user_id !== String(body.user)).length;
+    if (!place || !liker || place.user_id === String(body.user)) return reply({ sent: 0 });
+    const others = (likes ?? []).filter((l) => l.user_id !== place.user_id && l.user_id !== String(body.user)).length;
     const name = (liker as { display_name: string }).display_name;
-    const text = barz.body.length > 80 ? `${barz.body.slice(0, 79)}…` : barz.body;
     const message: Message = {
       title: others ? `${name} et ${others} autre${others > 1 ? 's' : ''} ont aimé ton Barz` : `${name} a aimé ton Barz`,
-      body: `${barz.release.title} — « ${text} »`,
-      url: `${SITE}releases/${barz.release.slug}`,
+      body: `${place.title}${quoted(place.body, 80)}`,
+      url: place.url,
       tag: `like-${barzId}`,
     };
-    // La notification non lue de ce Barz est remplacée ; si elle a moins d'une heure, pas de nouvelle alerte sur le téléphone
-    const { data: previous } = await admin
-      .from('notifications')
-      .delete()
-      .eq('user_id', barz.user_id)
-      .eq('kind', 'like')
-      .eq('url', message.url)
-      .is('read_at', null)
-      .select('created_at');
-    const recent = (previous ?? []).some((n) => Date.now() - Date.parse(n.created_at) < 3600_000);
-    const sent = recent ? 0 : await send(await subsOf([barz.user_id]), () => message);
-    await toInbox('like', [[barz.user_id, message]]);
-    return reply({ sent, grouped: recent });
+    return reply(await sendGroupedLike(place.user_id, message));
+  }
+
+  if (body.action === 'friday-reply') {
+    // Déclencheur de la table friday_post_replies (supabase/friday-reactions-notify.sql) : prévient l'auteur du message
+    // et les membres qui ont déjà répondu dessous (jamais celui qui écrit)
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { data } = await admin
+      .from('friday_post_replies')
+      .select('user_id, body, post_id, author:profiles!friday_post_replies_user_id_fkey(display_name), post:friday_posts(user_id, week, body)')
+      .eq('id', String(body.reply))
+      .maybeSingle();
+    const r = data as unknown as { user_id: string; body: string; post_id: string; author: { display_name: string } | null; post: { user_id: string; week: string; body: string } | null } | null;
+    if (!r?.author || !r.post) return reply({ sent: 0 });
+    const { data: earlier } = await admin.from('friday_post_replies').select('user_id').eq('post_id', r.post_id);
+    const url = `${SITE}vendredi?semaine=${r.post.week}&post=${r.post_id}`;
+    const entries: [string, Message][] = [];
+    const tag = `friday-reply-${String(body.reply)}`;
+    if (r.post.user_id !== r.user_id) {
+      entries.push([r.post.user_id, { title: `${r.author.display_name} a répondu à ton message du vendredi`, body: quoted(r.body, 110).replace(/^ — /, ''), url, tag }]);
+    }
+    const others = [...new Set((earlier ?? []).map((e) => e.user_id as string))].filter((u) => u !== r.user_id && u !== r.post!.user_id);
+    for (const u of others) entries.push([u, { title: `${r.author.display_name} a aussi répondu dans le fil du vendredi`, body: quoted(r.body, 110).replace(/^ — /, ''), url, tag }]);
+    if (!entries.length) return reply({ sent: 0 });
+    const byUser = new Map(entries);
+    const sent = await send(await subsOf([...byUser.keys()]), (userId) => byUser.get(userId) ?? null);
+    await toInbox('reply', entries);
+    return reply({ sent, notified: entries.length });
+  }
+
+  if (body.action === 'friday-like') {
+    // Déclencheur de la table friday_post_likes : comme les ♥ des Barz, une notification par message, regroupée
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const postId = String(body.post);
+    const [{ data: p }, { data: liker }, { data: likes }] = await Promise.all([
+      admin.from('friday_posts').select('user_id, week, body').eq('id', postId).maybeSingle(),
+      admin.from('profiles').select('display_name').eq('id', String(body.user)).maybeSingle(),
+      admin.from('friday_post_likes').select('user_id').eq('post_id', postId),
+    ]);
+    const post = p as { user_id: string; week: string; body: string } | null;
+    if (!post || !liker || post.user_id === String(body.user)) return reply({ sent: 0 });
+    const others = (likes ?? []).filter((l) => l.user_id !== post.user_id && l.user_id !== String(body.user)).length;
+    const name = (liker as { display_name: string }).display_name;
+    const message: Message = {
+      title: others ? `${name} et ${others} autre${others > 1 ? 's' : ''} ont aimé ton message du vendredi` : `${name} a aimé ton message du vendredi`,
+      body: quoted(post.body, 80).replace(/^ — /, ''),
+      url: `${SITE}vendredi?semaine=${post.week}&post=${postId}`,
+      tag: `friday-like-${postId}`,
+    };
+    return reply(await sendGroupedLike(post.user_id, message));
   }
 
   if (body.action === 'week-top') {

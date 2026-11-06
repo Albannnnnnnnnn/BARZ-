@@ -37,6 +37,7 @@ import Layout from '../layouts/Layout.astro';
             <section class="record" id="record-block">
               <h2>Disque du mois</h2>
               <div id="record"></div>
+              <p class="track-month" id="track-of-month" hidden></p>
             </section>
           </div>
 
@@ -136,10 +137,12 @@ import Layout from '../layouts/Layout.astro';
     ]);
     const listenedM = listened.filter((l) => inMonth(l.created_at));
     const spinM = spin.filter((s) => inMonth(s.created_at));
-    const barzM = barz.filter((b) => b.release && inMonth(b.created_at));
+    // Barz de disques d'un côté, titres notés de l'autre (supabase/track-barz.sql)
+    const barzM = barz.filter((b) => b.release && !b.track && inMonth(b.created_at));
+    const tracksM = barz.filter((b) => b.release && b.track && inMonth(b.created_at));
     const challengesM = challenges.filter((c) => inMonth(`${c.week}T12:00:00`));
 
-    if (!listenedM.length && !barzM.length && !spinM.length) {
+    if (!listenedM.length && !barzM.length && !tracksM.length && !spinM.length) {
       $('card-empty').textContent = isMe
         ? `Pas encore d’activité en ${monthName}. Marque des sorties comme écoutées ou écris des Barz : ton bilan se remplira au fil du mois.`
         : `Pas d’activité en ${monthName}.`;
@@ -151,7 +154,7 @@ import Layout from '../layouts/Layout.astro';
     // Chiffres du mois
     const avg = barzM.length ? barzM.reduce((s, b) => s + Number(b.score), 0) / barzM.length : null;
     const releasesM = new Map<string, ReleaseLite>();
-    for (const r of [...listenedM.map((l) => l.release), ...barzM.map((b) => b.release!)]) releasesM.set(r.id, r);
+    for (const r of [...listenedM.map((l) => l.release), ...barzM.map((b) => b.release!), ...tracksM.map((b) => b.release!)]) releasesM.set(r.id, r);
 
     // Nouveaux artistes : écoutés ou notés ce mois-ci, jamais avant
     const firstSeen = new Map<string, number>();
@@ -165,6 +168,7 @@ import Layout from '../layouts/Layout.astro';
     $('numbers').innerHTML = [
       ['Écoutés', String(listenedM.length)],
       ['Barz', String(barzM.length)],
+      ...(tracksM.length ? [['Titres notés', String(tracksM.length)]] : []),
       ['Note moyenne', avg === null ? '–' : avg.toFixed(1)],
       ['Nouveaux artistes', String(newArtists.length)],
     ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
@@ -191,16 +195,27 @@ import Layout from '../layouts/Layout.astro';
           <span><b>${escapeHtml(record.title)}</b>${escapeHtml(record.artist?.name ?? '')}${best ? `<span class="bz-score">${Number(best.score).toFixed(1)}</span>` : ''}</span>
         </a>${best ? `<p class="quote">« ${escapeHtml(best.body)} »</p>` : ''}`
       : '';
-    $('record-block').hidden = !record;
+    // Titre du mois : le titre le mieux noté
+    const bestTrack = [...tracksM].sort((a, b) => Number(b.score) - Number(a.score))[0];
+    $('track-of-month').innerHTML = bestTrack?.track
+      ? `Titre du mois : <a href="${BASE}son?id=${bestTrack.track.deezer_id}">${escapeHtml(bestTrack.track.title)}</a> · ${escapeHtml(bestTrack.release!.artist?.name ?? '')} <span class="bz-score">${Number(bestTrack.score).toFixed(1)}</span>`
+      : '';
+    $('track-of-month').hidden = !bestTrack?.track;
+    $('record-block').hidden = !record && !bestTrack?.track;
 
     // Carte story (src/scripts/share-card.ts) : les chiffres du mois et quelques pochettes
     const topGenre = top[0] ? `Genre du mois : ${top[0][0]} (${Math.round((top[0][1] / total) * 100)} %)` : '';
     story = {
       eyebrow: `Bilan ${ofMonth} · ${profile.display_name}`,
-      big: String(listenedM.length || barzM.length),
-      caption: listenedM.length ? `disque${listenedM.length > 1 ? 's' : ''} écouté${listenedM.length > 1 ? 's' : ''} en ${monthName}` : `Barz écrit${barzM.length > 1 ? 's' : ''} en ${monthName}`,
+      big: String(listenedM.length || barzM.length || tracksM.length),
+      caption: listenedM.length
+        ? `disque${listenedM.length > 1 ? 's' : ''} écouté${listenedM.length > 1 ? 's' : ''} en ${monthName}`
+        : barzM.length
+          ? `Barz écrit${barzM.length > 1 ? 's' : ''} en ${monthName}`
+          : `titre${tracksM.length > 1 ? 's' : ''} noté${tracksM.length > 1 ? 's' : ''} en ${monthName}`,
       details: [
         barzM.length ? `${barzM.length} Barz · note moyenne ${avg!.toFixed(1).replace('.', ',')}` : '',
+        tracksM.length ? `${tracksM.length} titre${tracksM.length > 1 ? 's' : ''} noté${tracksM.length > 1 ? 's' : ''}${bestTrack?.track ? ` · titre du mois : ${bestTrack.track.title}` : ''}` : '',
         topGenre,
         record ? `Disque du mois : ${record.title} — ${record.artist?.name ?? ''}` : '',
         newArtists.length ? `${newArtists.length} nouvel${newArtists.length > 1 ? 's' : ''} artiste${newArtists.length > 1 ? 's' : ''}` : '',
@@ -336,7 +351,7 @@ import Layout from '../layouts/Layout.astro';
 
   .numbers {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 16px;
     margin: 36px 0 8px;
     padding: 24px 0;
@@ -481,6 +496,22 @@ import Layout from '../layouts/Layout.astro';
   .share-status {
     font-size: 15px;
     color: var(--color-accent);
+  }
+
+  .track-month {
+    margin: 14px 0 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .track-month :global(a) {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .track-month :global(.bz-score) {
+    margin-left: 4px;
   }
 
   @media (max-width: 700px) {

@@ -305,11 +305,13 @@ import Layout from '../layouts/Layout.astro';
       bilan.textContent = `${isMe ? 'Ton bilan' : 'Son bilan'} ${monthOf(last)} →`;
       bilan.hidden = false;
     }
-    // Chaque compteur ouvre la liste correspondante plus bas
+    // Chaque compteur ouvre la liste correspondante plus bas ; les titres notés à part (Barz de titres), s'il y en a
+    const trackBarz = barz.filter((b) => b.track).length;
     $('p-stats').innerHTML = [
       ['Écoutés', listened.length, 'listened'],
       ['Spin list', spin.length, 'spin_list'],
-      ['Barz', barz.length, 'barz'],
+      ['Barz', barz.length - trackBarz, 'barz'],
+      ...(trackBarz ? [['Titres', trackBarz, 'barz']] : []),
       ['Artistes', artists.length, 'artists'],
     ].map(([label, value, tab]) => `<div role="button" tabindex="0" data-stat-tab="${tab}" aria-label="Voir : ${label} (${value})"><dt>${label}</dt><dd>${value}</dd></div>`).join('');
 
@@ -781,13 +783,18 @@ import Layout from '../layouts/Layout.astro';
 
   // Badges : chacun avec sa condition, gagnés en couleur, les autres grisés avec ce qu'il reste à faire
   async function renderBadges(profile: Profile, isMe: boolean) {
-    const [listened, barz, games] = await Promise.all([
+    // Barz avec leur titre éventuel (track_id) ; sans la colonne (SQL pas encore lancé), comme avant
+    const barzOf = (cols: string) => supabase!.from('barz').select(cols).eq('user_id', profile.id).limit(5000);
+    const [listened, barzWithTracks, games] = await Promise.all([
       supabase!.from('listened').select('created_at, release:releases(genres)').eq('user_id', profile.id).limit(5000),
-      supabase!.from('barz').select('body, created_at, release:releases(created_at)').eq('user_id', profile.id).limit(5000),
+      barzOf('body, created_at, track_id, release:releases(created_at)'),
       supabase!.from('game_results').select('day').eq('user_id', profile.id).limit(2000),
     ]);
+    const barz = barzWithTracks.error ? await barzOf('body, created_at, release:releases(created_at)') : barzWithTracks;
     const L = (listened.data ?? []) as unknown as { created_at: string; release: { genres: string[] | null } | null }[];
-    const B = (barz.data ?? []) as unknown as { body: string; created_at: string; release: { created_at: string } | null }[];
+    const all = (barz.data ?? []) as unknown as { body: string; created_at: string; track_id?: string | null; release: { created_at: string } | null }[];
+    const B = all.filter((b) => !b.track_id); // Barz de disques
+    const T = all.filter((b) => b.track_id); // titres notés
     const days = [...new Set(((games.data ?? []) as { day: string }[]).map((g) => g.day))].sort();
     const month = new Date().toISOString().slice(0, 7);
     // Genres préférés : ceux des disques écoutés
@@ -796,8 +803,9 @@ import Layout from '../layouts/Layout.astro';
     const favorites = [...genreCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([g]) => g);
     const listenedMonth = L.filter((l) => l.created_at.startsWith(month)).length;
     const barzMonth = B.filter((b) => b.created_at.startsWith(month)).length;
+    const tracksMonth = T.filter((b) => b.created_at.startsWith(month)).length;
     $('p-month-stats').textContent = [
-      `Ce mois-ci : ${listenedMonth} disque${listenedMonth > 1 ? 's' : ''} écouté${listenedMonth > 1 ? 's' : ''}, ${barzMonth} Barz`,
+      `Ce mois-ci : ${listenedMonth} disque${listenedMonth > 1 ? 's' : ''} écouté${listenedMonth > 1 ? 's' : ''}, ${barzMonth} Barz${tracksMonth ? `, ${tracksMonth} titre${tracksMonth > 1 ? 's' : ''} noté${tracksMonth > 1 ? 's' : ''}` : ''}`,
       favorites.length ? `Genres préférés : ${favorites.join(' · ')}` : '',
     ]
       .filter(Boolean)
@@ -809,11 +817,12 @@ import Layout from '../layouts/Layout.astro';
       run = i && Date.parse(d) - Date.parse(days[i - 1]) === 86_400_000 ? run + 1 : 1;
       bestStreak = Math.max(bestStreak, run);
     });
-    const flair = B.filter((b) => b.release && Date.parse(b.created_at) - Date.parse(b.release.created_at) <= 3600_000).length;
+    const flair = all.filter((b) => b.release && Date.parse(b.created_at) - Date.parse(b.release.created_at) <= 3600_000).length;
     const long = B.filter((b) => b.body.length > 280).length;
     const BADGES = [
       { icon: '⚡', name: 'Flair', done: flair >= 1, text: flair ? `${flair} Barz dans l’heure qui suit une sortie` : 'Un Barz dans l’heure qui suit une sortie' },
       { icon: '✍️', name: 'Plume', done: long >= 5, text: long >= 5 ? `${long} Barz de plus de 280 caractères` : `Des Barz détaillés : ${long}/5` },
+      { icon: '🎯', name: 'Oreille fine', done: T.length >= 10, text: T.length >= 10 ? `${T.length} titres notés` : `10 titres notés : ${T.length}/10` },
       { icon: '🔥', name: 'Régularité', done: bestStreak >= 7, text: bestStreak >= 7 ? `${bestStreak} jours d’affilée aux jeux` : `7 jours d’affilée aux jeux : ${bestStreak}/7` },
       { icon: '🎧', name: 'Mélomanie', done: L.length >= 100, text: L.length >= 100 ? `${L.length} disques écoutés` : `100 disques écoutés : ${L.length}/100` },
       { icon: '🧭', name: 'Curiosité', done: genreCount.size >= 5, text: genreCount.size >= 5 ? `${genreCount.size} genres écoutés` : `5 genres différents : ${genreCount.size}/5` },
@@ -824,7 +833,7 @@ import Layout from '../layouts/Layout.astro';
     $('p-badges-list').innerHTML = shown
       .map((b) => `<li class="badge${b.done ? ' is-done' : ''}"><span class="badge-icon" aria-hidden="true">${b.icon}</span><b>${b.name}</b><span>${escapeHtml(b.text)}</span></li>`)
       .join('');
-    $('p-badges').hidden = !shown.length && !listenedMonth && !barzMonth;
+    $('p-badges').hidden = !shown.length && !listenedMonth && !barzMonth && !tracksMonth;
   }
 
   // Listes : quatre pochettes en mosaïque, titre, nombre de disques
@@ -849,7 +858,10 @@ import Layout from '../layouts/Layout.astro';
   async function renderPicks(profile: Profile, isMe: boolean, barz: Awaited<ReturnType<typeof barzFeed>>, tastePromise: Promise<Taste | null>, iFollow: Set<string>) {
     $('picks-title').textContent = isMe ? 'Tes coups de cœur' : 'Ses coups de cœur';
     const best = barz.filter((b) => b.release && Number(b.score) >= 7).sort((a, b) => Number(b.score) - Number(a.score)).slice(0, 6);
-    $('p-picks-releases').innerHTML = best.map((b) => releaseTileHtml(b.release!, { badge: Number(b.score).toFixed(1) })).join('');
+    // Un titre noté : sa tuile le nomme et mène à sa page (son?id=)
+    $('p-picks-releases').innerHTML = best
+      .map((b) => releaseTileHtml(b.release!, { badge: Number(b.score).toFixed(1), ...(b.track ? { track: b.track.title, trackId: b.track.deezer_id, reason: `Titre : ${b.track.title}` } : {}) }))
+      .join('');
 
     const taste = await tastePromise;
     // Tous ses artistes préférés, du plus aimé au moins aimé : les 6 premiers, puis « Voir les N artistes »
@@ -1554,10 +1566,11 @@ import Layout from '../layouts/Layout.astro';
     .identity p {
       margin-inline: auto;
     }
-    /* 4 compteurs en 4 colonnes égales : « Artistes » ne déborde plus du cadre */
+    /* 4 ou 5 compteurs (« Titres » s'il y en a) en colonnes égales : « Artistes » ne déborde plus du cadre */
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
       gap: 4px;
       width: 100%;
     }

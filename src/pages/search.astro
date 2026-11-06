@@ -81,6 +81,10 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
           </div>
         ))}
       </div>
+      <div id="results-deezer-block" hidden>
+        <h3 class="results-label">Aussi sur Deezer</h3>
+        <div class="bz-tiles" id="results-deezer"></div>
+      </div>
       <p id="results-empty" class="bz-empty" hidden>Rien trouvé. Essaie un nom d’artiste, un titre ou un genre (rap, jazz, électro…).</p>
     </section>
 
@@ -116,7 +120,7 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
 </Layout>
 
 <script>
-  import { ARTIST_LITE, BASE, artistCardHtml, escapeHtml, myFollows, releaseTileHtml, searchArtists, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, coverHtml, escapeHtml, myFollows, releaseTileHtml, searchArtists, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { audience, formatAudience } from '../lib/audience';
   import { dismissButtonHtml, loadTaste, rank, wireDismiss, type RecoRelease, type Taste } from '../scripts/reco';
   import { GENRE_CHIPS } from '../lib/genres';
@@ -266,6 +270,35 @@ const searchText = (r: ReleaseRow) => normalizeSearch(`${r.title} ${r.artist?.na
         document.getElementById('results-empty')!.hidden = true;
       })
       .catch(() => {});
+    // Le catalogue ne garde surtout que les sorties récentes : Deezer complète (anciens albums, sons pas encore synchronisés).
+    // Un disque déjà au catalogue mène à sa fiche, sinon à la page du disque (album?d=)
+    if (supabase && query.length >= 2) {
+      const shown = new Set(
+        [...results.querySelectorAll<HTMLElement>('.result:not([hidden]) a')].map((a) => decodeURIComponent(a.getAttribute('href') ?? '').replace(/\/$/, '').split('/').pop())
+      );
+      supabase.functions
+        .invoke('deezer', { body: { action: 'search', q: query } })
+        .then(({ data }) => {
+          type Hit = { deezerAlbumId: number; title: string; artist: string; cover: string | null; type: string; track?: string; slug: string | null };
+          const hits = ((data?.items ?? []) as Hit[]).filter((d) => !d.slug || !shown.has(d.slug)).slice(0, 12);
+          if (!hits.length) return;
+          const TYPES: Record<string, string> = { album: 'Album', ep: 'EP', single: 'Single', compilation: 'Compilation' };
+          document.getElementById('results-deezer')!.innerHTML = hits
+            .map((d) => {
+              const href = d.slug ? `${BASE}releases/${encodeURIComponent(d.slug)}/${d.track ? `?titre=${encodeURIComponent(d.track)}` : ''}` : `${BASE}album?d=${d.deezerAlbumId}`;
+              return `<a class="bz-ctile" href="${href}">
+                ${coverHtml(d.title, d.cover)}
+                <span class="bz-ctile-row"><b>${escapeHtml(d.title)}</b></span>
+                <span class="bz-ctile-sub">${escapeHtml(d.artist)}${TYPES[d.type] ? ` · ${TYPES[d.type]}` : ''}</span>
+                ${d.track ? `<span class="bz-reason">Titre : ${escapeHtml(d.track)}</span>` : ''}
+              </a>`;
+            })
+            .join('');
+          document.getElementById('results-deezer-block')!.hidden = false;
+          document.getElementById('results-empty')!.hidden = true;
+        })
+        .catch(() => {});
+    }
     const input = document.getElementById('topbar-q') as HTMLInputElement | null;
     if (input) input.value = query;
   }

@@ -122,13 +122,29 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     return Promise.all([searchArtists(q, { limit: 5 }).catch(() => []), releases]);
   }
 
-  async function updateSuggest() {
-    const q = searchInput.value.trim();
-    if (q.length < 2) return closeSuggest();
-    const [artists, releases] = await fetchSuggest(q);
-    if (searchInput.value.trim() !== q) return; // la frappe a continué entre-temps
-    lastQuery = q;
-    lastArtists = artists;
+  // Repli Deezer (fonction deezer, action search) quand le catalogue trouve peu de sorties : anciens albums, sons pas encore
+  // synchronisés. Un disque déjà au catalogue mène à sa fiche, sinon à la page du disque (album?d=) ; gardé en mémoire par recherche
+  type DeezerHit = { deezerAlbumId: number; title: string; artist: string; cover: string | null; track?: string; slug: string | null };
+  const deezerCache = new Map<string, Promise<DeezerHit[]>>();
+  function searchDeezer(q: string): Promise<DeezerHit[]> {
+    if (!supabase) return Promise.resolve([]);
+    const key = q.toLowerCase();
+    if (!deezerCache.has(key)) {
+      deezerCache.set(
+        key,
+        supabase.functions
+          .invoke('deezer', { body: { action: 'search', q } })
+          .then(({ data }) => (data?.items ?? []) as DeezerHit[])
+          .catch(() => [])
+      );
+    }
+    return deezerCache.get(key)!;
+  }
+  const deezerHref = (d: DeezerHit) =>
+    d.slug ? `${BASE}releases/${d.slug}/${d.track ? `?titre=${encodeURIComponent(d.track)}` : ''}` : `${BASE}album?d=${d.deezerAlbumId}`;
+
+  type SuggestRow = { href: string; img: string; title: string; sub: string };
+  function paintSuggest(q: string, artists: ArtistLite[], releases: SuggestRow[]) {
     let n = 0;
     const item = (href: string, img: string, title: string, sub: string, round = false) =>
       `<a class="suggest-item" id="suggest-${n++}" role="option" href="${escapeHtml(href)}">
@@ -137,13 +153,34 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
       </a>`;
     suggest.innerHTML =
       (artists.length ? `<p class="suggest-label">Artistes</p>${artists.map((a) => item(artistHref(a), a.image_url ?? '', a.name, formatAudience(a) || 'Artiste', true)).join('')}` : '') +
-      (releases.length
-        ? `<p class="suggest-label">Sorties</p>${releases.map((r) => item(`${BASE}releases/${r.slug}`, r.cover_url ?? '', r.title, r.artist?.name ?? '')).join('')}`
-        : '') +
+      (releases.length ? `<p class="suggest-label">Sorties</p>${releases.map((r) => item(r.href, r.img, r.title, r.sub)).join('')}` : '') +
       `<a class="suggest-item suggest-all" id="suggest-${n++}" role="option" href="${escapeHtml(resultsHref(q))}">Tous les résultats pour « ${escapeHtml(q)} » →</a>`;
     suggest.hidden = false;
     searchInput.setAttribute('aria-expanded', 'true');
+  }
+
+  async function updateSuggest() {
+    const q = searchInput.value.trim();
+    if (q.length < 2) return closeSuggest();
+    const [artists, releases] = await fetchSuggest(q);
+    if (searchInput.value.trim() !== q) return; // la frappe a continué entre-temps
+    lastQuery = q;
+    lastArtists = artists;
+    const rows: SuggestRow[] = releases.map((r) => ({ href: `${BASE}releases/${r.slug}`, img: r.cover_url ?? '', title: r.title, sub: r.artist?.name ?? '' }));
+    paintSuggest(q, artists, rows);
     highlight(-1);
+    if (rows.length >= 4) return;
+    // Peu de sorties au catalogue : Deezer complète la liste, sans doublon
+    const known = new Set(releases.map((r) => r.slug));
+    const extra = (await searchDeezer(q))
+      .filter((d) => !d.slug || !known.has(d.slug))
+      .slice(0, 4 - rows.length)
+      .map((d) => ({ href: deezerHref(d), img: d.cover ?? '', title: d.title, sub: d.track ? `${d.artist} · titre « ${d.track} »` : d.artist }));
+    if (!extra.length || searchInput.value.trim() !== q || suggest.hidden) return;
+    const keep = active;
+    paintSuggest(q, artists, [...rows, ...extra]);
+    // La suggestion choisie au clavier reste la même (les sorties Deezer s'insèrent avant « Tous les résultats »)
+    highlight(keep >= 0 && keep < artists.length + rows.length ? keep : -1);
   }
 
   searchInput.addEventListener('input', () => {

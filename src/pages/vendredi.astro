@@ -72,6 +72,10 @@ import FilTabs from '../components/FilTabs.astro';
   // ♥ et réponses (supabase/friday-reactions.sql) ; sans les tables, les messages s'affichent sans les boutons
   let reactions = false;
   const openThreads = new Set<string>();
+  // Venu d'une notif (♥ ou réponse) : ce message, réponses ouvertes, mis en avant une fois
+  const focusPost = new URLSearchParams(location.search).get('post');
+  if (focusPost) openThreads.add(focusPost);
+  let focused = false;
 
   async function loadReactions(ids: string[]) {
     const likes = new Map<string, string[]>();
@@ -130,7 +134,7 @@ import FilTabs from '../components/FilTabs.astro';
         const name = p.profile?.display_name ?? 'Membre';
         const href = p.profile ? `${BASE}profil?u=${encodeURIComponent(p.profile.username)}` : '#';
         const avatar = p.profile?.avatar_path ? `<img src="${escapeHtml(avatarUrl(p.profile.avatar_path))}" alt="" loading="lazy" />` : escapeHtml(name[0] ?? '?');
-        return `<li class="post">
+        return `<li class="post${p.id === focusPost ? ' is-focus' : ''}" id="post-${p.id}">
           <a class="barz-avatar" href="${href}">${avatar}</a>
           <div class="post-main">
             <div class="post-head"><a href="${href}"><b>${escapeHtml(name)}</b></a><span>${escapeHtml(timeAgo(p.created_at))}</span>
@@ -141,6 +145,10 @@ import FilTabs from '../components/FilTabs.astro';
         </li>`;
       })
       .join('');
+    if (focusPost && !focused) {
+      focused = true;
+      document.getElementById(`post-${focusPost}`)?.scrollIntoView({ block: 'center' });
+    }
   }
 
   // Top de la semaine : les sorties les mieux notées dans les Barz des 7 jours (au moins 2 Barz, ou 1 entre amis)
@@ -348,6 +356,12 @@ import FilTabs from '../components/FilTabs.astro';
     border: var(--line);
     border-radius: 14px;
     background: var(--color-paper);
+    scroll-margin-top: 90px;
+  }
+
+  .posts :global(.post.is-focus) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 
   .posts :global(.post-main) {
