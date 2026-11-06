@@ -146,7 +146,17 @@ import Layout from '../layouts/Layout.astro';
       supabase.from('artists').select('slug').eq('deezer_id', track.artist?.id ?? 0).maybeSingle(),
     ]);
     trackId = (known as { id: string } | null)?.id ?? null;
-    const rel = release as { slug: string; metadata: { archive?: boolean } | null } | null;
+    let rel = release as { slug: string; metadata: { archive?: boolean } | null } | null;
+    // Disque venu d'Apple ou de MusicBrainz (sans lien Deezer) : même artiste et même titre
+    if (!rel && track.album && track.artist) {
+      const { data: byTitle } = await supabase
+        .from('releases')
+        .select('slug, metadata, artist:artists!artist_id!inner(deezer_id)')
+        .eq('artist.deezer_id', track.artist.id)
+        .ilike('title', track.album.title.replace(/[%_]/g, ''))
+        .limit(1);
+      rel = ((byTitle ?? []) as any[])[0] ?? null;
+    }
     const albumHref = rel && !rel.metadata?.archive
       ? `${BASE}releases/${encodeURIComponent(rel.slug)}/?titre=${encodeURIComponent(track.title)}`
       : track.album ? `${BASE}album?d=${track.album.id}` : null;
