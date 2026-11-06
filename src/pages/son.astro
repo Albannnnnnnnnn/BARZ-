@@ -142,7 +142,7 @@ import Layout from '../layouts/Layout.astro';
       rel = ((byTitle ?? []) as any[])[0] ?? null;
     }
     const albumHref = rel && !rel.metadata?.archive
-      ? `${BASE}releases/${encodeURIComponent(rel.slug)}/?titre=${encodeURIComponent(track.title)}`
+      ? `${BASE}releases/${encodeURIComponent(rel.slug)}/` // sans ?titre= : le titre n'a pas à ressortir dans la liste
       : track.album ? `${BASE}album?d=${track.album.id}` : null;
 
     const artistName = track.artist?.name ?? '';
