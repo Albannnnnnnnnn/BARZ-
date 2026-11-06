@@ -4,18 +4,22 @@
 // pas fetch depuis un autre site), et redemandée si un extrait a expiré. Le morceau entier : bouton « Écouter ».
 // dynamic : disque connu seulement dans le navigateur (src/pages/album.astro) ; la page pose data-album puis
 // envoie l'évènement « barz:previews » sur la section.
+// artist : sans lien Deezer (sortie venue d'Apple ou de MusicBrainz), le disque est cherché sur Deezer par artiste et titre.
 interface Props {
   title: string;
   deezerUrl?: string | null;
   dynamic?: boolean;
+  artist?: string | null;
+  artistDeezerId?: number | null;
 }
 
-const { title, deezerUrl, dynamic = false } = Astro.props;
+const { title, deezerUrl, dynamic = false, artist, artistDeezerId } = Astro.props;
 const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
+const findOnDeezer = !deezerId && !dynamic && !!artist;
 ---
 
-{(deezerId || dynamic) && (
-  <section class="previews" data-previews data-album={deezerId ?? ''} aria-labelledby="previews-title" hidden>
+{(deezerId || dynamic || findOnDeezer) && (
+  <section class="previews" data-previews data-album={deezerId ?? ''} data-find-artist={findOnDeezer ? artist : undefined} data-find-title={findOnDeezer ? title : undefined} data-find-artist-id={findOnDeezer && artistDeezerId ? artistDeezerId : undefined} aria-labelledby="previews-title" hidden>
     <div class="bz-section-head">
       <h2 id="previews-title" class="bz-h2">Les <em>extraits</em></h2>
       <span class="hint">30 secondes par titre</span>
@@ -164,8 +168,29 @@ const deezerId = deezerUrl?.match(/album\/(\d+)/)?.[1];
     }
   }
 
-  document.querySelectorAll<HTMLElement>('[data-previews]').forEach((section) => {
-    if (section.dataset.album) initPreviews(section);
+  // Disque sans lien Deezer : d'abord la discographie de l'artiste (à jour le jour même, contrairement à la recherche
+  // Deezer qui a du retard sur les nouveautés), puis la recherche ; même titre aux accents et à la ponctuation près
+  async function findAlbum(artist: string, title: string, artistId?: string): Promise<number | null> {
+    if (artistId) {
+      const disco = await jsonp<{ data?: { id: number; title: string }[] }>(`https://api.deezer.com/artist/${artistId}/albums?limit=100`).catch(() => null);
+      const own = (disco?.data ?? []).find((a) => squash(a.title) === squash(title));
+      if (own) return own.id;
+    }
+    const res = await jsonp<{ data?: { id: number; title: string; artist?: { name: string } }[] }>(
+      `https://api.deezer.com/search/album?q=${encodeURIComponent(`artist:"${artist}" album:"${title}"`)}&limit=25`
+    ).catch(() => null);
+    const hit = (res?.data ?? []).find((a) => squash(a.artist?.name ?? '') === squash(artist) && squash(a.title) === squash(title));
+    return hit?.id ?? null;
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-previews]').forEach(async (section) => {
+    if (section.dataset.album) return initPreviews(section);
+    const { findArtist, findTitle, findArtistId } = section.dataset;
+    if (!findArtist || !findTitle) return;
+    const id = await findAlbum(findArtist, findTitle, findArtistId);
+    if (!id) return;
+    section.dataset.album = String(id);
+    initPreviews(section);
   });
   // Disque connu plus tard (page album) : la section est initialisée à la demande
   document.addEventListener('barz:previews', (event) => initPreviews(event.target as HTMLElement));
