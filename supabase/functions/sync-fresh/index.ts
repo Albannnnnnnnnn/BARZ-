@@ -296,7 +296,7 @@ async function veille() {
     const { error } = await admin.from('releases').upsert(fresh, { onConflict: 'slug', ignoreDuplicates: true });
     if (error) throw new Error(`Enregistrement : ${error.message}`);
     // Notification tout de suite à ceux qui suivent l'artiste, sans attendre le passage de notify (toutes les 15 min).
-    // notify garde ses règles (pas la nuit, vendredi matin réservé à la notification de 9h, une seule fois par sortie).
+    // notify annonce à toute heure, une seule fois par sortie.
     notified = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },

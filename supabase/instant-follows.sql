@@ -1,3 +1,5 @@
+-- ⚠️ PLUS UTILISÉ depuis le 09/11/2026 : toutes les sorties des artistes suivis sont notifiées tout de suite, à toute heure.
+-- La colonne follows.instant et son déclencheur restent en base sans effet ; rien à relancer.
 -- BARZ¡ — « Dès la sortie » : jusqu'à 5 artistes suivis dont les sorties sont notifiées tout de suite, même la nuit
 -- et le vendredi avant 9h (fonction notify, action releases). Les autres attendent toujours 8h / 9h le vendredi.
 -- À exécuter UNE fois dans Supabase : SQL Editor → New query → coller → Run. Relançable sans risque.

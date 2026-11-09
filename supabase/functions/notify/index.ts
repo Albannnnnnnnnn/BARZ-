@@ -16,7 +16,8 @@
 //              qui suivent l'artiste sont prévenus, une seule fois (déclencheur, supabase/announcements.sql).
 // - client-error : erreur JavaScript chez un membre (src/scripts/error-report.ts), relevée dans le salon privé
 //              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
-// - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h),
+// - releases : nouvelles sorties des artistes suivis, une seule fois chacune, à toute heure (sync-fresh dès qu'il en trouve,
+//              et pg_cron toutes les 15 min),
 //              invités des titres compris (« Jorja Smith en feat » sur un titre d'album, supabase/release-track-feats.sql).
 // - monday   : le lundi à 10h (pg_cron, supabase/monday-recap.sql), les sorties de la semaine de tes artistes pas encore écoutées.
 // - speed-report : le vendredi à 12h (pg_cron, supabase/speed-report.sql), heure d'arrivée des sorties du jour dans BARZ¡
@@ -161,11 +162,8 @@ async function withTrackFeats(input: ReleaseRow[]): Promise<ReleaseRow[]> {
 }
 
 // Artistes suivis par membre : identifiants et noms comparables (pour les feats)
-// instantOnly : seulement les artistes en « Dès la sortie » (supabase/instant-follows.sql)
-async function followsOf(userIds: string[], instantOnly = false) {
-  let query = admin.from('follows').select('user_id, artist_id, artist:artists(name)').in('user_id', userIds);
-  if (instantOnly) query = query.eq('instant', true);
-  const { data: follows } = await query;
+async function followsOf(userIds: string[]) {
+  const { data: follows } = await admin.from('follows').select('user_id, artist_id, artist:artists(name)').in('user_id', userIds);
   const byUser = new Map<string, { ids: Set<string>; names: Map<string, string> }>();
   for (const f of (follows ?? []) as unknown as { user_id: string; artist_id: string; artist: { name: string } | null }[]) {
     const u = byUser.get(f.user_id) ?? { ids: new Set(), names: new Map() };
@@ -216,11 +214,22 @@ async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string
   ]);
   const all = await withTrackFeats((releases ?? []) as unknown as ReleaseRow[]);
   const announced: { user_id: string; release_id: string }[] = [];
+  // Sorties déjà annoncées dans la nuit (notifs à toute heure) : la notification de 9h ne les répète pas
+  const done = new Set<string>();
+  const ids = all.map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data } = await admin.from('notified_releases').select('user_id, release_id').in('release_id', ids.slice(i, i + 200)).in('user_id', userIds);
+    for (const d of (data ?? []) as { user_id: string; release_id: string }[]) done.add(`${d.user_id}:${d.release_id}`);
+  }
 
   const messages = new Map<string, Message>();
   for (const userId of userIds) {
     // Ses artistes : sorties à leur nom, ou invités en feat ; le nom affiché est celui de l'artiste suivi
-    const { mine, shownName } = matchFollowed(all, byUser.get(userId));
+    const matched = matchFollowed(all, byUser.get(userId));
+    const shownName = matched.shownName;
+    const mine = matched.mine.filter((r) => !done.has(`${userId}:${r.id}`));
+    // Tout a déjà été annoncé dans la nuit : pas de deuxième notification
+    if (matched.mine.length && !mine.length) continue;
     for (const r of mine) announced.push({ user_id: userId, release_id: r.id });
     const artists = [...new Set(mine.map(shownName).filter((n): n is string => !!n))];
     if (mine.length) {
@@ -250,7 +259,7 @@ async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string
 }
 
 // Nouvelles sorties des artistes suivis (enregistrées ces 3 derniers jours, déjà sorties), pas encore annoncées
-async function releaseMessages(userIds: string[], today: string, instantOnly = false): Promise<{ messages: Map<string, Message>; announced: { user_id: string; release_id: string }[] }> {
+async function releaseMessages(userIds: string[], today: string): Promise<{ messages: Map<string, Message>; announced: { user_id: string; release_id: string }[] }> {
   const since = new Date(Date.now() - 3 * 86400_000).toISOString();
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
   const [{ data: releases }, byUser] = await Promise.all([
@@ -261,7 +270,7 @@ async function releaseMessages(userIds: string[], today: string, instantOnly = f
       .gte('release_date', weekAgo)
       .lte('release_date', today)
       .limit(5000),
-    followsOf(userIds, instantOnly),
+    followsOf(userIds),
   ]);
   const all = await withTrackFeats((releases ?? []) as unknown as ReleaseRow[]);
   const messages = new Map<string, Message>();
@@ -810,12 +819,11 @@ Deno.serve(async (req) => {
   if (body.action === 'releases') {
     // pg_cron toutes les 15 minutes (supabase/notifications.sql)
     if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
-    const { hour, weekday, today } = parisNow();
+    const { today } = parisNow();
     // Invités des titres des albums récents, à toute heure : prêts pour la notification du vendredi matin
     const checked = await collectTrackFeats(today).catch((err) => `erreur : ${err instanceof Error ? err.message : String(err)}`);
-    // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi, la notification de 9h annonce d'abord les sorties de la nuit.
-    // Exception : les artistes en « Dès la sortie » sont annoncés tout de suite, à toute heure
-    const quiet = hour < 8 || hour >= 22 ? 'nuit' : weekday === 'Fri' && hour < 10 ? 'vendredi matin' : null;
+    // À toute heure, nuit et vendredi minuit compris : une sortie d'un artiste suivi est annoncée dès qu'elle est repérée
+    // (choix d'Alban, 09/11 : la vitesse avant tout). La notification de 9h du vendredi ne répète pas ce qui est déjà parti.
     // Tous les membres qui suivent des artistes : la cloche pour tous, le téléphone pour ceux qui l'ont activé
     const [{ data }, { data: followers }] = await Promise.all([
       admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),
@@ -824,12 +832,12 @@ Deno.serve(async (req) => {
     const subs = (data ?? []) as Sub[];
     const userIds = [...new Set((followers ?? []).map((f) => f.user_id as string))];
     if (!userIds.length) return reply({ sent: 0, checked });
-    const { messages, announced } = await releaseMessages(userIds, today, !!quiet);
-    if (!announced.length) return reply({ sent: 0, checked, ...(quiet ? { skipped: quiet } : {}) });
+    const { messages, announced } = await releaseMessages(userIds, today);
+    if (!announced.length) return reply({ sent: 0, checked });
     await markNotified(announced); // avant l'envoi : deux passages rapprochés n'enverront pas deux fois
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
     await toInbox('release', [...messages]);
-    return reply({ sent, releases: announced.length, checked, ...(quiet ? { instant: true } : {}) });
+    return reply({ sent, releases: announced.length, checked });
   }
 
   if (body.action === 'test') {

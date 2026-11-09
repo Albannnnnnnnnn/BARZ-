@@ -89,7 +89,7 @@ import Layout from '../layouts/Layout.astro';
   import { formatAudience } from '../lib/audience';
   import { listenMenuHtml } from '../lib/listen';
   import { initListen } from '../scripts/listen';
-  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, getSession, loginUrl, myFollows, myInstantIds, releaseTileHtml, setFollow, setInstant, INSTANT_MAX, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
+  import { ARTIST_LITE, BASE, artistCardHtml, authErrorMessage, coverHtml, errorText, escapeHtml, getSession, loginUrl, myFollows, releaseTileHtml, setFollow, supabase, wireFollowButtons, type ArtistLite } from '../scripts/social';
   import { GENRE_CHIPS } from '../lib/genres';
   import { PRECISIONS, announcementCardHtml, publishedAnnouncements, suggestAnnouncement, type Precision } from '../scripts/announcements';
 
@@ -239,13 +239,9 @@ import Layout from '../layouts/Layout.astro';
     $('a-meta').textContent = [formatAudience(a), nbFollowers ? `${nbFollowers} membre${nbFollowers > 1 ? 's' : ''} le suive${nbFollowers > 1 ? 'nt' : ''} sur BARZ¡` : '']
       .filter(Boolean)
       .join(' · ');
-    const instantIds = await myInstantIds().catch(() => null);
-    const instant = instantIds ?? new Set<string>();
     $('a-actions').innerHTML = `<button type="button" class="bz-follow big${isFollowing ? ' is-on' : ''}" data-follow="${escapeHtml(a.id)}" aria-pressed="${isFollowing}">${isFollowing ? 'Suivi' : 'Suivre'}</button>
-      <button type="button" class="bz-instant${instant.has(a.id) ? ' is-on' : ''}" id="a-instant" aria-pressed="${instant.has(a.id)}" ${isFollowing && instantIds ? '' : 'hidden'} title="Notifié dès la sortie, même la nuit (${INSTANT_MAX} artistes au plus)">⚡ ${instant.has(a.id) ? 'Dès la sortie' : 'Notif dès la sortie'}</button>
       ${listenMenuHtml({ artist: a.name, deezerUrl: a.deezer_id ? `https://www.deezer.com/artist/${a.deezer_id}` : null })}`;
     initListen();
-    if (instantIds) wireInstant(a.id, instant);
     $('artist-hero').hidden = false;
     renderAiReport(a).catch(() => {}); // script ai-flags.sql pas encore lancé : pas de bouton
     wireHomonyms(a as ArtistLite & { deezer_id: number | null });
@@ -324,39 +320,6 @@ import Layout from '../layouts/Layout.astro';
         }
       }
       location.href = `${BASE}artiste?a=${encodeURIComponent(added.slug)}`;
-    };
-  }
-
-  // « Dès la sortie » : visible une fois l'artiste suivi ; 5 artistes au plus (le serveur le vérifie aussi)
-  function wireInstant(artistId: string, instant: Set<string>) {
-    const button = document.getElementById('a-instant') as HTMLButtonElement | null;
-    const follow = document.querySelector<HTMLButtonElement>(`[data-follow="${artistId}"]`);
-    if (!button || !follow) return;
-    const paint = (on: boolean) => {
-      button.classList.toggle('is-on', on);
-      button.setAttribute('aria-pressed', String(on));
-      button.textContent = on ? '⚡ Dès la sortie' : '⚡ Notif dès la sortie';
-    };
-    // Suivre / ne plus suivre : le bouton apparaît ou disparaît (ne plus suivre efface aussi le réglage)
-    follow.addEventListener('click', () => setTimeout(() => {
-      const on = follow.getAttribute('aria-pressed') === 'true';
-      button.hidden = !on;
-      if (!on) { instant.delete(artistId); paint(false); }
-    }));
-    button.onclick = async () => {
-      const on = button.getAttribute('aria-pressed') !== 'true';
-      if (on && instant.size >= INSTANT_MAX) {
-        alert(`Tu as déjà ${INSTANT_MAX} artistes en « Dès la sortie ». Retire-en un depuis sa fiche pour choisir celui-ci.`);
-        return;
-      }
-      paint(on);
-      try {
-        await setInstant(artistId, on);
-        if (on) instant.add(artistId); else instant.delete(artistId);
-      } catch (err) {
-        paint(!on);
-        alert(errorText(err));
-      }
     };
   }
 
