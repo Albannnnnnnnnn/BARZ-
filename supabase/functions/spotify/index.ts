@@ -7,8 +7,6 @@
 // - disconnect  : oublie les jetons et coupe le partage
 // - now-playing { userIds } : ce qu'écoutent ces membres (soi-même, ou des amis qui partagent leur écoute) ; sans
 //               Spotify (5 comptes au plus), le morceau en cours sur Last.fm (secret LASTFM_API_KEY, facultatif)
-// - playlist    { releaseIds, name } : crée une playlist privée sur son compte avec les titres de ces sorties
-//               (scope playlist-modify-private : un compte relié avant le 09/11 doit se reconnecter)
 // - import      : ses artistes les plus écoutés et ceux qu'il suit, rapprochés du catalogue (supabase/music-imports.sql)
 //
 // Déploiement (par Alban) : supabase functions deploy spotify
@@ -209,55 +207,6 @@ Deno.serve(async (req) => {
     });
     if (error) return reply({ error: error.message }, 500);
     return reply({ connected: true, name: profile?.display_name ?? null });
-  }
-
-  if (body.action === 'playlist') {
-    const ids = (Array.isArray(body.releaseIds) ? body.releaseIds : []).filter((x: unknown) => typeof x === 'string' && UUID.test(x)).slice(0, 60);
-    if (!ids.length) return reply({ error: 'Aucune sortie à mettre dans la playlist.' }, 400);
-    const { data: row } = await admin.from('spotify_tokens').select('*').eq('user_id', me).maybeSingle();
-    if (!row) return reply({ error: 'Relie d’abord ton compte Spotify.', reconnect: true }, 400);
-    const token = await accessTokenOf(row as TokenRow);
-    if (!token) return reply({ error: 'Spotify ne répond plus pour ton compte : reconnecte-le.', reconnect: true }, 400);
-    const api = (path: string, init: RequestInit = {}) =>
-      fetch(`https://api.spotify.com/v1${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
-    const { data: releases } = await admin.from('releases').select('id, title, spotify_id, artist:artists!artist_id(name)').in('id', ids);
-    // L'album de chaque sortie : identifiant Spotify connu, sinon recherche artiste + titre ; puis ses titres (100 au plus en tout)
-    const uris: string[] = [];
-    let missing = 0;
-    for (const r of (releases ?? []) as unknown as { id: string; title: string; spotify_id: string | null; artist: { name: string } | null }[]) {
-      if (uris.length >= 100) break;
-      let albumId = r.spotify_id;
-      if (!albumId) {
-        const q = encodeURIComponent(`album:${r.title} artist:${r.artist?.name ?? ''}`);
-        const found = await api(`/search?type=album&limit=1&q=${q}`).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-        albumId = found?.albums?.items?.[0]?.id ?? null;
-      }
-      if (!albumId) {
-        missing++;
-        continue;
-      }
-      const tracks = await api(`/albums/${albumId}/tracks?limit=50`).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-      for (const t of tracks?.items ?? []) if (t?.uri && uris.length < 100) uris.push(t.uri);
-    }
-    if (!uris.length) return reply({ error: 'Aucune de ces sorties n’a été trouvée sur Spotify.' }, 404);
-    const name = String(body.name ?? 'Mon vendredi BARZ¡').slice(0, 100);
-    const payload = JSON.stringify({ name, public: false, description: 'Les sorties de tes artistes, réunies par BARZ¡.' });
-    // Création : /me/playlists (nouvelle adresse), sinon l'ancienne /users/{id}/playlists
-    let created = await api('/me/playlists', { method: 'POST', body: payload });
-    if (created.status === 404 || created.status === 405) {
-      const meInfo = await api('/me').then((x) => (x.ok ? x.json() : null)).catch(() => null);
-      if (meInfo?.id) created = await api(`/users/${encodeURIComponent(meInfo.id)}/playlists`, { method: 'POST', body: payload });
-    }
-    if (created.status === 401 || created.status === 403) return reply({ error: 'Spotify demande une nouvelle autorisation pour créer des playlists : reconnecte ton compte.', reconnect: true }, 403);
-    if (!created.ok) return reply({ error: `Spotify a refusé la création (${created.status}).` }, 502);
-    const playlist = await created.json();
-    for (let i = 0; i < uris.length; i += 100) {
-      const add = JSON.stringify({ uris: uris.slice(i, i + 100) });
-      let res = await api(`/playlists/${playlist.id}/items`, { method: 'POST', body: add });
-      if (res.status === 404 || res.status === 405) res = await api(`/playlists/${playlist.id}/tracks`, { method: 'POST', body: add });
-      if (!res.ok) return reply({ error: `Playlist créée, mais Spotify a refusé les titres (${res.status}).`, url: playlist.external_urls?.spotify ?? null }, 502);
-    }
-    return reply({ url: playlist.external_urls?.spotify ?? null, tracks: uris.length, missing });
   }
 
   if (body.action === 'status') {
