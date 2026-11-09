@@ -18,6 +18,8 @@
 //              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h),
 //              invités des titres compris (« Jorja Smith en feat » sur un titre d'album, supabase/release-track-feats.sql).
+// - speed-report : le vendredi à 12h (pg_cron, supabase/speed-report.sql), heure d'arrivée des sorties du jour dans BARZ¡
+//              comparée au vendredi d'avant, postée dans #alertes ; dry: true renvoie le relevé sans le poster.
 //
 // Déploiement (par Alban) : supabase functions deploy notify --use-api
 // Secrets : VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY (dans .env) ; SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis
@@ -399,6 +401,68 @@ async function barzPlace(barzId: string): Promise<{ user_id: string; body: strin
     : { user_id: b.user_id, body: b.body ?? '', title: b.release.title, url: `${SITE}releases/${b.release.slug}` };
 }
 
+// ============================================================
+// RELEVÉ DE VITESSE (action « speed-report ») : à quelle heure les sorties du jour sont arrivées dans BARZ¡
+// ============================================================
+// Minuit à Paris pour une date AAAA-MM-JJ, en instant UTC (heure d'été comprise)
+function parisMidnight(date: string): number {
+  const utc = Date.parse(`${date}T00:00:00Z`);
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+      .formatToParts(new Date(utc))
+      .map((x) => [x.type, x.value])
+  );
+  const offset = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute)) - utc;
+  return utc - offset;
+}
+const parisClock = (ms: number) => new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+const SPEED_BIG_AUDIENCE = 300_000; // « gros artistes » : ceux dont un retard se remarque
+type SpeedRow = { title: string; created_at: string; artist: { name: string; audience: number | null; ai_flag: string | null } | null };
+
+async function speedStats(date: string, cutoff: number) {
+  const rows: SpeedRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from('releases')
+      .select('title, created_at, artist:artists!artist_id(name, audience, ai_flag)')
+      .eq('release_date', date)
+      .lte('created_at', new Date(cutoff).toISOString())
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as unknown as SpeedRow[]));
+    if (!data || data.length < 1000) break;
+  }
+  const midnight = parisMidnight(date);
+  const all = rows.filter((r) => r.artist?.ai_flag !== 'ia').map((r) => ({ ...r, late: (Date.parse(r.created_at) - midnight) / 60_000 }));
+  const summary = (list: typeof all) => {
+    const after = list.map((r) => r.late).filter((m) => m > 0).sort((a, b) => a - b);
+    return {
+      total: list.length,
+      ready: list.filter((r) => r.late <= 0).length,
+      q15: list.filter((r) => r.late > 0 && r.late <= 15).length,
+      h1: list.filter((r) => r.late > 15 && r.late <= 60).length,
+      h3: list.filter((r) => r.late > 60 && r.late <= 180).length,
+      later: list.filter((r) => r.late > 180).length,
+      median: after.length ? Math.round(after[Math.floor(after.length / 2)]) : null,
+    };
+  };
+  const big = all.filter((r) => (r.artist?.audience ?? 0) >= SPEED_BIG_AUDIENCE);
+  const slowest = big.filter((r) => r.late > 60).sort((a, b) => b.late - a.late).slice(0, 6);
+  return { all: summary(all), big: summary(big), slowest };
+}
+
+function speedLines(s: Awaited<ReturnType<typeof speedStats>>['all']): string {
+  if (!s.total) return 'Aucune sortie.';
+  const pct = (n: number) => `${Math.round((100 * n) / s.total)} %`;
+  return [
+    `**${s.total}** sorties · médiane **${s.median ?? 0} min** après minuit`,
+    `Prêtes avant minuit : ${s.ready} (${pct(s.ready)})`,
+    `≤ 15 min : ${s.q15} (${pct(s.q15)}) · 15–60 min : ${s.h1} (${pct(s.h1)})`,
+    `1–3 h : ${s.h3} (${pct(s.h3)}) · plus de 3 h : ${s.later} (${pct(s.later)})`,
+  ].join('\n');
+}
+const minutesLabel = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, '0')}` : `${Math.round(m)} min`);
+
 // Texte raccourci entre guillemets, ou rien (Barz sans texte)
 const quoted = (text: string, max: number) => (text.trim() ? ` — « ${text.length > max ? `${text.slice(0, max - 1)}…` : text} »` : '');
 
@@ -773,6 +837,55 @@ Deno.serve(async (req) => {
       tag: 'test',
     }));
     return reply({ sent });
+  }
+
+  if (body.action === 'speed-report') {
+    // pg_cron le vendredi (supabase/speed-report.sql) ; dry: true renvoie le relevé sans le poster
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { hour, today } = parisNow();
+    if (typeof body.hour === 'number' && hour !== body.hour) return reply({ skipped: `${hour}h à Paris` });
+    const date = typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : today;
+    // Même heure de coupure pour la semaine d'avant : on compare ce qui était arrivé à la même heure
+    const cutoff = date === today ? Date.now() : parisMidnight(date) + 12 * 3600_000;
+    const lastWeek = new Date(Date.parse(`${date}T12:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
+    const [now, before] = await Promise.all([speedStats(date, cutoff), speedStats(lastWeek, cutoff - 7 * 86_400_000)]);
+    const midnight = parisMidnight(date);
+    // Notification du vendredi (9h) et notifications de sorties envoyées depuis minuit
+    const [{ data: friday }, { count: releaseNotifs }] = await Promise.all([
+      admin.from('notifications').select('created_at').eq('kind', 'friday').gte('created_at', new Date(midnight).toISOString()).order('created_at').limit(1),
+      admin.from('notified_releases').select('release_id', { count: 'exact', head: true }).gte('created_at', new Date(midnight).toISOString()),
+    ]);
+    const trend = (a: number | null, b: number | null) => (a === null || b === null ? '' : a < b ? ` (−${b - a} min)` : a > b ? ` (+${a - b} min)` : ' (pareil)');
+    const fields = [
+      { name: `Toutes les sorties du ${date}`, value: speedLines(now.all) },
+      { name: `Gros artistes (audience ≥ ${(SPEED_BIG_AUDIENCE / 1000).toFixed(0)} k)`, value: speedLines(now.big) },
+      {
+        name: `Vendredi dernier à la même heure (${lastWeek})`,
+        value: `Médiane ${before.all.median ?? 0} min${trend(now.all.median, before.all.median)} · gros artistes ${before.big.median ?? 0} min${trend(now.big.median, before.big.median)}`,
+      },
+      {
+        name: 'Gros artistes arrivés après 1 h',
+        value: now.slowest.length
+          ? now.slowest.map((r) => `${r.artist?.name} — ${r.title} : +${minutesLabel(r.late)} (${parisClock(Date.parse(r.created_at))})`).join('\n').slice(0, 1000)
+          : 'Aucun 🎉',
+      },
+      {
+        name: 'Notifications',
+        value: `Notif du vendredi : ${friday?.[0] ? parisClock(Date.parse(friday[0].created_at)) : 'pas encore partie'} · notifs de sorties depuis minuit : ${releaseNotifs ?? 0}`,
+      },
+    ];
+    const footer = 'Heure d’arrivée = création de la fiche dans BARZ¡. Un gros retard peut venir de Deezer (sortie mise en ligne tard) ou d’un artiste entré au catalogue après coup.';
+    if (body.dry || !DISCORD_ALERTS_WEBHOOK_URL) return reply({ dry: true, fields, footer });
+    const res = await fetch(DISCORD_ALERTS_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'BARZ¡ alertes',
+        allowed_mentions: { parse: [] },
+        embeds: [{ title: `⏱️ Vitesse des sorties — ${date}`, color: 0x3b82e0, fields, footer: { text: footer } }],
+      }),
+    });
+    return reply({ ok: res.ok });
   }
 
   if (body.action === 'client-error') {
