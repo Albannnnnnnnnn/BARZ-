@@ -108,7 +108,7 @@
 
 .bz-btn--ink {
   background: var(--color-ink);
-  color: #fff !important;
+  color: var(--color-on-ink) !important;
 }
 
 .bz-btn--lime {
@@ -494,6 +494,13 @@
 .bz-notice--error {
   background: #f6dcd6;
   color: #8a2414;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bz-notice--error {
+    background: #3a1a14;
+    color: #ffb4a6;
+  }
 }
 
 .bz-notice--ok {
@@ -960,5 +967,5 @@ button.bz-link:focus-visible {
 .bz-dismiss:focus-visible {
   opacity: 1;
   background: var(--color-ink);
-  color: #fff;
+  color: var(--color-on-ink);
 }

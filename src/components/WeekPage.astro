@@ -92,6 +92,10 @@ const weekData = sorted.map((r, i) => ({
   date: r.release_date,
   group: groupOf(r, i),
   releaseType: r.release_type,
+  // Pour fabriquer dans le navigateur les vignettes au-delà des 12 premières de chaque section (page plus légère)
+  cover: r.cover_url ?? null,
+  sub: subtitleOf(r),
+  chips: chipIdsFor(r.genres).join(' '),
 }));
 // Titres de jour du tri « Plus récentes » (placés et affichés par le script de la page)
 const days = [...new Set(sorted.map((r) => r.release_date))].sort().reverse();
@@ -159,6 +163,13 @@ const builtAt = new Date().toISOString();
           <li><a class="story" href="/BARZ-/artistes"><span class="story-fallback">+</span><span class="story-name">Tous</span></a></li>
         )}
       </ul>
+      <!-- Playlist des sorties de ses artistes cette semaine (connecté, au moins une sortie) -->
+      <div class="playlist-box" id="playlist-box" hidden>
+        <span id="playlist-count"></span>
+        <button type="button" class="bz-btn bz-btn--lime bz-btn--small" id="playlist-spotify" hidden>Créer la playlist sur Spotify</button>
+        <button type="button" class="bz-btn bz-btn--outline bz-btn--small" id="playlist-copy">Copier la liste</button>
+        <p class="playlist-status" id="playlist-status" role="status" hidden></p>
+      </div>
     </section>
 
     <!-- Sorties arrivées depuis la dernière reconstruction du site : affichées tout de suite, en direct -->
@@ -209,7 +220,7 @@ const builtAt = new Date().toISOString();
               <h2 class="group-title" id={`group-${g.id}`}>{g.title}</h2>
               {g.id === 'burst' && <p class="group-note">Les singles des artistes qui en sortent à la chaîne cette semaine, souvent sur plein de labels, regroupés ici pour ne pas noyer le reste.</p>}
               <div class:list={['bz-tiles', 'bz-rail', 'grid', { 'is-capped': g.id !== 'top' }]}>
-                {byGroup[g.id].map((r) => (
+                {byGroup[g.id].slice(0, GROUP_CAP).map((r) => (
                   <AlbumTile
                     title={r.title}
                     subtitle={subtitleOf(r)}
@@ -276,7 +287,9 @@ const builtAt = new Date().toISOString();
     const day = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' })).getDay();
     talk.hidden = ![5, 6, 0].includes(day);
   }
-  import { BASE, escapeHtml, getSession, myFollows, releaseTileHtml, supabase, timeAgo } from '../scripts/social';
+  import { BASE, escapeHtml, getSession, myFollows, paletteOf, releaseTileHtml, supabase, timeAgo } from '../scripts/social';
+  import { coverSources } from '../lib/cover';
+  import { createSpotifyPlaylist, spotifyAvailable, spotifyStatus, startSpotifyLogin } from '../scripts/spotify';
   import { canRecommend, dismissButtonHtml, loadTaste, rank, scoreRelease, wireDismiss, type RecoRelease, type Scored } from '../scripts/reco';
   import { newsSince, previousVisit } from '../scripts/engage';
   import { announcementCardHtml, publishedAnnouncements } from '../scripts/announcements';
@@ -307,8 +320,63 @@ const builtAt = new Date().toISOString();
   const groupsBox = document.getElementById('groups');
   const groupOfId = new Map(week.map((r) => [r.id, r.group]));
   const groupGrid = (id: string) => groupsBox?.querySelector<HTMLElement>(`[data-group="${id}"] .grid`);
-  const tiles = new Map([...(groupsBox?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
   const GROUP_CAP = 12;
+  buildRestTiles();
+  const tiles = new Map([...(groupsBox?.querySelectorAll<HTMLElement>('[data-release-id]') ?? [])].map((t) => [t.dataset.releaseId!, t]));
+
+  // Le build n'écrit que les 12 premières vignettes de chaque section (2,4 Mo de HTML sinon) : les suivantes sont
+  // fabriquées ici à partir des données de la semaine, en copiant une vignette déjà là (mêmes classes et styles)
+  function buildRestTiles() {
+    const model = groupsBox?.querySelector<HTMLElement>('.tile .cover.has-img img')?.closest<HTMLElement>('.tile') ?? groupsBox?.querySelector<HTMLElement>('.tile');
+    if (!model || !groupsBox) return;
+    const present = new Set([...groupsBox.querySelectorAll<HTMLElement>('[data-release-id]')].map((t) => t.dataset.releaseId!));
+    const byGroup = new Map<string, DocumentFragment>();
+    for (const r of week as (WeekRelease & { cover?: string | null; sub?: string; chips?: string; releaseType?: string })[]) {
+      if (present.has(r.id) || r.sub === undefined) continue;
+      const tile = model.cloneNode(true) as HTMLAnchorElement;
+      tile.href = `${BASE}releases/${r.slug}`;
+      tile.dataset.chips = r.chips ?? '';
+      tile.dataset.releaseId = r.id;
+      tile.dataset.type = r.releaseType ?? '';
+      if (r.artistId) tile.dataset.artistId = r.artistId;
+      else delete tile.dataset.artistId;
+      tile.querySelectorAll('.tile-live, .tile-check, .bz-dismiss').forEach((el) => el.remove());
+      if (r.releaseType === 'live') {
+        const live = document.createElement('span');
+        live.className = 'tile-live';
+        live.title = 'Enregistrement live';
+        live.textContent = 'Live';
+        // Même attribut de style que les autres éléments de la vignette (styles propres à AlbumTile)
+        const cid = [...tile.attributes].find((a) => a.name.startsWith('data-astro-cid-'));
+        if (cid) live.setAttribute(cid.name, '');
+        tile.querySelector('.tile-cover')?.append(live);
+      }
+      const cover = tile.querySelector<HTMLElement>('.cover')!;
+      const [c1, c2, c3] = paletteOf(r.title);
+      cover.style.cssText = `--c1:${c1};--c2:${c2};--c3:${c3}`;
+      cover.classList.remove('is-broken');
+      const img = cover.querySelector('img');
+      const sources = r.cover ? coverSources(r.cover, true) : null;
+      if (img && sources) {
+        img.src = sources.src;
+        if (sources.srcset) img.srcset = sources.srcset;
+        else img.removeAttribute('srcset');
+        img.alt = `Pochette de ${r.title}`;
+        cover.classList.add('has-img');
+      } else {
+        img?.remove();
+        cover.classList.remove('has-img');
+      }
+      const coverTitle = cover.querySelector('.cover-title');
+      if (coverTitle) coverTitle.textContent = r.title;
+      tile.querySelector('.tile-title')!.textContent = r.title;
+      tile.querySelector('.tile-row .bz-score')?.remove();
+      tile.querySelector('.tile-sub')!.textContent = r.sub;
+      if (!byGroup.has(r.group)) byGroup.set(r.group, document.createDocumentFragment());
+      byGroup.get(r.group)!.append(tile);
+    }
+    for (const [group, fragment] of byGroup) groupGrid(group)?.append(fragment);
+  }
 
   // La barre de tri reste juste sous la barre du haut, quelle que soit sa hauteur
   const topbar = document.querySelector<HTMLElement>('.topbar');
@@ -468,6 +536,55 @@ const builtAt = new Date().toISOString();
         .join('') + `<li><a class="story" href="${BASE}artistes?genre=followed"><span class="story-fallback">+</span><span class="story-name">Tous</span></a></li>`;
     document.getElementById('artists-title')!.textContent = 'Tes artistes';
     document.getElementById('artists-section')!.hidden = false;
+    // Les sorties de ses artistes cette semaine (à leur nom ou en feat) : playlist Spotify ou liste à copier
+    const followIds = new Set(follows.map((a) => a.id));
+    const mine = week.filter((r) => (r.artistId && followIds.has(r.artistId)) || (r.featuring ?? []).some((n) => byName.has(normName(n))));
+    if (mine.length) wirePlaylist(mine);
+  }
+
+  function wirePlaylist(mine: WeekRelease[]) {
+    const box = document.getElementById('playlist-box')!;
+    const status = document.getElementById('playlist-status')!;
+    const say = (text: string, link?: string | null) => {
+      status.innerHTML = escapeHtml(text) + (link ? ` <a href="${escapeHtml(link)}" target="_blank" rel="noopener">Ouvrir dans Spotify ↗</a>` : '');
+      status.hidden = false;
+    };
+    document.getElementById('playlist-count')!.textContent = `${mine.length} sortie${mine.length > 1 ? 's' : ''} de tes artistes cette semaine`;
+    box.hidden = false;
+    (document.getElementById('playlist-copy') as HTMLButtonElement).onclick = async () => {
+      const text = mine.map((r) => `${r.artistName} — ${r.title}`).join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        say('Liste copiée : colle-la dans ton appli de musique ou envoie-la à tes potes.');
+      } catch {
+        say('Impossible de copier sur cet appareil.');
+      }
+    };
+    if (!spotifyAvailable()) return;
+    const button = document.getElementById('playlist-spotify') as HTMLButtonElement;
+    button.hidden = false;
+    button.onclick = async () => {
+      const status0 = await spotifyStatus().catch(() => null);
+      if (!status0?.connected) return startSpotifyLogin(location.pathname + location.search);
+      button.disabled = true;
+      button.textContent = 'Création…';
+      const day = new Date(`${mine[0].date}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+      try {
+        const result = await createSpotifyPlaylist(mine.map((r) => r.id), `BARZ¡ — mon vendredi du ${day}`);
+        say(`Playlist créée : ${result.tracks} titre${result.tracks > 1 ? 's' : ''}${result.missing ? ` (${result.missing} sortie${result.missing > 1 ? 's' : ''} introuvable${result.missing > 1 ? 's' : ''} sur Spotify)` : ''}.`, result.url);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        say(message);
+        if (/reconnect|Relie/i.test(message)) {
+          button.textContent = 'Reconnecter Spotify';
+          button.disabled = false;
+          button.onclick = () => startSpotifyLogin(location.pathname + location.search);
+          return;
+        }
+      }
+      button.disabled = false;
+      button.textContent = 'Créer la playlist sur Spotify';
+    };
   }
 
   // Connecté avec des goûts : tri « Pour toi » par défaut, avec la raison sous chaque sortie
@@ -690,7 +807,7 @@ const builtAt = new Date().toISOString();
     padding: 6px 10px;
     border-radius: 6px;
     background: var(--color-ink);
-    color: #ffffff;
+    color: var(--color-on-ink);
     font: 700 12px/1 var(--font-display);
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -770,6 +887,27 @@ const builtAt = new Date().toISOString();
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--color-text-muted);
+  }
+
+  .playlist-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .playlist-box[hidden],
+  .playlist-status[hidden] {
+    display: none;
+  }
+
+  .playlist-status {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--color-text);
   }
 
   .stories {
@@ -1003,7 +1141,7 @@ const builtAt = new Date().toISOString();
       display: block;
       background-color: var(--color-ink);
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-      color: #fff;
+      color: var(--color-on-ink);
     }
     .group + .group {
       margin-top: 32px;

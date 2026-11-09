@@ -37,7 +37,8 @@ const currentPath = Astro.url.pathname;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0f12" media="(prefers-color-scheme: dark)" />
     <!-- Projet étudiant : accessible avec l'adresse, mais pas indexé par les moteurs de recherche -->
     <meta name="robots" content="noindex, nofollow" />
 

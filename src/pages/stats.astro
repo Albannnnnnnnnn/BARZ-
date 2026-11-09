@@ -1,0 +1,145 @@
+---
+// CHIFFRES DE L'APPLI (admin) : des totaux pour savoir ce qui marche, rien de personnel (supabase/admin-stats.sql).
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Chiffres de l’appli" description="Page d'administration : les chiffres de BARZ¡.">
+  <div class="bz-page stats-page">
+    <span class="bz-eyebrow">Admin</span>
+    <h1 class="bz-display">Les <em>chiffres</em></h1>
+    <p class="bz-notice" id="st-status">Chargement…</p>
+
+    <div id="st-body" hidden>
+      <dl class="kpis" id="st-kpis"></dl>
+
+      <section class="block">
+        <h2 class="bz-h2">8 dernières semaines</h2>
+        <p class="note">Actifs : membres qui ont noté, écouté, mis de côté, joué ou écrit dans le fil du vendredi cette semaine-là.</p>
+        <table class="weeks">
+          <thead><tr><th scope="col">Semaine du</th><th scope="col">Actifs</th><th scope="col">Barz</th><th scope="col">Inscrits</th></tr></thead>
+          <tbody id="st-weeks"></tbody>
+        </table>
+      </section>
+
+      <section class="block">
+        <h2 class="bz-h2">Notifications des 7 derniers jours</h2>
+        <p class="note">Ce qui est arrivé dans la cloche (le téléphone en reçoit au plus autant, selon les réglages de chacun).</p>
+        <dl class="kpis small" id="st-notifs"></dl>
+      </section>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { getSession, supabase } from '../scripts/social';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  type Stats = {
+    members: number; new_7d: number; active_7d: number; active_30d: number; barz_7d: number; listened_7d: number;
+    push_members: number; push_devices: number; follows_avg: number | null; members_10_follows: number; friends_pairs: number;
+    notifs_7d: Record<string, number>; weeks: { week: string; active: number; barz: number; new: number }[];
+  };
+  const KINDS: Record<string, string> = { release: 'Sorties', friday: 'Vendredi 9 h', barz: 'Barz d’amis', reply: 'Réponses', like: '♥', friend: 'Amis', announcement: 'Annonces', games: 'Jeux', week: 'Disque de la semaine', feedback: 'Retours' };
+  const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)} %` : '–');
+  const kpi = (label: string, value: string | number, hint = '') => `<div><dt>${label}</dt><dd>${value}</dd>${hint ? `<span>${hint}</span>` : ''}</div>`;
+
+  async function load() {
+    if (!supabase || !(await getSession())) return void ($('st-status').textContent = 'Connecte-toi avec le compte admin.');
+    const { data, error } = await supabase.rpc('barz_admin_stats' as never);
+    if (error) {
+      $('st-status').textContent = /admin/i.test(error.message) ? 'Page réservée à l’admin.' : 'Lance d’abord supabase/admin-stats.sql dans Supabase.';
+      return;
+    }
+    const s = data as unknown as Stats;
+    $('st-kpis').innerHTML = [
+      kpi('Membres', s.members, `+${s.new_7d} cette semaine`),
+      kpi('Actifs (7 j)', s.active_7d, `${pct(s.active_7d, s.members)} des membres`),
+      kpi('Actifs (30 j)', s.active_30d, `${pct(s.active_30d, s.members)} des membres`),
+      kpi('Barz (7 j)', s.barz_7d, `${s.listened_7d} disques marqués écoutés`),
+      kpi('Notifs activées', s.push_members, `${pct(s.push_members, s.members)} des membres · ${s.push_devices} appareils`),
+      kpi('Artistes suivis', s.follows_avg ?? 0, `en moyenne · ${s.members_10_follows} membres à 10 ou plus`),
+      kpi('Paires d’amis', s.friends_pairs),
+    ].join('');
+    $('st-weeks').innerHTML = [...(s.weeks ?? [])]
+      .reverse()
+      .map((w) => `<tr><th scope="row">${new Date(`${w.week}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</th><td>${w.active}</td><td>${w.barz}</td><td>${w.new}</td></tr>`)
+      .join('');
+    const notifs = Object.entries(s.notifs_7d ?? {}).sort((a, b) => b[1] - a[1]);
+    $('st-notifs').innerHTML = notifs.length ? notifs.map(([k, n]) => kpi(KINDS[k] ?? k, n)).join('') : '<p class="note">Aucune.</p>';
+    $('st-status').hidden = true;
+    $('st-body').hidden = false;
+  }
+  load().catch((err) => ($('st-status').textContent = String(err)));
+</script>
+
+<style>
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 24px 0 0;
+  }
+
+  .kpis :global(div) {
+    padding: 14px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard-sm);
+  }
+
+  .kpis :global(dt) {
+    color: var(--color-text-muted);
+    font: 800 12px/1.2 var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .kpis :global(dd) {
+    margin: 6px 0 0;
+    font: 800 30px/1 var(--font-display);
+  }
+
+  .kpis.small :global(dd) {
+    font-size: 22px;
+  }
+
+  .kpis :global(span) {
+    display: block;
+    margin-top: 6px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+  }
+
+  .block {
+    margin-top: 40px;
+  }
+
+  .note {
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  .weeks {
+    width: 100%;
+    margin-top: 12px;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+
+  .weeks th,
+  .weeks td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-line);
+    text-align: right;
+  }
+
+  .weeks th:first-child {
+    text-align: left;
+  }
+
+  #st-body[hidden],
+  .bz-notice[hidden] {
+    display: none;
+  }
+</style>

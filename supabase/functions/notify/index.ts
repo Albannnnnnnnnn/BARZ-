@@ -106,6 +106,26 @@ async function toInbox(kind: Kind, entries: [string, Message][]) {
   await admin.from('notifications').delete().lt('created_at', new Date(Date.now() - 60 * 86400_000).toISOString());
 }
 
+// Réglages des notifications du téléphone (supabase/notify-prefs.sql, page Paramètres) : tout est activé par défaut.
+// La cloche de l'appli reçoit tout, seules les notifications du téléphone suivent ces réglages.
+type Pref = 'notify_releases' | 'notify_night' | 'notify_friends' | 'notify_friday_thread' | 'notify_monday';
+async function withPref(subs: Sub[], ...prefs: Pref[]): Promise<Sub[]> {
+  const ids = [...new Set(subs.map((s) => s.user_id))];
+  if (!ids.length) return subs;
+  const off = new Set<string>();
+  for (let i = 0; i < ids.length; i += 300) {
+    const { data, error } = await admin.from('profiles').select(`id, ${prefs.join(', ')}`).in('id', ids.slice(i, i + 300));
+    if (error) return subs; // SQL pas encore lancé : on garde l'ancien comportement
+    for (const p of (data ?? []) as unknown as Record<string, unknown>[]) if (prefs.some((k) => p[k] === false)) off.add(p.id as string);
+  }
+  return subs.filter((s) => !off.has(s.user_id));
+}
+// Sorties : la nuit (22h–8h à Paris), il faut aussi « la nuit aussi »
+function releasePrefs(): Pref[] {
+  const { hour } = parisNow();
+  return hour < 8 || hour >= 22 ? ['notify_releases', 'notify_night'] : ['notify_releases'];
+}
+
 const subsOf = async (userIds: string[]) =>
   ((await admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth').in('user_id', userIds)).data ?? []) as Sub[];
 
@@ -386,7 +406,7 @@ async function collectTrackFeats(today: string): Promise<number> {
 
 // ♥ regroupés : la notification non lue du même Barz ou message est remplacée ; si elle a moins d'une heure,
 // pas de nouvelle alerte sur le téléphone
-async function sendGroupedLike(to: string, message: Message) {
+async function sendGroupedLike(to: string, message: Message, pref: Pref) {
   const { data: previous } = await admin
     .from('notifications')
     .delete()
@@ -396,7 +416,7 @@ async function sendGroupedLike(to: string, message: Message) {
     .is('read_at', null)
     .select('created_at');
   const recent = (previous ?? []).some((n) => Date.now() - Date.parse(n.created_at) < 3600_000);
-  const sent = recent ? 0 : await send(await subsOf([to]), () => message);
+  const sent = recent ? 0 : await send(await withPref(await subsOf([to]), pref), () => message);
   await toInbox('like', [[to, message]]);
   return { sent, grouped: recent };
 }
@@ -501,7 +521,7 @@ Deno.serve(async (req) => {
     const userIds = [...new Set([...subs.map((s) => s.user_id), ...(followers ?? []).map((f) => f.user_id as string)])];
     if (!userIds.length) return reply({ sent: 0, subscribers: 0 });
     const { messages, announced } = await fridayMessages(userIds);
-    const sent = await send(subs, (userId) => messages.get(userId) ?? null);
+    const sent = await send(await withPref(subs, 'notify_releases'), (userId) => messages.get(userId) ?? null);
     await markNotified(announced); // la vérification des sorties ne les annoncera pas une deuxième fois
     const withArtists = new Set(announced.map((a) => a.user_id)); // dans la cloche : seulement les sorties de ses artistes
     await toInbox('friday', [...messages].filter(([userId]) => withArtists.has(userId)));
@@ -572,7 +592,7 @@ Deno.serve(async (req) => {
             url: track ? `${SITE}son?id=${track.deezer_id}` : `${SITE}releases/${barz.release.slug}`,
             tag: `barz-author-${barz.user_id}`,
           };
-    const sent = await send(await subsOf(friends.filter((f) => !pushedRecently.has(f))), () => message);
+    const sent = await send(await withPref(await subsOf(friends.filter((f) => !pushedRecently.has(f))), 'notify_friends'), () => message);
     await toInbox('barz', friends.map((f) => [f, message] as [string, Message]));
     return reply({ sent, friends: friends.length, burst });
   }
@@ -594,7 +614,7 @@ Deno.serve(async (req) => {
       url: place.url,
       tag: `reply-${String(body.reply)}`,
     };
-    const sent = await send(await subsOf([place.user_id]), () => message);
+    const sent = await send(await withPref(await subsOf([place.user_id]), 'notify_friends'), () => message);
     await toInbox('reply', [[place.user_id, message]]);
     return reply({ sent });
   }
@@ -618,7 +638,7 @@ Deno.serve(async (req) => {
       url: place.url,
       tag: `like-${barzId}`,
     };
-    return reply(await sendGroupedLike(place.user_id, message));
+    return reply(await sendGroupedLike(place.user_id, message, 'notify_friends'));
   }
 
   if (body.action === 'friday-reply') {
@@ -643,7 +663,7 @@ Deno.serve(async (req) => {
     for (const u of others) entries.push([u, { title: `${r.author.display_name} a aussi répondu dans le fil du vendredi`, body: quoted(r.body, 110).replace(/^ — /, ''), url, tag }]);
     if (!entries.length) return reply({ sent: 0 });
     const byUser = new Map(entries);
-    const sent = await send(await subsOf([...byUser.keys()]), (userId) => byUser.get(userId) ?? null);
+    const sent = await send(await withPref(await subsOf([...byUser.keys()]), 'notify_friday_thread'), (userId) => byUser.get(userId) ?? null);
     await toInbox('reply', entries);
     return reply({ sent, notified: entries.length });
   }
@@ -670,7 +690,7 @@ Deno.serve(async (req) => {
       url: `${SITE}vendredi?semaine=${post.week}&post=${postId}`,
       tag: `friday-like-${postId}`,
     };
-    return reply(await sendGroupedLike(post.user_id, message));
+    return reply(await sendGroupedLike(post.user_id, message, 'notify_friday_thread'));
   }
 
   if (body.action === 'week-top') {
@@ -835,7 +855,7 @@ Deno.serve(async (req) => {
     const { messages, announced } = await releaseMessages(userIds, today);
     if (!announced.length) return reply({ sent: 0, checked });
     await markNotified(announced); // avant l'envoi : deux passages rapprochés n'enverront pas deux fois
-    const sent = await send(subs, (userId) => messages.get(userId) ?? null);
+    const sent = await send(await withPref(subs, ...releasePrefs()), (userId) => messages.get(userId) ?? null);
     await toInbox('release', [...messages]);
     return reply({ sent, releases: announced.length, checked });
   }
@@ -893,7 +913,7 @@ Deno.serve(async (req) => {
       });
     }
     if (!messages.size) return reply({ sent: 0 });
-    const sent = await send((subs ?? []) as Sub[], (userId) => messages.get(userId) ?? null);
+    const sent = await send(await withPref((subs ?? []) as Sub[], 'notify_monday'), (userId) => messages.get(userId) ?? null);
     await toInbox('release', [...messages]);
     return reply({ sent, members: messages.size });
   }

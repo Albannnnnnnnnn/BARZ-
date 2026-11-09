@@ -93,11 +93,16 @@ const PALETTES = [
 ];
 
 // Même rendu que le composant Cover.astro, pour les contenus affichés par le navigateur
-export function coverHtml(title: string, src: string | null, sizes = TILE_SIZES): string {
+// Dégradé d'une pochette sans image (même titre → mêmes couleurs, comme Cover.astro)
+export function paletteOf(title: string): string[] {
   let hash = 0;
   for (const ch of title) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  const [c1, c2, c3] = PALETTES[hash % PALETTES.length];
-  const image = src ? coverSources(src) : null;
+  return PALETTES[hash % PALETTES.length];
+}
+
+export function coverHtml(title: string, src: string | null, sizes = TILE_SIZES): string {
+  const [c1, c2, c3] = paletteOf(title);
+  const image = src ? coverSources(src, sizes === TILE_SIZES) : null;
   const img = image
     ? `<img src="${escapeHtml(image.src)}"${image.srcset ? ` srcset="${escapeHtml(image.srcset)}" sizes="${escapeHtml(sizes)}"` : ''} alt="" loading="lazy" decoding="async" onerror="${COVER_ONERROR}" />`
     : '';
@@ -443,7 +448,7 @@ export async function setFollow(artistId: string, on: boolean) {
   else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
 }
 
-export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[]; top_artists?: TopAlbum[]; top_singles?: TopAlbum[]; notify_games?: boolean }) {
+export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[]; top_artists?: TopAlbum[]; top_singles?: TopAlbum[]; notify_games?: boolean; notify_releases?: boolean; notify_night?: boolean; notify_friends?: boolean; notify_friday_thread?: boolean; notify_monday?: boolean }) {
   const session = await requireSession();
   if (!session || !supabase) return;
   must(await supabase.from('profiles').update(fields).eq('id', session.user.id));

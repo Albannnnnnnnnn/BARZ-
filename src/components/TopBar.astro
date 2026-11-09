@@ -45,6 +45,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
         <a href="/BARZ-/guide">Comment ça marche ?</a>
         <a href="/BARZ-/retours" id="account-feedback">Un bug, une idée ?</a>
         <a href="/BARZ-/tri-ia" id="account-ai" hidden>Tri des artistes IA</a>
+        <a href="/BARZ-/stats" id="account-stats" hidden>Chiffres de l’appli</a>
         <button type="button" id="account-invite">Inviter un ami</button>
         <button type="button" id="account-logout">Déconnexion</button>
       </nav>
@@ -245,7 +246,10 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     supabase
       ?.rpc('is_barz_admin' as never)
       .then(({ data }) => {
-        if (data) document.getElementById('account-ai')!.hidden = false;
+        if (data) {
+          document.getElementById('account-ai')!.hidden = false;
+          document.getElementById('account-stats')!.hidden = false;
+        }
       });
     const show = (open: boolean) => {
       menu.hidden = !open;
@@ -364,7 +368,7 @@ const dateLabel = format(today, 'EEE d MMM', { locale: fr }).toUpperCase().repla
     gap: 32px;
     padding: 22px 56px;
     border-bottom: var(--line);
-    background: rgba(255, 255, 255, 0.94);
+    background: color-mix(in srgb, var(--color-bg) 94%, transparent);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }

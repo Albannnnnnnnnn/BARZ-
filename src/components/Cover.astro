@@ -14,7 +14,7 @@ interface Props {
 }
 
 const { title, src, palette, showTitle = true, class: className = '', sizes = TILE_SIZES, eager = false } = Astro.props;
-const image = src ? coverSources(src) : null;
+const image = src ? coverSources(src, sizes === TILE_SIZES) : null;
 
 const PALETTES = [
   ['#d9b56a', '#4f6b3f', '#12382d'],

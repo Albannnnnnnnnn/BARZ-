@@ -10,14 +10,16 @@ export const COVER_ONERROR = "this.parentNode.classList.add('is-broken');this.re
 const DEEZER = /\/(\d+)x\1-(\d{6}-\d+-\d+-\d+\.jpg)$/;
 const CAA = /\/front(-\d+)?$/;
 
-export function coverSources(src: string): { src: string; srcset?: string } {
+// small : vignette de grille (≈ 190 px affichés) ; 500 px suffisent même sur un écran 3x, au lieu de 1000 px
+// (~4 fois plus lourd) que le navigateur choisirait sinon sur un téléphone récent
+export function coverSources(src: string, small = false): { src: string; srcset?: string } {
   if (DEEZER.test(src)) {
     const at = (n: number) => src.replace(DEEZER, `/${n}x${n}-$2`);
-    return { src: at(500), srcset: `${at(250)} 250w, ${at(500)} 500w, ${at(1000)} 1000w` };
+    return { src: at(500), srcset: small ? `${at(250)} 250w, ${at(500)} 500w` : `${at(250)} 250w, ${at(500)} 500w, ${at(1000)} 1000w` };
   }
   if (src.includes('coverartarchive.org') && CAA.test(src)) {
     const at = (n: number) => src.replace(CAA, `/front-${n}`);
-    return { src: at(500), srcset: `${at(250)} 250w, ${at(500)} 500w, ${at(1200)} 1200w` };
+    return { src: at(500), srcset: small ? `${at(250)} 250w, ${at(500)} 500w` : `${at(250)} 250w, ${at(500)} 500w, ${at(1200)} 1200w` };
   }
   return { src };
 }

@@ -5,7 +5,8 @@ import { BASE, escapeHtml, supabase } from './social';
 
 const CLIENT_ID = import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID as string;
 // Écoute en direct, puis import de ses artistes (les plus écoutés, ceux qu'il suit) pour les recommandations
-const SCOPES = 'user-read-currently-playing user-read-playback-state user-top-read user-follow-read';
+// + playlist-modify-private : créer la playlist du vendredi sur son compte (09/11)
+const SCOPES = 'user-read-currently-playing user-read-playback-state user-top-read user-follow-read playlist-modify-private';
 const PENDING_KEY = 'barz-spotify-pending';
 
 // agoMin : écouté il y a quelques minutes (Last.fm, quand l'appli d'écoute ne signale pas le morceau en cours)
@@ -80,3 +81,7 @@ export function nowPlayingHtml(np: NowPlaying, label: string): string {
     </span>`;
   return np.url ? `<a class="np" href="${escapeHtml(np.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="np">${inner}</div>`;
 }
+
+// Playlist privée sur le compte Spotify du membre avec les titres de ces sorties (fonction spotify, action playlist)
+export const createSpotifyPlaylist = (releaseIds: string[], name: string) =>
+  call<{ url: string | null; tracks: number; missing: number }>({ action: 'playlist', releaseIds, name });
