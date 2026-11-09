@@ -361,7 +361,26 @@ import Layout from '../layouts/Layout.astro';
         return;
       }
       if (tab === 'barz') {
-        collection.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, session?.user.id ?? null)).join('') : '<p class="bz-empty">Aucun Barz pour l’instant.</p>';
+        // 100 Barz à la fois : « Voir plus » charge les suivants tant que le compteur en annonce d'autres
+        const more = barz.length < (barzCount.count ?? 0)
+          ? `<button type="button" class="bz-btn bz-btn--outline barz-more" id="p-barz-more">Voir plus (${(barzCount.count ?? 0) - barz.length} de plus)</button>`
+          : '';
+        collection.innerHTML = barz.length ? barz.map((b) => barzCardHtml(b, session?.user.id ?? null)).join('') + more : '<p class="bz-empty">Aucun Barz pour l’instant.</p>';
+        const button = document.getElementById('p-barz-more') as HTMLButtonElement | null;
+        if (button) button.onclick = async () => {
+          button.disabled = true;
+          button.textContent = 'Chargement…';
+          try {
+            const next = await barzFeed({ userId: profile.id, limit: 100, before: barz[barz.length - 1].created_at });
+            barz.push(...next);
+            if (!next.length) barzCount.count = barz.length; // rien de plus en base : on retire le bouton
+          } catch {
+            button.disabled = false;
+            button.textContent = 'Réessayer';
+            return;
+          }
+          renderTab('barz');
+        };
         return;
       }
       const items = (tab === 'spin_list' ? spin : listened).map((x) => x.release);
@@ -1490,6 +1509,10 @@ import Layout from '../layouts/Layout.astro';
   .spin.is-barz {
     display: flex;
     flex-direction: column;
+  }
+
+  .spin :global(.barz-more) {
+    align-self: center;
   }
 
   .spin :global(.p-tile) {

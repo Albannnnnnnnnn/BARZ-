@@ -140,6 +140,8 @@ import Layout from '../layouts/Layout.astro';
     // Barz de disques d'un côté, titres notés de l'autre (supabase/track-barz.sql)
     const barzM = barz.filter((b) => b.release && !b.track && inMonth(b.created_at));
     const tracksM = barz.filter((b) => b.release && b.track && inMonth(b.created_at));
+    // Comme sur le profil, le compteur « Barz » regroupe disques et titres ; la note moyenne ne compte que les disques
+    const allBarzM = barzM.length + tracksM.length;
     const challengesM = challenges.filter((c) => inMonth(`${c.week}T12:00:00`));
 
     if (!listenedM.length && !barzM.length && !tracksM.length && !spinM.length) {
@@ -167,8 +169,7 @@ import Layout from '../layouts/Layout.astro';
 
     $('numbers').innerHTML = [
       ['Écoutés', String(listenedM.length)],
-      ['Barz', String(barzM.length)],
-      ...(tracksM.length ? [['Titres notés', String(tracksM.length)]] : []),
+      ['Barz', String(allBarzM)],
       ['Note moyenne', avg === null ? '–' : avg.toFixed(1)],
       ['Nouveaux artistes', String(newArtists.length)],
     ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
@@ -207,15 +208,13 @@ import Layout from '../layouts/Layout.astro';
     const topGenre = top[0] ? `Genre du mois : ${top[0][0]} (${Math.round((top[0][1] / total) * 100)} %)` : '';
     story = {
       eyebrow: `Bilan ${ofMonth} · ${profile.display_name}`,
-      big: String(listenedM.length || barzM.length || tracksM.length),
+      big: String(listenedM.length || allBarzM),
       caption: listenedM.length
         ? `disque${listenedM.length > 1 ? 's' : ''} écouté${listenedM.length > 1 ? 's' : ''} en ${monthName}`
-        : barzM.length
-          ? `Barz écrit${barzM.length > 1 ? 's' : ''} en ${monthName}`
-          : `titre${tracksM.length > 1 ? 's' : ''} noté${tracksM.length > 1 ? 's' : ''} en ${monthName}`,
+        : `Barz en ${monthName}`,
       details: [
-        barzM.length ? `${barzM.length} Barz · note moyenne ${avg!.toFixed(1).replace('.', ',')}` : '',
-        tracksM.length ? `${tracksM.length} titre${tracksM.length > 1 ? 's' : ''} noté${tracksM.length > 1 ? 's' : ''}${bestTrack?.track ? ` · titre du mois : ${bestTrack.track.title}` : ''}` : '',
+        allBarzM ? `${allBarzM} Barz${avg === null ? '' : ` · note moyenne ${avg.toFixed(1).replace('.', ',')}`}` : '',
+        bestTrack?.track ? `Titre du mois : ${bestTrack.track.title}` : '',
         topGenre,
         record ? `Disque du mois : ${record.title} — ${record.artist?.name ?? ''}` : '',
         newArtists.length ? `${newArtists.length} nouvel${newArtists.length > 1 ? 's' : ''} artiste${newArtists.length > 1 ? 's' : ''}` : '',

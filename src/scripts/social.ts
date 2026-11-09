@@ -228,13 +228,15 @@ export async function deleteBarz(id: string) {
   must(await supabase.from('barz').delete().eq('id', id));
 }
 
-export async function barzFeed(options: { releaseId?: string; userId?: string; trackId?: string; limit?: number; replies?: boolean } = {}): Promise<Barz[]> {
+// before : Barz plus anciens que cette date (page suivante d'une liste triée du plus récent au plus ancien)
+export async function barzFeed(options: { releaseId?: string; userId?: string; trackId?: string; limit?: number; replies?: boolean; before?: string } = {}): Promise<Barz[]> {
   if (!supabase) return [];
   const run = (fields: string) => {
     let query = supabase!.from('barz').select(fields).order('created_at', { ascending: false }).limit(options.limit ?? 30);
     if (options.releaseId) query = query.eq('release_id', options.releaseId);
     if (options.userId) query = query.eq('user_id', options.userId);
     if (options.trackId) query = query.eq('track_id', options.trackId);
+    if (options.before) query = query.lt('created_at', options.before);
     return query;
   };
   let res = await run(barzTracks === false ? BARZ_FIELDS : BARZ_FIELDS_TRACK);
