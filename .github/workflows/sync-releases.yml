@@ -74,6 +74,11 @@ jobs:
         continue-on-error: true
         run: npx tsx scripts/announcements.ts
 
+      # Fans Deezer (colonne popularity) : les artistes à 0 d'abord, puis ceux vus il y a plus de 30 jours
+      - name: Sync Deezer fans
+        continue-on-error: true
+        run: npm run sync:fans
+
       # Auditeurs Last.fm (popularité toutes plateformes) : un lot d'artistes à chaque passage
       - name: Sync Last.fm listeners
         continue-on-error: true
