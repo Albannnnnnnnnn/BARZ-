@@ -100,10 +100,11 @@
   --glass-blur: 20px;
 }
 
-/* Mode sombre : suit le réglage du téléphone. L'affiche s'inverse (fond noir, encre claire), l'accent s'éclaircit
-   et prend un texte noir pour rester lisible. Les pochettes ne changent pas. */
+/* Mode sombre. L'affiche s'inverse (fond noir, encre claire), l'accent s'éclaircit et prend un texte noir pour
+   rester lisible ; les pochettes ne changent pas. Thème choisi dans Paramètres (data-theme sur <html>, gardé dans
+   l'appareil) : « Automatique » suit le téléphone, « Clair » et « Sombre » le forcent. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     color-scheme: dark;
     --color-bg: #0e0f12;
     --color-bg-elevated: #191b21;
@@ -131,6 +132,39 @@
     --shadow-hard: 4px 4px 0 #3a3f4c;
     --shadow-hard-sm: 3px 3px 0 #3a3f4c;
   }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #0e0f12;
+  --color-bg-elevated: #191b21;
+  --color-bg-surface: #20232b;
+  --color-bg-hover: #272b34;
+  --color-paper: #15171c;
+  --color-border: #e9ebf2;
+  --color-border-hover: #e9ebf2;
+  --color-line: #2c3039;
+  --color-text: #f2f3f7;
+  --color-text-muted: #a9aebb;
+  --color-text-dim: #9095a3;
+
+  --color-accent: #7c8fff;
+  --color-accent-hover: #93a3ff;
+  --color-accent-soft: #1d2348;
+  --color-accent-line: #3b4aa3;
+  --color-on-accent: #0a0a0a;
+
+  --color-ink: #e9ebf2;
+  --color-on-ink: #0a0a0a;
+  --color-cream: #191b21;
+  --color-blue: #7c8fff;
+
+  --shadow-hard: 4px 4px 0 #3a3f4c;
+  --shadow-hard-sm: 3px 3px 0 #3a3f4c;
 }
 
 /* Reset */

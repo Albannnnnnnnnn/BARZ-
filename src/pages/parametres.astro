@@ -14,6 +14,17 @@ import { DISCORD_URL } from '../lib/changelog';
 
     <a class="bz-notice login" id="settings-login" href="/BARZ-/connexion" hidden><b>Connecte-toi</b> pour régler tes notifications et relier tes comptes →</a>
 
+    <!-- Apparence : réglée sur l'appareil, même sans compte -->
+    <section class="block theme-block" aria-labelledby="theme-title">
+      <div class="bz-section-head"><h2 id="theme-title" class="bz-h2">Apparence</h2></div>
+      <div class="theme-choice" role="radiogroup" aria-labelledby="theme-title">
+        <label><input type="radio" name="theme" value="auto" /><span>Automatique</span></label>
+        <label><input type="radio" name="theme" value="light" /><span>Clair</span></label>
+        <label><input type="radio" name="theme" value="dark" /><span>Sombre</span></label>
+      </div>
+      <p class="theme-note">« Automatique » suit le réglage de ton téléphone. Ton choix est gardé sur cet appareil.</p>
+    </section>
+
     <div class="settings" id="settings" hidden>
           <section class="block lastfm" id="p-push" hidden aria-labelledby="push-title">
             <div class="bz-section-head"><h2 id="push-title" class="bz-h2">Notifications</h2></div>
@@ -218,6 +229,40 @@ import { DISCORD_URL } from '../lib/changelog';
     syncNight();
     box.hidden = !any;
   }
+
+  // Thème clair / sombre / automatique (appliqué aussi au chargement de chaque page, src/layouts/Layout.astro)
+  function wireTheme() {
+    const KEY = 'barz-theme';
+    let current = 'auto';
+    try {
+      current = localStorage.getItem(KEY) ?? 'auto';
+    } catch {
+      // stockage bloqué : automatique
+    }
+    const apply = (theme: string) => {
+      const root = document.documentElement;
+      if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+      else delete root.dataset.theme;
+      const dark = theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+        m.removeAttribute('media');
+        m.setAttribute('content', dark ? '#0e0f12' : '#ffffff');
+      });
+    };
+    document.querySelectorAll<HTMLInputElement>('input[name="theme"]').forEach((input) => {
+      input.checked = input.value === current;
+      input.onchange = () => {
+        try {
+          if (input.value === 'auto') localStorage.removeItem(KEY);
+          else localStorage.setItem(KEY, input.value);
+        } catch {
+          // stockage bloqué : le thème vaut pour cette page seulement
+        }
+        apply(input.value);
+      };
+    });
+  }
+  wireTheme();
 
   async function renderPush() {
     const state = await pushState();
@@ -459,6 +504,54 @@ import { DISCORD_URL } from '../lib/changelog';
   #p-push [hidden],
   .spotify-actions [hidden] {
     margin-top: 12px;
+  }
+
+  /* Apparence */
+  .theme-block {
+    max-width: 720px;
+  }
+
+  .theme-choice {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .theme-choice label {
+    cursor: pointer;
+  }
+
+  .theme-choice input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .theme-choice span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border: var(--line);
+    border-radius: 999px;
+    font: 700 14px/1 var(--font-sans);
+  }
+
+  .theme-choice input:checked + span {
+    background: var(--color-ink);
+    color: var(--color-on-ink);
+  }
+
+  .theme-choice input:focus-visible + span {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .theme-note {
+    margin: 10px 0 0;
+    color: var(--color-text-muted);
+    font-size: 14px;
   }
 
   /* Réglages des notifications par type */

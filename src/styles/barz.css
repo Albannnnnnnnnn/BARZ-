@@ -497,10 +497,15 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .bz-notice--error {
+  :root:not([data-theme='light']) .bz-notice--error {
     background: #3a1a14;
     color: #ffb4a6;
   }
+}
+
+:root[data-theme='dark'] .bz-notice--error {
+  background: #3a1a14;
+  color: #ffb4a6;
 }
 
 .bz-notice--ok {

@@ -65,6 +65,17 @@ const currentPath = Astro.url.pathname;
     <meta name="apple-mobile-web-app-title" content="BARZ¡" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script is:inline>
+      // Thème choisi dans Paramètres (clair, sombre ou automatique), appliqué avant l'affichage pour éviter un flash
+      try {
+        const theme = localStorage.getItem('barz-theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.dataset.theme = theme;
+          document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+            m.removeAttribute('media');
+            m.setAttribute('content', theme === 'dark' ? '#0e0f12' : '#ffffff');
+          });
+        }
+      } catch {}
       // Menus « Écouter » (src/lib/listen.ts) : fermés au clic à côté ou avec Échap
       addEventListener('click', (e) => {
         document.querySelectorAll('details.bz-listen-more[open]').forEach((d) => d.contains(e.target) || d.removeAttribute('open'));
