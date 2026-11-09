@@ -18,6 +18,7 @@
 //              #alertes du Discord (secret DISCORD_ALERTS_WEBHOOK_URL, facultatif).
 // - releases : nouvelles sorties des artistes suivis, une seule fois chacune (pg_cron toutes les 15 min, entre 8h et 22h),
 //              invités des titres compris (« Jorja Smith en feat » sur un titre d'album, supabase/release-track-feats.sql).
+// - monday   : le lundi à 10h (pg_cron, supabase/monday-recap.sql), les sorties de la semaine de tes artistes pas encore écoutées.
 // - speed-report : le vendredi à 12h (pg_cron, supabase/speed-report.sql), heure d'arrivée des sorties du jour dans BARZ¡
 //              comparée au vendredi d'avant, postée dans #alertes ; dry: true renvoie le relevé sans le poster.
 //
@@ -160,8 +161,11 @@ async function withTrackFeats(input: ReleaseRow[]): Promise<ReleaseRow[]> {
 }
 
 // Artistes suivis par membre : identifiants et noms comparables (pour les feats)
-async function followsOf(userIds: string[]) {
-  const { data: follows } = await admin.from('follows').select('user_id, artist_id, artist:artists(name)').in('user_id', userIds);
+// instantOnly : seulement les artistes en « Dès la sortie » (supabase/instant-follows.sql)
+async function followsOf(userIds: string[], instantOnly = false) {
+  let query = admin.from('follows').select('user_id, artist_id, artist:artists(name)').in('user_id', userIds);
+  if (instantOnly) query = query.eq('instant', true);
+  const { data: follows } = await query;
   const byUser = new Map<string, { ids: Set<string>; names: Map<string, string> }>();
   for (const f of (follows ?? []) as unknown as { user_id: string; artist_id: string; artist: { name: string } | null }[]) {
     const u = byUser.get(f.user_id) ?? { ids: new Set(), names: new Map() };
@@ -246,7 +250,7 @@ async function fridayMessages(userIds: string[]): Promise<{ messages: Map<string
 }
 
 // Nouvelles sorties des artistes suivis (enregistrées ces 3 derniers jours, déjà sorties), pas encore annoncées
-async function releaseMessages(userIds: string[], today: string): Promise<{ messages: Map<string, Message>; announced: { user_id: string; release_id: string }[] }> {
+async function releaseMessages(userIds: string[], today: string, instantOnly = false): Promise<{ messages: Map<string, Message>; announced: { user_id: string; release_id: string }[] }> {
   const since = new Date(Date.now() - 3 * 86400_000).toISOString();
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
   const [{ data: releases }, byUser] = await Promise.all([
@@ -257,7 +261,7 @@ async function releaseMessages(userIds: string[], today: string): Promise<{ mess
       .gte('release_date', weekAgo)
       .lte('release_date', today)
       .limit(5000),
-    followsOf(userIds),
+    followsOf(userIds, instantOnly),
   ]);
   const all = await withTrackFeats((releases ?? []) as unknown as ReleaseRow[]);
   const messages = new Map<string, Message>();
@@ -646,10 +650,13 @@ Deno.serve(async (req) => {
     ]);
     const post = p as { user_id: string; week: string; body: string } | null;
     if (!post || !liker || post.user_id === String(body.user)) return reply({ sent: 0 });
-    const others = (likes ?? []).filter((l) => l.user_id !== post.user_id && l.user_id !== String(body.user)).length;
+    // Réactions rapides (supabase/friday-emoji.sql) : un membre peut en poser plusieurs, on compte les personnes
+    const others = new Set((likes ?? []).map((l) => l.user_id as string).filter((id) => id !== post.user_id && id !== String(body.user))).size;
     const name = (liker as { display_name: string }).display_name;
+    const emoji = typeof body.emoji === 'string' && body.emoji !== '♥' ? body.emoji : null;
+    const verb = emoji ? (others ? `ont réagi ${emoji} à` : `a réagi ${emoji} à`) : others ? 'ont aimé' : 'a aimé';
     const message: Message = {
-      title: others ? `${name} et ${others} autre${others > 1 ? 's' : ''} ont aimé ton message du vendredi` : `${name} a aimé ton message du vendredi`,
+      title: others ? `${name} et ${others} autre${others > 1 ? 's' : ''} ${verb} ton message du vendredi` : `${name} ${verb} ton message du vendredi`,
       body: quoted(post.body, 80).replace(/^ — /, ''),
       url: `${SITE}vendredi?semaine=${post.week}&post=${postId}`,
       tag: `friday-like-${postId}`,
@@ -806,9 +813,9 @@ Deno.serve(async (req) => {
     const { hour, weekday, today } = parisNow();
     // Invités des titres des albums récents, à toute heure : prêts pour la notification du vendredi matin
     const checked = await collectTrackFeats(today).catch((err) => `erreur : ${err instanceof Error ? err.message : String(err)}`);
-    // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi, la notification de 9h annonce d'abord les sorties de la nuit
-    if (hour < 8 || hour >= 22) return reply({ skipped: 'nuit', checked });
-    if (weekday === 'Fri' && hour < 10) return reply({ skipped: 'vendredi matin', checked });
+    // Pas la nuit (les sorties de minuit attendent 8h) ; le vendredi, la notification de 9h annonce d'abord les sorties de la nuit.
+    // Exception : les artistes en « Dès la sortie » sont annoncés tout de suite, à toute heure
+    const quiet = hour < 8 || hour >= 22 ? 'nuit' : weekday === 'Fri' && hour < 10 ? 'vendredi matin' : null;
     // Tous les membres qui suivent des artistes : la cloche pour tous, le téléphone pour ceux qui l'ont activé
     const [{ data }, { data: followers }] = await Promise.all([
       admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),
@@ -817,12 +824,12 @@ Deno.serve(async (req) => {
     const subs = (data ?? []) as Sub[];
     const userIds = [...new Set((followers ?? []).map((f) => f.user_id as string))];
     if (!userIds.length) return reply({ sent: 0, checked });
-    const { messages, announced } = await releaseMessages(userIds, today);
-    if (!announced.length) return reply({ sent: 0, checked });
+    const { messages, announced } = await releaseMessages(userIds, today, !!quiet);
+    if (!announced.length) return reply({ sent: 0, checked, ...(quiet ? { skipped: quiet } : {}) });
     await markNotified(announced); // avant l'envoi : deux passages rapprochés n'enverront pas deux fois
     const sent = await send(subs, (userId) => messages.get(userId) ?? null);
     await toInbox('release', [...messages]);
-    return reply({ sent, releases: announced.length, checked });
+    return reply({ sent, releases: announced.length, checked, ...(quiet ? { instant: true } : {}) });
   }
 
   if (body.action === 'test') {
@@ -837,6 +844,50 @@ Deno.serve(async (req) => {
       tag: 'test',
     }));
     return reply({ sent });
+  }
+
+  if (body.action === 'monday') {
+    // Récap du lundi (pg_cron, supabase/monday-recap.sql) : les sorties de tes artistes ces 7 derniers jours, et celles
+    // que tu n'as pas encore marquées comme écoutées, pour rattraper le vendredi. Rien à ceux qui ont tout écouté.
+    if (!isServiceRole(token)) return reply({ error: 'Non autorisé.' }, 401);
+    const { hour, weekday, today } = parisNow();
+    if (typeof body.hour === 'number' && (weekday !== 'Mon' || hour !== body.hour)) return reply({ skipped: `${weekday} ${hour}h à Paris` });
+    const day = (n: number) => new Date(Date.parse(`${today}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+    const [{ data: releases }, { data: followers }, { data: subs }] = await Promise.all([
+      admin.from('releases').select('id, slug, title, artist_id, metadata, artist:artists!artist_id(name)').gte('release_date', day(-7)).lte('release_date', day(-1)).limit(5000),
+      admin.from('follows').select('user_id').limit(20000),
+      admin.from('push_subscriptions').select('endpoint, user_id, p256dh, auth'),
+    ]);
+    const userIds = [...new Set((followers ?? []).map((f) => f.user_id as string))];
+    const all = await withoutAi((releases ?? []) as unknown as ReleaseRow[]);
+    if (!userIds.length || !all.length) return reply({ sent: 0 });
+    const byUser = await followsOf(userIds);
+    const mineByUser = new Map(userIds.map((id) => [id, matchFollowed(all, byUser.get(id))] as const));
+    // Écoutés parmi ces sorties
+    const ids = [...new Set([...mineByUser.values()].flatMap((m) => m.mine.map((r) => r.id)))];
+    const heard = new Set<string>();
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data } = await admin.from('listened').select('user_id, release_id').in('release_id', ids.slice(i, i + 200)).in('user_id', userIds);
+      for (const l of (data ?? []) as { user_id: string; release_id: string }[]) heard.add(`${l.user_id}:${l.release_id}`);
+    }
+    const messages = new Map<string, Message>();
+    for (const [userId, { mine, shownName }] of mineByUser) {
+      const left = mine.filter((r) => !heard.has(`${userId}:${r.id}`));
+      if (!left.length) continue;
+      const artists = [...new Set(left.map(shownName).filter((n): n is string => !!n))];
+      const shown = artists.slice(0, 3);
+      const rest = artists.length - shown.length;
+      messages.set(userId, {
+        title: `Ta semaine : ${mine.length} sortie${mine.length > 1 ? 's' : ''} de tes artistes`,
+        body: `${left.length === mine.length ? (left.length > 1 ? 'Aucune encore écoutée' : 'Pas encore écoutée') : `${left.length} pas encore écoutée${left.length > 1 ? 's' : ''}`} : ${listNames(rest > 0 ? [...shown, `${rest} autre${rest > 1 ? 's' : ''}`] : shown)}.`,
+        url: left.length > 1 ? selectionUrl(left) : `${SITE}releases/${left[0].slug}/`,
+        tag: `monday-${today}`,
+      });
+    }
+    if (!messages.size) return reply({ sent: 0 });
+    const sent = await send((subs ?? []) as Sub[], (userId) => messages.get(userId) ?? null);
+    await toInbox('release', [...messages]);
+    return reply({ sent, members: messages.size });
   }
 
   if (body.action === 'speed-report') {

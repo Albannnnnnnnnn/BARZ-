@@ -1,0 +1,99 @@
+---
+// Invitation discrète à installer BARZ¡ sur l'écran d'accueil, à partir du 2e jour de visite, sur téléphone.
+// Sur iPhone, c'est la seule façon de recevoir les notifications. « Plus tard » la cache 30 jours.
+// Le bouton et l'aide iPhone viennent d'InstallApp (visible seulement quand l'installation est possible).
+import InstallApp from './InstallApp.astro';
+---
+<aside class="install-nudge" id="install-nudge" hidden aria-labelledby="install-nudge-title">
+  <p class="install-nudge-title" id="install-nudge-title"><b>Mets BARZ¡ sur ton écran d’accueil</b></p>
+  <p class="install-nudge-text">Une icône comme une vraie appli, et les notifs dès qu’un son de tes artistes sort.</p>
+  <InstallApp compact />
+  <button type="button" class="install-nudge-close" id="install-nudge-close">Plus tard</button>
+</aside>
+
+<script>
+  const DAYS_KEY = 'barz-visit-days';
+  const SNOOZE_KEY = 'barz-install-snooze';
+  const read = (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  };
+  const write = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // stockage bloqué : l'invitation ne s'affichera pas
+    }
+  };
+
+  const nudge = document.getElementById('install-nudge')!;
+  const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone;
+  const phone = matchMedia('(pointer: coarse)').matches && innerWidth < 900;
+  // Jours de visite distincts (les 2 derniers suffisent)
+  const today = new Date().toISOString().slice(0, 10);
+  const days = (read(DAYS_KEY) ?? '').split(',').filter(Boolean);
+  if (!days.includes(today)) write(DAYS_KEY, [...days, today].slice(-2).join(','));
+  const secondDay = days.some((d) => d !== today);
+  const snoozed = Number(read(SNOOZE_KEY) ?? 0) > Date.now();
+
+  if (!standalone && phone && secondDay && !snoozed) {
+    // On attend de savoir si l'installation est possible (événement du navigateur, ou iPhone)
+    setTimeout(() => {
+      const box = nudge.querySelector<HTMLElement>('[data-install]');
+      if (box && !box.hidden) nudge.hidden = false;
+    }, 4000);
+  }
+  document.getElementById('install-nudge-close')!.addEventListener('click', () => {
+    write(SNOOZE_KEY, String(Date.now() + 30 * 86_400_000));
+    nudge.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => (nudge.hidden = true));
+</script>
+
+<style>
+  .install-nudge {
+    position: fixed;
+    right: 16px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    left: 16px;
+    z-index: 60;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+    border: var(--line);
+    border-radius: 14px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard-sm);
+  }
+
+  .install-nudge[hidden] {
+    display: none;
+  }
+
+  .install-nudge-title {
+    margin: 0 0 4px;
+    font-size: 16px;
+  }
+
+  .install-nudge-text {
+    margin: 0 0 12px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .install-nudge-close {
+    min-height: 44px;
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font: 600 14px/1 var(--font-sans);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+</style>

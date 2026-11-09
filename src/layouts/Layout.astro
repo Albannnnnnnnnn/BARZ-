@@ -10,6 +10,7 @@ import UpdateBanner from '../components/UpdateBanner.astro';
 import PushToast from '../components/PushToast.astro';
 import WhatsNew from '../components/WhatsNew.astro';
 import LastfmTuto from '../components/LastfmTuto.astro';
+import InstallNudge from '../components/InstallNudge.astro';
 
 interface Props {
   title: string;
@@ -105,6 +106,7 @@ const currentPath = Astro.url.pathname;
     <PushToast />
     <WhatsNew />
     <LastfmTuto />
+    <InstallNudge />
     <script>
       import '../scripts/error-report';
       import '../scripts/barz-averages';

@@ -443,6 +443,22 @@ export async function setFollow(artistId: string, on: boolean) {
   else must(await supabase.from('follows').delete().eq('user_id', session.user.id).eq('artist_id', artistId));
 }
 
+// « Dès la sortie » (supabase/instant-follows.sql) : 5 artistes suivis au plus, notifiés même la nuit
+export const INSTANT_MAX = 5;
+// null : pas connecté, ou SQL pas encore lancé (le bouton reste caché)
+export async function myInstantIds(): Promise<Set<string> | null> {
+  const session = await getSession();
+  if (!session || !supabase) return null;
+  const { data, error } = await supabase.from('follows').select('artist_id').eq('user_id', session.user.id).eq('instant' as never, true as never);
+  return error ? null : new Set(((data ?? []) as { artist_id: string }[]).map((r) => r.artist_id));
+}
+
+export async function setInstant(artistId: string, on: boolean) {
+  const session = await requireSession();
+  if (!session || !supabase) return;
+  must(await supabase.from('follows').update({ instant: on } as never).eq('user_id', session.user.id).eq('artist_id', artistId));
+}
+
 export async function updateMyProfile(fields: Partial<Pick<Profile, 'display_name' | 'bio' | 'username' | 'avatar_path'>> & { favorite_genres?: string[]; onboarded?: boolean; lastfm_username?: string | null; share_listening?: boolean; top_albums?: TopAlbum[]; top_artists?: TopAlbum[]; top_singles?: TopAlbum[]; notify_games?: boolean }) {
   const session = await requireSession();
   if (!session || !supabase) return;

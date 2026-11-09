@@ -928,6 +928,24 @@ button.bz-link:focus-visible {
   border-color: var(--color-ink);
 }
 
+/* « Dès la sortie » (fiche artiste) : notif immédiate, même la nuit */
+.bz-instant {
+  margin-top: 12px;
+  padding: 7px 14px;
+  border: var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: 800 12px/1 var(--font-sans);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.bz-instant.is-on {
+  background: var(--color-ink);
+  color: #fff;
+}
+
 .bz-artist-photo {
   border: var(--line);
 }

@@ -19,7 +19,7 @@ import Layout from '../layouts/Layout.astro';
         <p class="who"><a class="artist" id="tr-artist"></a><span class="feats" id="tr-feats"></span></p>
         <dl class="facts" id="tr-facts"></dl>
         <div class="actions">
-          <button type="button" class="bz-btn bz-btn--lime play" id="tr-play" hidden>▶ Écouter l’extrait</button>
+          <button type="button" class="bz-btn bz-btn--outline play" id="tr-play" hidden>▶ Écouter l’extrait</button>
           <a class="bz-btn bz-btn--outline" id="tr-album">Voir le disque</a>
         </div>
       </div>
@@ -55,6 +55,8 @@ import Layout from '../layouts/Layout.astro';
 
 <script>
   import { deezerJsonp } from '../scripts/deezer-jsonp';
+  import { listenMenuHtml } from '../lib/listen';
+  import { initListen } from '../scripts/listen';
   import { BASE, barzCardHtml, barzFeed, coverHtml, errorText, escapeHtml, formatScore, getSession, loginUrl, saveBarz, supabase, wireBarzActions } from '../scripts/social';
 
   type DeezerTrack = {
@@ -172,6 +174,9 @@ import Layout from '../layouts/Layout.astro';
     const albumLink = $('tr-album') as HTMLAnchorElement;
     if (albumHref) albumLink.href = albumHref;
     else albumLink.hidden = true;
+    // Écouter le titre en entier sur sa plateforme (retenue sur l'appareil, src/scripts/listen.ts)
+    albumLink.parentElement!.insertAdjacentHTML('afterbegin', listenMenuHtml({ artist: artistName, title: track.title, deezerUrl: track.link ?? `https://www.deezer.com/track/${track.id}` }));
+    initListen();
 
     // Extrait de 30 secondes
     if (track.readable && track.preview) {

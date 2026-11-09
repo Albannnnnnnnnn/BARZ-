@@ -77,22 +77,33 @@ import FilTabs from '../components/FilTabs.astro';
   if (focusPost) openThreads.add(focusPost);
   let focused = false;
 
+  // Réactions rapides (supabase/friday-emoji.sql) ; sans la colonne emoji, seulement le ♥
+  const EMOJIS = ['♥', '🔥', '😴', '🤯'];
+  let emojiReady = true;
+  type Like = { user_id: string; emoji: string };
   async function loadReactions(ids: string[]) {
-    const likes = new Map<string, string[]>();
+    const likes = new Map<string, Like[]>();
     const replies = new Map<string, Reply[]>();
     if (!supabase || !ids.length) return { likes, replies, ok: false };
+    const readLikes = async () => {
+      if (emojiReady) {
+        const res = await supabase!.from('friday_post_likes' as never).select('post_id, user_id, emoji').in('post_id', ids);
+        if (!res.error) return res;
+        emojiReady = false;
+      }
+      return supabase!.from('friday_post_likes' as never).select('post_id, user_id').in('post_id', ids);
+    };
     const [l, r] = await Promise.all([
-      supabase.from('friday_post_likes' as never).select('post_id, user_id').in('post_id', ids),
+      readLikes(),
       supabase.from('friday_post_replies' as never).select('id, post_id, user_id, body, created_at, profile:profiles!friday_post_replies_user_id_fkey(username, display_name)').in('post_id', ids).order('created_at'),
     ]);
     if (l.error || r.error) return { likes, replies, ok: false };
-    for (const row of (l.data ?? []) as { post_id: string; user_id: string }[]) likes.set(row.post_id, [...(likes.get(row.post_id) ?? []), row.user_id]);
+    for (const row of (l.data ?? []) as { post_id: string; user_id: string; emoji?: string }[]) likes.set(row.post_id, [...(likes.get(row.post_id) ?? []), { user_id: row.user_id, emoji: row.emoji ?? '♥' }]);
     for (const row of (r.data ?? []) as unknown as Reply[]) replies.set(row.post_id, [...(replies.get(row.post_id) ?? []), row]);
     return { likes, replies, ok: true };
   }
 
-  function reactionsHtml(p: Post, likes: string[], replies: Reply[]) {
-    const liked = !!myId && likes.includes(myId);
+  function reactionsHtml(p: Post, likes: Like[], replies: Reply[]) {
     const open = openThreads.has(p.id);
     const list = replies
       .map((r) => {
@@ -105,7 +116,13 @@ import FilTabs from '../components/FilTabs.astro';
       ? `<form class="barz-reply-form" data-reply-form="${p.id}"><input class="bz-input" name="reply" maxlength="280" placeholder="Ta réponse…" autocomplete="off" aria-label="Ta réponse" required /><button type="submit" class="bz-btn bz-btn--lime bz-btn--small">Répondre</button></form>`
       : `<a class="barz-reply-login" href="${loginUrl()}">Connecte-toi pour répondre</a>`;
     return `<div class="post-actions">
-        <button type="button" class="barz-like${liked ? ' is-liked' : ''}" data-like="${p.id}" aria-pressed="${liked}">♥ <span>${likes.length}</span></button>
+        ${(emojiReady ? EMOJIS : ['♥'])
+          .map((e) => {
+            const n = likes.filter((l) => l.emoji === e).length;
+            const mine = !!myId && likes.some((l) => l.emoji === e && l.user_id === myId);
+            return `<button type="button" class="barz-like${mine ? ' is-liked' : ''}${n || e === '♥' ? '' : ' is-quiet'}" data-like="${p.id}" data-emoji="${e}" aria-pressed="${mine}" aria-label="Réagir ${e}">${e} <span>${n || (e === '♥' ? 0 : '')}</span></button>`;
+          })
+          .join('')}
         <button type="button" class="barz-like" data-replies="${p.id}" aria-expanded="${open}">💬 <span>${replies.length || 'Répondre'}</span></button>
       </div>
       <div class="barz-thread" data-thread="${p.id}"${open ? '' : ' hidden'}>${list ? `<ul class="barz-replies">${list}</ul>` : ''}${form}</div>`;
@@ -244,9 +261,12 @@ import FilTabs from '../components/FilTabs.astro';
       if (!myId) return void (location.href = loginUrl());
       like.disabled = true;
       const liked = like.getAttribute('aria-pressed') === 'true';
+      const emoji = like.dataset.emoji ?? '♥';
+      let remove = supabase.from('friday_post_likes' as never).delete().eq('post_id', like.dataset.like!).eq('user_id', myId);
+      if (emojiReady) remove = remove.eq('emoji' as never, emoji as never);
       const { error } = liked
-        ? await supabase.from('friday_post_likes' as never).delete().eq('post_id', like.dataset.like!).eq('user_id', myId)
-        : await supabase.from('friday_post_likes' as never).insert({ post_id: like.dataset.like! } as never);
+        ? await remove
+        : await supabase.from('friday_post_likes' as never).insert((emojiReady ? { post_id: like.dataset.like!, emoji } : { post_id: like.dataset.like! }) as never);
       if (error) alert(errorText(error));
       return renderPosts();
     }
@@ -304,6 +324,15 @@ import FilTabs from '../components/FilTabs.astro';
 </script>
 
 <style>
+  /* Réaction rapide encore jamais posée : plus discrète */
+  :global(.post-actions .barz-like.is-quiet) {
+    opacity: 0.55;
+  }
+
+  :global(.post-actions .barz-like.is-quiet:hover) {
+    opacity: 1;
+  }
+
   .friday {
     max-width: 980px;
   }

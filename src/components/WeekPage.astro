@@ -619,6 +619,12 @@ const builtAt = new Date().toISOString();
     margin-top: 48px;
   }
 
+  /* Vitesse sur téléphone : le navigateur ne dessine une section qu'à l'approche de l'écran */
+  .group {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 720px;
+  }
+
   .group-title {
     margin-bottom: 18px;
     padding-bottom: 10px;
@@ -882,6 +888,7 @@ const builtAt = new Date().toISOString();
 
   .ai-toggle {
     display: inline-flex;
+    min-height: 44px;
     flex-shrink: 0;
     align-items: center;
     gap: 6px;
@@ -1015,11 +1022,15 @@ const builtAt = new Date().toISOString();
   .sorties-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 22px;
-    margin: 22px 0 6px;
+    gap: 0 22px;
+    margin: 12px 0 0;
   }
 
   .sorties-links a {
+    /* Zone de toucher d'au moins 44 px de haut, sans changer l'aspect du lien */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     font: 700 13px/1 var(--font-display);
     text-transform: uppercase;
     letter-spacing: 0.03em;

@@ -59,7 +59,11 @@ import { GENRE_CHIPS } from '../lib/genres';
     <section id="step-artists" hidden>
       <span class="bz-eyebrow">Étape 3 sur 3</span>
       <h1 class="bz-display">Tes <em>artistes.</em></h1>
-      <p class="lead">Suis ceux que tu aimes : leurs sorties remonteront en premier, et on te proposera des artistes proches. <b id="follow-count"></b></p>
+      <p class="lead">Suis ceux que tu aimes : leurs sorties remonteront en premier, et on te proposera des artistes proches.</p>
+      <div class="follow-goal" role="status" aria-live="polite">
+        <span class="follow-bar" aria-hidden="true"><span id="follow-bar"></span></span>
+        <b id="follow-count">Suis 10 artistes pour un vendredi bien rempli</b>
+      </div>
       <div class="imported" id="imported-block" hidden>
         <div class="imported-head">
           <h2 class="imported-title" id="imported-title">Retrouvés sur Deezer</h2>
@@ -89,7 +93,19 @@ import { GENRE_CHIPS } from '../lib/genres';
   const chosen = new Set<string>();
   let followed = new Set<string>();
 
-  const paintCount = () => ($('follow-count').textContent = followed.size ? `${followed.size} suivi${followed.size > 1 ? 's' : ''}.` : '');
+  // Objectif : 10 artistes suivis, assez pour que le vendredi et les recommandations aient du sens
+  const FOLLOW_GOAL = 10;
+  const paintCount = () => {
+    const n = followed.size;
+    const left = FOLLOW_GOAL - n;
+    $('follow-count').textContent = !n
+      ? `Suis ${FOLLOW_GOAL} artistes pour un vendredi bien rempli`
+      : left > 0
+        ? `${n} suivi${n > 1 ? 's' : ''} · plus que ${left} artiste${left > 1 ? 's' : ''}`
+        : `${n} artistes suivis : ton vendredi est prêt 🎉`;
+    $('follow-bar').style.width = `${Math.min(100, (n / FOLLOW_GOAL) * 100)}%`;
+    $('follow-bar').parentElement!.classList.toggle('is-done', left <= 0);
+  };
 
   // Étapes : ta musique → genres → artistes
   const show = (step: 'music' | 'genres' | 'artists') => {
@@ -253,6 +269,44 @@ import { GENRE_CHIPS } from '../lib/genres';
 </script>
 
 <style>
+  /* Objectif de 10 artistes suivis : reste visible en haut pendant qu'on fait défiler les artistes */
+  .follow-goal {
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0 20px;
+    padding: 10px 14px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-hard-sm);
+    font-size: 14px;
+  }
+
+  .follow-bar {
+    flex: none;
+    width: 96px;
+    height: 10px;
+    overflow: hidden;
+    border: var(--line);
+    border-radius: 999px;
+  }
+
+  .follow-bar span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--color-ink);
+    transition: width 0.25s ease;
+  }
+
+  .follow-bar.is-done span {
+    background: var(--color-accent);
+  }
+
   .lead {
     max-width: 640px;
     margin: 20px 0 36px;

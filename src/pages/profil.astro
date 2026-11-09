@@ -132,10 +132,14 @@ import Layout from '../layouts/Layout.astro';
 
       <section class="block" id="p-blend" hidden aria-labelledby="blend-title">
         <div class="bz-section-head"><h2 id="blend-title" class="bz-h2">Pour vous deux</h2></div>
+        <p class="blend-match" id="p-blend-match" hidden></p>
         <p class="blend-note" id="p-blend-note"></p>
         <div class="bz-tiles bz-rail" id="p-blend-releases"></div>
         <h3 class="sub" id="p-blend-artists-title" hidden>Vos artistes en commun</h3>
         <div class="bz-artists bz-rail bz-rail--compact" id="p-blend-artists"></div>
+        <h3 class="sub" id="p-blend-scores-title" hidden>Vos notes sur les mêmes disques</h3>
+        <p class="blend-note" id="p-blend-scores-note" hidden></p>
+        <ul class="blend-scores" id="p-blend-scores"></ul>
       </section>
 
       <div class="layout">
@@ -182,6 +186,7 @@ import Layout from '../layouts/Layout.astro';
     avatarUrl,
     coverHtml,
     escapeHtml,
+    formatScore,
     acceptFriendRequest,
     friendStatusWith,
     getSession,
@@ -206,7 +211,7 @@ import Layout from '../layouts/Layout.astro';
   import { shareInvite } from '../scripts/invite';
   import { GENRE_CHIPS } from '../lib/genres';
   import { deezerJsonp } from '../scripts/deezer-jsonp';
-  import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, type Taste } from '../scripts/reco';
+  import { loadTaste, loadTasteOf, rankForTwo, recentReleases, sharedArtists, tasteSimilarity, type Taste } from '../scripts/reco';
   import { nowPlaying, nowPlayingHtml, spotifyAvailable } from '../scripts/spotify';
 
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -921,6 +926,43 @@ import Layout from '../layouts/Layout.astro';
     const iFollow = new Set(myArtists.map((a) => a.id));
     $('p-blend-artists').innerHTML = shared.map((a) => artistCardHtml(a, iFollow.has(a.id))).join('');
     $('p-blend-artists-title').hidden = !shared.length;
+    // Compatibilité : genres et artistes aimés en commun (tasteSimilarity, de 0 à 1)
+    const match = Math.round(tasteSimilarity(mine, theirs) * 100);
+    $('p-blend-match').innerHTML = `<b>${match} %</b> de goûts en commun`;
+    $('p-blend-match').hidden = false;
+    renderScoreDuel(profile).catch(() => {});
+  }
+
+  // Barz à deux : les disques que vous avez notés tous les deux, d'abord vos plus gros désaccords
+  async function renderScoreDuel(profile: Profile) {
+    const me = (await getSession())?.user.id;
+    if (!me || !supabase) return;
+    type Row = { release_id: string; score: number; release: { title: string; slug: string; cover_url: string | null; artist: { name: string } | null } | null };
+    const read = (userId: string) =>
+      supabase!.from('barz').select('release_id, score, release:releases(title, slug, cover_url, artist:artists!artist_id(name))').eq('user_id', userId).is('track_id' as never, null).order('created_at', { ascending: false }).limit(1000);
+    const [{ data: a }, { data: b }] = await Promise.all([read(me), read(profile.id)]);
+    const theirs = new Map(((b ?? []) as unknown as Row[]).map((r) => [r.release_id, Number(r.score)]));
+    const both = ((a ?? []) as unknown as Row[])
+      .filter((r) => r.release && theirs.has(r.release_id))
+      .map((r) => ({ ...r, mine: Number(r.score), theirs: theirs.get(r.release_id)!, gap: Math.abs(Number(r.score) - theirs.get(r.release_id)!) }));
+    const title = $('p-blend-scores-title');
+    const note = $('p-blend-scores-note');
+    title.hidden = false;
+    note.hidden = false;
+    if (!both.length) {
+      note.textContent = `Notez un même disque pour comparer vos notes.`;
+      $('p-blend-scores').innerHTML = '';
+      return;
+    }
+    const avgGap = both.reduce((s, r) => s + r.gap, 0) / both.length;
+    note.textContent = `${both.length} disque${both.length > 1 ? 's' : ''} en commun · ${avgGap.toFixed(1).replace('.', ',')} point${avgGap >= 2 ? 's' : ''} d’écart en moyenne`;
+    const shown = [...both].sort((x, y) => y.gap - x.gap).slice(0, 5);
+    $('p-blend-scores').innerHTML = shown
+      .map((r) => `<li>
+        <a href="${BASE}releases/${encodeURIComponent(r.release!.slug)}">${coverHtml(r.release!.title, r.release!.cover_url)}<span><b>${escapeHtml(r.release!.title)}</b>${escapeHtml(r.release!.artist?.name ?? '')}</span></a>
+        <span class="duel"><span title="Ta note">Toi ${formatScore(r.mine)}</span><span title="Sa note">${escapeHtml(profile.display_name)} ${formatScore(r.theirs)}</span>${r.gap >= 3 ? '<em>Désaccord</em>' : r.gap < 0.5 ? '<em>Pareil</em>' : ''}</span>
+      </li>`)
+      .join('');
   }
 
   load().catch((err) => {
@@ -932,6 +974,86 @@ import Layout from '../layouts/Layout.astro';
 <style>
   .cta {
     margin-bottom: 28px;
+  }
+
+  /* Pour vous deux : compatibilité et notes sur les mêmes disques */
+  .blend-match {
+    margin: 0 0 8px;
+    font: 700 18px/1.2 var(--font-sans);
+  }
+
+  .blend-match b {
+    font-size: 34px;
+    letter-spacing: -0.02em;
+  }
+
+  .blend-scores {
+    display: grid;
+    gap: 10px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .blend-scores :global(li) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 10px 12px;
+    border: var(--line);
+    border-radius: 12px;
+    background: var(--color-paper);
+  }
+
+  .blend-scores :global(li > a) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .blend-scores :global(li > a > :first-child) {
+    flex: none;
+    width: 48px;
+    height: 48px;
+  }
+
+  .blend-scores :global(li > a span) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    color: var(--color-text-muted);
+    font-size: 13px;
+  }
+
+  .blend-scores :global(li > a b) {
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .blend-scores :global(.duel) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    font: 700 14px/1.2 var(--font-sans);
+  }
+
+  .blend-scores :global(.duel em) {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--color-ink);
+    color: #fff;
+    font-size: 11px;
+    font-style: normal;
+    text-transform: uppercase;
   }
 
   .perks {
