@@ -125,8 +125,10 @@ const currentPath = Astro.url.pathname;
       import '../scripts/listen';
       import { promptGuide } from '../scripts/guide-prompt';
       import { acceptPendingInvite } from '../scripts/invite';
+      import { syncPush } from '../scripts/push';
       promptGuide().catch(() => {});
       acceptPendingInvite().catch(() => {});
+      syncPush().catch(() => {}); // adresse d'abonnement aux notifications à jour (src/scripts/push.ts)
     </script>
   </body>
 </html>

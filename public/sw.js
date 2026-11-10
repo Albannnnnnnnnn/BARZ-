@@ -79,7 +79,8 @@ self.addEventListener('push', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const visible = windows.filter((w) => w.visibilityState === 'visible' && w.url.startsWith(self.location.origin + BASE));
       visible.forEach((w) => w.postMessage(message));
-      return visible.length && !apple ? undefined : notify();
+      // La notification de test (Paramètres) s'affiche toujours sur le téléphone : c'est elle qu'on veut vérifier
+      return visible.length && !apple && data.tag !== 'test' ? undefined : notify();
     })
   );
 });

@@ -39,6 +39,36 @@ export async function enablePush(): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// À l'ouverture de l'appli (une fois par session) : si cet appareil est abonné, son adresse est renvoyée à la base.
+// Le navigateur change parfois l'adresse d'abonnement sans prévenir ; sans ça, les notifications partent vers
+// l'ancienne et n'arrivent plus, alors que Paramètres affiche « activées ».
+export async function syncPush(): Promise<void> {
+  try {
+    if (sessionStorage.getItem('barz-push-synced')) return;
+  } catch {
+    // stockage bloqué : on synchronise à chaque page, ce n'est qu'un petit envoi
+  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  const session = await getSession();
+  if (!session || !supabase) return;
+  const reg = await registration();
+  let sub = await reg.pushManager.getSubscription();
+  // Permission donnée mais plus d'abonnement (effacé par le navigateur) : on le recrée
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) });
+  const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .upsert({ endpoint: json.endpoint, user_id: session.user.id, p256dh: json.keys.p256dh, auth: json.keys.auth }, { onConflict: 'endpoint' });
+  if (!error) {
+    try {
+      sessionStorage.setItem('barz-push-synced', '1');
+    } catch {
+      // rien
+    }
+  }
+}
+
 export async function disablePush(): Promise<void> {
   const sub = await (await registration()).pushManager.getSubscription();
   if (!sub) return;
