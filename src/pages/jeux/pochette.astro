@@ -15,8 +15,8 @@ import Layout from '../../layouts/Layout.astro';
     <p class="status" id="g-status">Chargement de la pochette du jour…</p>
 
     <div class="board" id="g-board" hidden>
-      <div class="cover-frame">
-        <img id="g-cover" alt="Pochette à deviner" referrerpolicy="no-referrer" />
+      <div class="cover-frame is-locked" id="g-frame">
+        <img id="g-cover" alt="Pochette à deviner" referrerpolicy="no-referrer" draggable="false" />
       </div>
 
       <div class="side">
@@ -108,6 +108,8 @@ import Layout from '../../layouts/Layout.astro';
   function render() {
     const n = state.tries.length;
     cover.style.filter = state.done ? 'none' : `blur(${BLUR[Math.min(n, MAX - 1)]}px)`;
+    // Tant que la partie dure, pas d'appui long ni de menu « Ouvrir l'image » qui montrerait la pochette nette
+    $('g-frame').classList.toggle('is-locked', !state.done);
     $('g-tries').innerHTML = Array.from({ length: MAX }, (_, i) => {
       const t = state.tries[i];
       if (!t) return `<li class="try is-empty"><span>${i + 1}</span></li>`;
@@ -246,6 +248,9 @@ import Layout from '../../layouts/Layout.astro';
     suggestions.querySelector<HTMLButtonElement>('button[data-id]')?.click();
   });
   $('g-skip').addEventListener('click', () => guess(null));
+  $('g-frame').addEventListener('contextmenu', (e) => {
+    if (!state.done) e.preventDefault();
+  });
 
   // Résultat en image au format story (src/scripts/share-card.ts) : la série si elle dure, sinon le nombre d'essais
   $('g-story').addEventListener('click', async () => {
@@ -351,6 +356,17 @@ import Layout from '../../layouts/Layout.astro';
     object-fit: cover;
     transform: scale(1.08); /* cache le bord clair que fait le flou */
     transition: filter 0.6s ease;
+  }
+
+  /* Partie en cours : l'image ne reçoit aucun geste (appui long, aperçu, glisser, sélection) */
+  .game .cover-frame.is-locked {
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .game .cover-frame.is-locked img {
+    pointer-events: none;
   }
 
   .game .tries {
