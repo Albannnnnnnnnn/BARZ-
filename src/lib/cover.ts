@@ -4,8 +4,9 @@
 // Largeur affichée d'une vignette dans les grilles (2 colonnes sur mobile)
 export const TILE_SIZES = '(max-width: 900px) 50vw, 220px';
 
-// Image qui ne charge pas : on la retire et la pochette affiche son dégradé et son titre
-export const COVER_ONERROR = "this.parentNode.classList.add('is-broken');this.remove()";
+// Image qui ne charge pas : on la retire et la pochette affiche son dégradé et son titre.
+// Une image déjà retirée de la page peut encore déclencher l'erreur (parentNode à null) : on ne fait alors rien
+export const COVER_ONERROR = "this.onerror=null;var c=this.parentNode;if(c)c.classList.add('is-broken');this.remove()";
 
 const DEEZER = /\/(\d+)x\1-(\d{6}-\d+-\d+-\d+\.jpg)$/;
 const CAA = /\/front(-\d+)?$/;
